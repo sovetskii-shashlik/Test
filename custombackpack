@@ -1,0 +1,933 @@
+-- Services
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local ContextActionService = game:GetService("ContextActionService")
+local TextService = game:GetService("TextService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Player references
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local mouse = player:GetMouse()
+
+-- SETTINGS
+local SETTINGS = {
+    DEFAULT_COLOR = Color3.fromRGB(0, 0, 0),
+    EQUIPPED_COLOR = Color3.fromRGB(128, 128, 128),
+    DISABLED_COLOR = Color3.fromRGB(128, 64, 65),
+    DEFAULT_IMAGEID = "",
+    EQUIPPED_IMAGEID = "",
+    DISABLED_IMAGEID = "",
+    INVENTORY_KEYBIND = Enum.KeyCode.Backquote,
+    DRAG_OUTSIDE_TO_DROP = false,
+    SHOW_EMPTY_TOOL_FRAMES_IN_HOTBAR = false,
+    SCROLL_HOTBAR_WITH_WHEEL = false,
+    EQUIP_TOUCH_SENSITIVITY = 60,
+    OPEN_BUTTON = true,
+    ALWAYS_SHOW_TOOL_NAME = false,
+    slotAmount = 8
+}
+
+-- Create GUI
+local inventoryGui = Instance.new("ScreenGui")
+inventoryGui.Name = "Custom Inventory"
+inventoryGui.ResetOnSpawn = false
+inventoryGui.Parent = playerGui
+
+-- Main inventory frame
+local inventoryFrame = Instance.new("ImageLabel")
+inventoryFrame.Name = "Inventory"
+inventoryFrame.Active = true
+inventoryFrame.ZIndex = 0
+inventoryFrame.BorderSizePixel = 0
+inventoryFrame.SliceCenter = Rect.new(5, 5, 945, 612)
+inventoryFrame.ScaleType = Enum.ScaleType.Slice
+inventoryFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+inventoryFrame.AnchorPoint = Vector2.new(0.5, 1)
+inventoryFrame.Size = UDim2.new(0.52177, 0, 0.39941, 0)
+inventoryFrame.Visible = false
+inventoryFrame.BorderColor3 = Color3.fromRGB(28, 43, 54)
+inventoryFrame.BackgroundTransparency = 0.5
+inventoryFrame.Position = UDim2.new(0.5, 0, 0.925, -20)
+inventoryFrame.Parent = inventoryGui
+
+local inventoryCorner = Instance.new("UICorner")
+inventoryCorner.CornerRadius = UDim.new(0.05, 0)
+inventoryCorner.Parent = inventoryFrame
+
+-- Inventory scrolling frame
+local inventoryScroll = Instance.new("ScrollingFrame")
+inventoryScroll.Name = "Frame"
+inventoryScroll.Active = true
+inventoryScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+inventoryScroll.BorderSizePixel = 0
+inventoryScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+inventoryScroll.ElasticBehavior = Enum.ElasticBehavior.Never
+inventoryScroll.TopImage = ""
+inventoryScroll.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+inventoryScroll.ScrollBarImageTransparency = 0.4
+inventoryScroll.BottomImage = ""
+inventoryScroll.AnchorPoint = Vector2.new(0.5, 0.5)
+inventoryScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+inventoryScroll.Size = UDim2.new(0.98, 0, 0.86193, 0)
+inventoryScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0)
+inventoryScroll.Position = UDim2.new(0.50106, 0, 0.54904, 0)
+inventoryScroll.BorderColor3 = Color3.fromRGB(28, 43, 54)
+inventoryScroll.ScrollBarThickness = 5
+inventoryScroll.BackgroundTransparency = 1
+inventoryScroll.Parent = inventoryFrame
+
+local inventoryGrid = Instance.new("UIGridLayout")
+inventoryGrid.Name = "Grid"
+inventoryGrid.CellSize = UDim2.new(0, 83, 0, 83)
+inventoryGrid.CellPadding = UDim2.new(0, 15, 0, 15)
+inventoryGrid.Parent = inventoryScroll
+
+local inventoryPadding = Instance.new("UIPadding")
+inventoryPadding.PaddingTop = UDim.new(0, 5)
+inventoryPadding.PaddingLeft = UDim.new(0, 5)
+inventoryPadding.Parent = inventoryScroll
+
+-- Search box
+local searchBox = Instance.new("TextBox")
+searchBox.Name = "SearchBox"
+searchBox.LineHeight = 1.1
+searchBox.PlaceholderColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.TextWrapped = true
+searchBox.TextSize = 14
+searchBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+searchBox.TextScaled = true
+searchBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+searchBox.AnchorPoint = Vector2.new(0.5, 0)
+searchBox.PlaceholderText = "SEARCH"
+searchBox.Size = UDim2.new(0.36276, 0, 0.04893, 20)
+searchBox.Position = UDim2.new(0.80953, 0, 0.01854, 0)
+searchBox.BorderColor3 = Color3.fromRGB(28, 43, 54)
+searchBox.Text = ""
+searchBox.BackgroundTransparency = 0.5
+searchBox.Parent = inventoryFrame
+
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0.2, 0)
+searchCorner.Parent = searchBox
+
+-- Hotbar
+local hotBar = Instance.new("Frame")
+hotBar.Name = "hotBar"
+hotBar.ZIndex = 0
+hotBar.BorderSizePixel = 0
+hotBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+hotBar.AnchorPoint = Vector2.new(0.5, 1)
+hotBar.Size = UDim2.new(0.45209, 0, 0.05, 20)
+hotBar.Position = UDim2.new(0.5, 0, 0.99, -5)
+hotBar.BorderColor3 = Color3.fromRGB(28, 43, 54)
+hotBar.BackgroundTransparency = 1
+hotBar.Parent = inventoryGui
+
+local hotBarGrid = Instance.new("UIGridLayout")
+hotBarGrid.Name = "Grid"
+hotBarGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+hotBarGrid.CellSize = UDim2.new(0, 70, 0, 70)
+hotBarGrid.CellPadding = UDim2.new(0.01, 5, 0, 5)
+hotBarGrid.Parent = hotBar
+
+-- Open button
+local openButton = Instance.new("ImageButton")
+openButton.Name = "openButton"
+openButton.BorderSizePixel = 0
+openButton.BackgroundTransparency = 1
+openButton.BackgroundColor3 = Color3.fromRGB(52, 52, 52)
+openButton.ZIndex = 6
+openButton.AnchorPoint = Vector2.new(0.5, 1)
+openButton.Size = UDim2.new(0.1, 0, 0.04313, 0)
+openButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+openButton.Position = UDim2.new(0.5, 0, 0.85, 0)
+openButton.Parent = inventoryGui
+
+local openButtonInfo = Instance.new("TextLabel")
+openButtonInfo.Name = "info"
+openButtonInfo.TextWrapped = true
+openButtonInfo.ZIndex = 6
+openButtonInfo.BorderSizePixel = 0
+openButtonInfo.TextSize = 14
+openButtonInfo.TextScaled = true
+openButtonInfo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+openButtonInfo.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+openButtonInfo.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButtonInfo.BackgroundTransparency = 1
+openButtonInfo.AnchorPoint = Vector2.new(0.5, 0.5)
+openButtonInfo.Size = UDim2.new(1, 0, 0.70945, 0)
+openButtonInfo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+openButtonInfo.Text = "(') open inventory"
+openButtonInfo.Position = UDim2.new(0.498, 0, 0.5, 0)
+openButtonInfo.Parent = openButton
+
+local openButtonStroke = Instance.new("UIStroke")
+openButtonStroke.LineJoinMode = Enum.LineJoinMode.Miter
+openButtonStroke.Thickness = 3
+openButtonStroke.Parent = openButtonInfo
+
+-- Tool button template
+local toolButton = Instance.new("ImageButton")
+toolButton.Name = "toolButton"
+toolButton.SizeConstraint = Enum.SizeConstraint.RelativeYY
+toolButton.BorderSizePixel = 0
+toolButton.SliceCenter = Rect.new(5, 11, 942, 606)
+toolButton.ScaleType = Enum.ScaleType.Slice
+toolButton.AutoButtonColor = false
+toolButton.BackgroundTransparency = 0.5
+toolButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+toolButton.Size = UDim2.new(1, 0, 1, 0)
+toolButton.BorderColor3 = Color3.fromRGB(28, 43, 54)
+
+local toolNumber = Instance.new("TextLabel")
+toolNumber.Name = "toolNumber"
+toolNumber.TextWrapped = true
+toolNumber.ZIndex = 2
+toolNumber.BorderSizePixel = 0
+toolNumber.TextSize = 14
+toolNumber.TextTransparency = 0.5
+toolNumber.TextScaled = true
+toolNumber.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toolNumber.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+toolNumber.TextColor3 = Color3.fromRGB(255, 255, 255)
+toolNumber.BackgroundTransparency = 1
+toolNumber.Size = UDim2.new(0.343, 0, 0.288, 0)
+toolNumber.BorderColor3 = Color3.fromRGB(28, 43, 54)
+toolNumber.Text = "1"
+toolNumber.Parent = toolButton
+
+local toolName = Instance.new("TextLabel")
+toolName.Name = "toolName"
+toolName.TextWrapped = true
+toolName.ZIndex = 3
+toolName.BorderSizePixel = 0
+toolName.TextSize = 16
+toolName.TextScaled = true
+toolName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toolName.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+toolName.TextColor3 = Color3.fromRGB(255, 255, 255)
+toolName.BackgroundTransparency = 1
+toolName.AnchorPoint = Vector2.new(0.5, 0.5)
+toolName.Size = UDim2.new(0.8, 0, 0.518, 0)
+toolName.BorderColor3 = Color3.fromRGB(28, 43, 54)
+toolName.Text = "N/A"
+toolName.Position = UDim2.new(0.515, 0, 0.47079, 0)
+toolName.Parent = toolButton
+
+local toolNameStroke = Instance.new("UIStroke")
+toolNameStroke.Thickness = 3
+toolNameStroke.Parent = toolName
+
+local toolNameConstraint = Instance.new("UITextSizeConstraint")
+toolNameConstraint.MaxTextSize = 20
+toolNameConstraint.MinTextSize = 5
+toolNameConstraint.Parent = toolName
+
+local toolAmount = Instance.new("TextLabel")
+toolAmount.Name = "toolAmount"
+toolAmount.TextWrapped = true
+toolAmount.ZIndex = 3
+toolAmount.BorderSizePixel = 0
+toolAmount.TextSize = 14
+toolAmount.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toolAmount.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Normal)
+toolAmount.TextColor3 = Color3.fromRGB(255, 255, 255)
+toolAmount.BackgroundTransparency = 1
+toolAmount.Size = UDim2.new(1.13, 0, 0.17, 0)
+toolAmount.BorderColor3 = Color3.fromRGB(28, 43, 54)
+toolAmount.Text = ""
+toolAmount.Position = UDim2.new(-0.065, 0, 0.725, 0)
+toolAmount.Parent = toolButton
+
+local toolAmountStroke = Instance.new("UIStroke")
+toolAmountStroke.Thickness = 3
+toolAmountStroke.Parent = toolAmount
+
+local toolIcon = Instance.new("ImageLabel")
+toolIcon.Name = "toolIcon"
+toolIcon.BorderSizePixel = 0
+toolIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toolIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+toolIcon.Image = "rbxassetid://10202636594"
+toolIcon.Size = UDim2.new(1, 0, 1, 0)
+toolIcon.Visible = false
+toolIcon.BorderColor3 = Color3.fromRGB(255, 255, 255)
+toolIcon.BackgroundTransparency = 1
+toolIcon.Selectable = true
+toolIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+toolIcon.Parent = toolButton
+
+local toolIconAspect = Instance.new("UIAspectRatioConstraint")
+toolIconAspect.Parent = toolIcon
+
+local toolStroke = Instance.new("UIStroke")
+toolStroke.Thickness = 5
+toolStroke.Parent = toolButton
+
+local toolCorner = Instance.new("UICorner")
+toolCorner.CornerRadius = UDim.new(0.1, 0)
+toolCorner.Parent = toolButton
+
+-- Inventory system
+local InventorySystem = {
+    OBJECTS = {
+        HotBar = {},
+        Inventory = {}
+    },
+    currentlyEquipped = nil,
+    slotsLocked = false,
+    slotsPositionLocked = false
+}
+
+-- Tool object metatable
+local ToolObject = {}
+ToolObject.__index = ToolObject
+
+function ToolObject:isEquipped()
+    local character = player.Character
+    if character then
+        return self.Tool.Parent == character
+    end
+    return false
+end
+
+function ToolObject:DisconnectAll()
+    for _, v in pairs(self.CONNECTIONS) do
+        v:Disconnect()
+    end
+
+    self.didRemoval = true
+
+    if (inventoryFrame.Visible or SETTINGS.SHOW_EMPTY_TOOL_FRAMES_IN_HOTBAR) and 
+       self.Frame.Parent ~= inventoryGui and 
+       self.Frame.Parent ~= inventoryScroll then
+        local toolName = self.Frame:FindFirstChild("toolName")
+        local toolAmount = self.Frame:FindFirstChild("toolAmount")
+        local toolIcon = self.Frame:FindFirstChild("toolIcon")
+
+        if toolName and toolAmount and toolIcon then
+            toolName.Text = ""
+            toolAmount.Text = ""
+            toolIcon.Image = ""
+        end
+        self.Frame.BackgroundColor3 = SETTINGS.DEFAULT_COLOR
+        self.Frame.Image = SETTINGS.DEFAULT_IMAGEID
+    else
+        self.Frame:Destroy()
+    end
+
+    if self.Parent == "HotBar" and self.Position then
+        ContextActionService:UnbindAction(self.Position .. "hotBar")
+        InventorySystem.OBJECTS.HotBar[self.Position] = nil
+    elseif self.Parent == "Inventory" then
+        InventorySystem.OBJECTS.Inventory[self.Tool.Name] = nil
+    end
+end
+
+function ToolObject:updateIcon()
+    local tool = self.Tool
+    local frame = self.Frame
+    local textureId = tool.TextureId
+
+    if textureId == "" or textureId == nil then
+        frame.toolName.Visible = true
+        frame.toolIcon.Visible = false
+        frame.toolIcon.Image = ""
+    else
+        frame.toolName.Visible = SETTINGS.ALWAYS_SHOW_TOOL_NAME
+        frame.toolIcon.Visible = true
+        frame.toolIcon.Image = textureId
+    end
+end
+
+function ToolObject:getParentInstance()
+    return self.Parent == "Inventory" and inventoryScroll or hotBar
+end
+
+function ToolObject:showDescription()
+    local toolDescription = self.Tool.ToolTip
+    if toolDescription == "" then return end
+
+    local descriptionFrame = Instance.new("TextLabel")
+    descriptionFrame.Name = "descriptionFrame"
+    descriptionFrame.AnchorPoint = Vector2.new(0.5, 1)
+    descriptionFrame.Font = Enum.Font.SourceSansSemibold
+    descriptionFrame.TextColor3 = Color3.fromRGB(0, 0, 0)
+    descriptionFrame.TextSize = 14
+    descriptionFrame.BorderSizePixel = 0
+    descriptionFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    descriptionFrame.ZIndex = 99
+    descriptionFrame.TextWrapped = true
+    descriptionFrame.Parent = inventoryGui
+
+    local corner = Instance.new("UICorner")
+    corner.Parent = descriptionFrame
+    corner.CornerRadius = UDim.new(0.12, 0)
+
+    local textBounds = TextService:GetTextSize(toolDescription, descriptionFrame.TextSize, descriptionFrame.Font, Vector2.new(400, 1000)) + Vector2.new(10, 4)
+    descriptionFrame.Size = UDim2.new(0, textBounds.X, 0, textBounds.Y)
+    descriptionFrame.Position = UDim2.new(0, self.Frame.AbsolutePosition.X + (self.Frame.AbsoluteSize.X / 2), 0, self.Frame.AbsolutePosition.Y - 2)
+    descriptionFrame.Text = toolDescription
+    self.DescriptionFrame = descriptionFrame
+    game:GetService("Debris"):AddItem(descriptionFrame, 15)
+end
+
+function ToolObject:removeDescription()
+    if self.DescriptionFrame then
+        self.DescriptionFrame:Destroy()
+    end
+end
+
+-- Inventory system methods
+function InventorySystem:removeCurrentDescription()
+    local descriptionFrame = inventoryGui:FindFirstChild("descriptionFrame")
+    if descriptionFrame then
+        descriptionFrame:Destroy()
+    end
+end
+
+function InventorySystem:getObjectFromTool(tool)
+    local function searchToolObject(toolParent)
+        for _, toolObject in pairs(toolParent) do
+            if toolObject.Tool == tool then 
+                return toolObject 
+            end
+        end
+    end
+    
+    return searchToolObject(self.OBJECTS.HotBar) or searchToolObject(self.OBJECTS.Inventory)
+end
+
+function InventorySystem:getToolPosition(tool)
+    local toolObject = self:getObjectFromTool(tool)
+    return toolObject and toolObject.Position
+end
+
+function InventorySystem:searchTool()
+    local toolName = inventoryFrame.SearchBox.Text
+    if toolName == "" then
+        for _, toolObject in pairs(self.OBJECTS.Inventory) do
+            toolObject.Frame.Visible = true
+        end
+    elseif toolName then
+        for _, toolObject in pairs(self.OBJECTS.Inventory) do
+            toolObject.Frame.Visible = string.find(toolObject.Name:lower(), toolName:lower()) and true or false
+        end
+    end
+end
+
+function InventorySystem:lockSlots(unequipCurrentTool)
+    self.slotsLocked = true
+    
+    if unequipCurrentTool then
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:UnequipTools()
+        end
+    end
+end
+
+function InventorySystem:unlockSlots()
+    self.slotsLocked = false
+end
+
+function InventorySystem:lockSlotsPosition()
+    self.slotsPositionLocked = true
+end
+
+function InventorySystem:unlockSlotsPosition()
+    self.slotsPositionLocked = false
+end
+
+function InventorySystem:newTool(tool)
+    if tool:GetAttribute("toolAdded") or not tool:IsA("Tool") then
+        return
+    end
+
+    local length = 0
+    for _ in pairs(self.OBJECTS.HotBar) do
+        length += 1
+    end
+
+    self:addTool(tool, length == SETTINGS.slotAmount and "Inventory" or "HotBar", tool:GetAttribute("position"))
+end
+
+function InventorySystem:addTool(tool, parent, position)
+    tool:SetAttribute("position", nil)
+    if position == -1 then
+        parent = "Inventory"
+        position = nil
+    end
+
+    if not position and parent == "HotBar" then
+        for index = 1, SETTINGS.slotAmount do
+            if self.OBJECTS.HotBar[index] == nil then
+                position = index
+                break
+            end
+        end
+    end
+
+    if position and hotBar:FindFirstChild(tostring(position)) then
+        hotBar:FindFirstChild(tostring(position)):Destroy()
+    end
+
+    local frame = toolButton:Clone()
+    local amount = tool:GetAttribute("amount") or 1
+    if amount > 1 then
+        frame.toolAmount.Text = "x" .. amount
+    end
+    frame.toolName.Text = tool.Name
+    frame.Parent = parent == "Inventory" and inventoryScroll or hotBar
+    frame.Name = parent == "Inventory" and tool.Name or tostring(position)
+    frame.toolNumber.Text = parent == "Inventory" and "" or tostring(position)
+
+    local object = setmetatable({}, ToolObject)
+    object.Tool = tool
+    object.Frame = frame
+    object.Parent = parent
+    object.Position = position
+    object.Name = tool.Name
+    self.OBJECTS[parent][position == nil and frame.Name or position] = object
+
+    local function manageTool(_, inputState, inputObject)
+        if inputObject and inputObject.UserInputType ~= Enum.UserInputType.Keyboard and inputObject.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+        
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if not humanoid or humanoid.Health <= 0 or not tool.Parent or inputState == Enum.UserInputState.End or self.slotsLocked then
+            return
+        end
+
+        if object:isEquipped() then
+            humanoid:UnequipTools()
+            frame.BackgroundColor3 = SETTINGS.DEFAULT_COLOR
+            frame.Image = SETTINGS.DEFAULT_IMAGEID
+            self.currentlyEquipped = nil
+        elseif tool.Enabled then
+            humanoid:EquipTool(tool)
+            if self.currentlyEquipped and self.currentlyEquipped.Parent then
+                self.currentlyEquipped.BackgroundColor3 = SETTINGS.DEFAULT_COLOR
+                self.currentlyEquipped.Image = SETTINGS.DEFAULT_IMAGEID
+            end
+            self.currentlyEquipped = frame
+            frame.BackgroundColor3 = SETTINGS.EQUIPPED_COLOR
+            frame.Image = SETTINGS.EQUIPPED_IMAGEID
+        end
+    end
+
+    local function updateEquipped()
+        if object:isEquipped() and tool.Enabled then
+            if self.currentlyEquipped and self.currentlyEquipped.Parent then
+                self.currentlyEquipped.BackgroundColor3 = SETTINGS.DEFAULT_COLOR
+                self.currentlyEquipped.Image = SETTINGS.DEFAULT_IMAGEID
+            end
+            self.currentlyEquipped = frame
+            frame.BackgroundColor3 = SETTINGS.EQUIPPED_COLOR
+            frame.Image = SETTINGS.EQUIPPED_IMAGEID
+        else
+            frame.BackgroundColor3 = SETTINGS.DEFAULT_COLOR
+            frame.Image = SETTINGS.DEFAULT_IMAGEID
+            self.currentlyEquipped = nil
+        end
+    end
+
+    local function updateEnabled()
+        if tool.Enabled then
+            frame.Image = SETTINGS.DEFAULT_IMAGEID
+            frame.BackgroundColor3 = SETTINGS.DEFAULT_COLOR
+            frame.ImageTransparency = 0
+            frame.toolIcon.ImageTransparency = 0
+            frame.toolName.TextTransparency = 0
+            frame.toolNumber.TextTransparency = 0
+            frame.toolAmount.TextTransparency = 0
+
+            frame.toolAmount.UIStroke.Transparency = 0
+            frame.toolName.UIStroke.Transparency = 0
+        else
+            frame.Image = SETTINGS.DISABLED_IMAGEID
+            frame.BackgroundColor3 = SETTINGS.DISABLED_COLOR
+            frame.ImageTransparency = 0.35
+            frame.toolIcon.ImageTransparency = 0.5
+            frame.toolName.TextTransparency = 0.6
+            frame.toolNumber.TextTransparency = 0.6
+            frame.toolAmount.TextTransparency = 0.6
+
+            frame.toolAmount.UIStroke.Transparency = 0.6
+            frame.toolName.UIStroke.Transparency = 0.6
+        end
+    end
+
+    updateEnabled()
+    updateEquipped()
+    object:updateIcon()
+
+    -- Connections
+    object.CONNECTIONS = {}
+    object.CONNECTIONS.EnabledConn = tool:GetPropertyChangedSignal("Enabled"):Connect(updateEnabled)
+    object.CONNECTIONS.ToolRemoved = tool.AncestryChanged:Connect(function(_, newParent)
+        if player and (newParent == nil or (newParent ~= player.Backpack and newParent ~= player.Character)) then
+            object:DisconnectAll()
+            tool:SetAttribute("toolAdded", false)
+        end
+        updateEquipped()
+    end)
+    object.CONNECTIONS.NameChanged = tool:GetPropertyChangedSignal("Name"):Connect(function()
+        frame.toolName.Text = tool.Name
+        object.Name = tool.Name
+    end)
+    object.CONNECTIONS.TextureIdChanged = tool:GetPropertyChangedSignal("TextureId"):Connect(function()
+        object:updateIcon()
+    end)
+    object.CONNECTIONS.AmountChanged = tool:GetAttributeChangedSignal("amount"):Connect(function()
+        amount = tool:GetAttribute("amount") or 1
+        if amount > 1 then
+            frame.toolAmount.Text = "x" .. amount
+        else
+            frame.toolAmount.Text = ""
+        end
+    end)
+    object.CONNECTIONS.MouseEnter = frame.MouseEnter:Connect(function()
+        if object.isGrabbed then return end
+        object:showDescription()
+    end)
+    object.CONNECTIONS.MouseLeave = frame.MouseLeave:Connect(function()
+        object:removeDescription()
+    end)
+    object.CONNECTIONS.GrabConn = frame.MouseButton1Down:Connect(function()
+        if self.slotsPositionLocked then return end
+
+        local mouseEnd
+        local mouseConn
+        local newFrame
+        local CellSize = inventoryScroll.Grid.CellSize
+        local frameStartPosition = frame.AbsolutePosition
+        object:removeDescription()
+
+        local function endGrab()
+            if mouseEnd then mouseEnd:Disconnect() end
+            if mouseConn then mouseConn:Disconnect() end
+            object.isGrabbed = false
+
+            local droppedGuis = playerGui:GetGuiObjectsAtPosition(mouse.X, mouse.Y)
+            local wasSwapped = false
+            local dropTool = true
+            
+            for _, newSlot in pairs(droppedGuis) do
+                if newSlot:IsA("ImageButton") and (newSlot.Parent == hotBar or newSlot.Parent == inventoryScroll) then
+                    local newSlotObject = self.OBJECTS[newSlot.Parent == hotBar and "HotBar" or "Inventory"][newSlot.Parent == hotBar and tonumber(newSlot.Name) or newSlot.Name]
+                    if newSlotObject == object then
+                        dropTool = false
+                        if newFrame then newFrame:Destroy() end
+                        continue
+                    end
+
+                    if newSlotObject then
+                        wasSwapped = true
+                        object:DisconnectAll()
+                        newSlotObject:DisconnectAll()
+                        self:addTool(newSlotObject.Tool, parent, position)
+                        self:addTool(tool, newSlotObject.Parent, newSlotObject.Position)
+                        if newFrame then newFrame:Destroy() end
+                    elseif newSlot.Parent == hotBar then
+                        wasSwapped = true
+                        object:DisconnectAll()
+                        self:addTool(tool, "HotBar", tonumber(newSlot.Name))
+                        if parent == "Inventory" and newFrame then
+                            newFrame:Destroy()
+                        end
+                        newSlot:Destroy()
+                    end
+
+                    if newSlotObject then newSlotObject:removeDescription() end
+                    if object then object:removeDescription() end
+                elseif newSlot:IsA("ImageLabel") and newSlot == inventoryFrame and not wasSwapped and parent == "HotBar" then
+                    wasSwapped = true
+                    object:DisconnectAll()
+                    self:addTool(tool, "Inventory")
+                    self:searchTool()
+                    break
+                end
+            end
+            
+            if not wasSwapped then
+                if newFrame then newFrame:Destroy() end
+                frame.Parent = object:getParentInstance()
+                
+                if SETTINGS.DRAG_OUTSIDE_TO_DROP and dropTool and tool.CanBeDropped then
+                    local character = player.Character
+                    if character then
+                        tool.Parent = character
+                        RunService.RenderStepped:Wait()
+                        tool.Parent = workspace
+                    end
+                end
+                
+                if (frameStartPosition - Vector2.new(mouse.X, mouse.Y)).Magnitude <= SETTINGS.EQUIP_TOUCH_SENSITIVITY then
+                    manageTool()
+                end
+            end
+        end
+        
+        mouseEnd = UserInputService.InputEnded:Connect(function(inputObject)
+            if inputObject.UserInputType == Enum.UserInputType.MouseButton1 or inputObject.UserInputType == Enum.UserInputType.Touch then
+                endGrab()
+            end
+        end)
+
+        local function updateFramePos()
+            if not object.isGrabbed then
+                object.isGrabbed = true
+                newFrame = toolButton:Clone()
+                newFrame.toolName.Text = ""
+                newFrame.toolAmount.Text = ""
+                newFrame.toolNumber.Text = position or ""
+                newFrame.Name = frame.Name
+                newFrame.Size = frame.Size
+                newFrame.Parent = object:getParentInstance()
+
+                frame.Size = CellSize
+                frame.Parent = inventoryGui
+            end
+
+            local mousePos = Vector2.new(mouse.X, mouse.Y)
+            frame.Position = UDim2.new(0, mousePos.X - (CellSize.X.Offset / 2), 0, mousePos.Y - (CellSize.Y.Offset / 2) + 57)
+        end
+        
+        mouseConn = mouse.Move:Connect(updateFramePos)
+    end)
+
+    tool:SetAttribute("toolAdded", true)
+    if parent == "HotBar" and position then
+        local EnumKeys = {
+            Enum.KeyCode.One,
+            Enum.KeyCode.Two,
+            Enum.KeyCode.Three,
+            Enum.KeyCode.Four,
+            Enum.KeyCode.Five,
+            Enum.KeyCode.Six,
+            Enum.KeyCode.Seven,
+            Enum.KeyCode.Eight,
+            Enum.KeyCode.Nine,
+        }
+        ContextActionService:BindAction(tostring(position) .. "hotBar", manageTool, false, EnumKeys[position])
+    end
+end
+
+-- Inventory management functions
+local function showSlots()
+    for index = 1, SETTINGS.slotAmount do
+        local toolObject = InventorySystem.OBJECTS.HotBar[index]
+        if not toolObject and not hotBar:FindFirstChild(tostring(index)) and index <= SETTINGS.slotAmount then
+            local frame = toolButton:Clone()
+            frame.toolName.Text = ""
+            frame.toolAmount.Text = ""
+            frame.toolNumber.Text = tostring(index)
+            frame.Name = tostring(index)
+            frame.Parent = hotBar
+        end
+    end
+end
+
+local function removeEmptySlots()
+    for index = 1, 9 do
+        local toolObject = InventorySystem.OBJECTS.HotBar[index]
+        local toolFrame = hotBar:FindFirstChild(tostring(index))
+        if not toolObject and toolFrame then
+            toolFrame:Destroy()
+            if hotBar:FindFirstChild(tostring(index)) then
+                removeEmptySlots()
+            end
+        end
+    end
+end
+
+local function manageInventory(_, inputState)
+    if inputState == Enum.UserInputState.Begin then
+        inventoryFrame.Visible = not inventoryFrame.Visible
+        local currentState = inventoryFrame.Visible
+
+        InventorySystem:removeCurrentDescription()
+        if currentState then
+            showSlots()
+            openButton.Position = UDim2.fromScale(0.5,0.5)
+            openButton.info.Text = "(') close inventory"
+        else
+            if not SETTINGS.SHOW_EMPTY_TOOL_FRAMES_IN_HOTBAR then
+                removeEmptySlots()
+            end
+            openButton.Position = UDim2.fromScale(0.5,0.85)
+            openButton.info.Text = "(') open inventory"
+        end
+    elseif not inputState then
+        for index = SETTINGS.slotAmount + 1, SETTINGS.slotAmount do
+            local toolObject = InventorySystem.OBJECTS.HotBar[index]
+            local toolFrame = hotBar:FindFirstChild(tostring(index))
+            if toolObject then
+                local tool = toolObject.Tool
+                toolObject:DisconnectAll()
+                tool:SetAttribute("toolAdded", nil)
+                InventorySystem:newTool(tool)
+            elseif toolFrame then
+                toolFrame:Destroy()
+            end
+        end
+    end
+end
+
+local function newTool(tool)
+    if tool:IsA("Tool") then
+        InventorySystem:newTool(tool)
+    end
+end
+
+local function reloadInventory(character)
+    InventorySystem.currentlyEquipped = nil
+    local backpack = player:WaitForChild("Backpack")
+
+    for _, tool in pairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            newTool(tool)
+        end
+    end
+    backpack.ChildAdded:Connect(newTool)
+    character.ChildAdded:Connect(newTool)
+end
+
+local function updateHudPosition()
+    local viewPortSize = workspace.CurrentCamera.ViewportSize
+    local slotSize = UDim2.fromOffset(hotBar.AbsoluteSize.Y, hotBar.AbsoluteSize.Y)
+    
+    inventoryScroll.Grid.CellSize = slotSize
+    hotBarGrid.CellSize = slotSize
+
+    manageInventory()
+end
+
+local function getToolEquipped()
+    local character = player.Character
+    return character and character:FindFirstChildOfClass("Tool")
+end
+
+-- Initialize
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+
+updateHudPosition()
+updateHudPosition()
+reloadInventory(player.Character or player.CharacterAdded:Wait())
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateHudPosition)
+player.CharacterAdded:Connect(reloadInventory)
+searchBox:GetPropertyChangedSignal("Text"):Connect(function() InventorySystem:searchTool() end)
+
+if SETTINGS.SHOW_EMPTY_TOOL_FRAMES_IN_HOTBAR then showSlots() end
+if SETTINGS.INVENTORY_KEYBIND then 
+    ContextActionService:BindAction("manageInventory", manageInventory, false, SETTINGS.INVENTORY_KEYBIND) 
+end
+
+if SETTINGS.OPEN_BUTTON then
+    openButton.MouseButton1Down:Connect(function()
+        inventoryFrame.Visible = not inventoryFrame.Visible
+        local currentState = inventoryFrame.Visible
+        
+        InventorySystem:removeCurrentDescription()
+        if currentState then
+            showSlots()
+            openButton.Position = UDim2.fromScale(0.5,0.5)
+            openButton.info.Text = "(') close inventory"
+        else
+            if not SETTINGS.SHOW_EMPTY_TOOL_FRAMES_IN_HOTBAR then
+                removeEmptySlots()
+            end
+            openButton.Position = UDim2.fromScale(0.5,0.85)
+            openButton.info.Text = "(') open inventory"
+        end
+    end)
+else
+    openButton.Visible = false
+end
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseWheel and SETTINGS.SCROLL_HOTBAR_WITH_WHEEL then
+        local direction = input.Position.Z
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+        local toolEquipped = getToolEquipped()
+        local toolPosition = InventorySystem:getToolPosition(toolEquipped) or 0
+        
+        for i = toolPosition + direction, direction < 0 and 1 or SETTINGS.slotAmount, direction do
+            local toolObject = InventorySystem.OBJECTS.HotBar[i]
+            if toolObject and humanoid then
+                humanoid:EquipTool(toolObject.Tool)
+                break
+            end
+        end
+    end
+end)
+
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+RunService.RenderStepped:Connect(function()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+end)
+
+local function lockCellSizes()
+    local LOCKED_HOTBAR_CELL = UDim2.new(0, 35, 0, 35)
+    local LOCKED_INVENTORY_CELL = UDim2.new(0, 41.5, 0, 41.5)
+    
+    local function enforceLockedSizes()
+        if hotBarGrid then
+            hotBarGrid.CellSize = LOCKED_HOTBAR_CELL
+            hotBarGrid.CellPadding = UDim2.new(0.01, 2.5, 0, 2.5)
+        end
+        
+        if inventoryGrid then
+            inventoryGrid.CellSize = LOCKED_INVENTORY_CELL
+            inventoryGrid.CellPadding = UDim2.new(0, 7.5, 0, 7.5)
+        end
+        
+        for _, slot in pairs(hotBar:GetChildren()) do
+            if slot:IsA("ImageButton") then
+                slot.Size = LOCKED_HOTBAR_CELL
+            end
+        end
+        
+        for _, slot in pairs(inventoryScroll:GetChildren()) do
+            if slot:IsA("ImageButton") then
+                slot.Size = LOCKED_INVENTORY_CELL
+            end
+        end
+    end
+
+    local originalUpdateHudPosition = updateHudPosition
+    updateHudPosition = function()
+        originalUpdateHudPosition()
+        enforceLockedSizes()
+    end
+
+    local originalReloadInventory = reloadInventory
+    reloadInventory = function(character)
+        originalReloadInventory(character)
+        enforceLockedSizes()
+    end
+
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+        enforceLockedSizes()
+    end)
+
+    enforceLockedSizes()
+    
+    while true do
+        enforceLockedSizes()
+        wait(0.5)
+    end
+end
+
+coroutine.wrap(lockCellSizes)()
