@@ -1,4 +1,4 @@
---// Fling Gui V19.5
+--// Fling Gui V23.5
 
 --// loadstring version: loadstring(game:HttpGet("https://glot.io/snippets/h86gnsdgud/raw/FlingGui.lua"))()
 
@@ -263,7 +263,7 @@ local phase2Button3 = Instance.new("TextButton")
 phase2Button3.Size = UDim2.new(0.9, 0, 0, 30)
 phase2Button3.Position = UDim2.new(0.05, 0, 0, 120)
 phase2Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase2Button3.Text = "Anti-Slap: OFF"
+phase2Button3.Text = "Anti Slap: OFF"
 phase2Button3.TextColor3 = Color3.new(1, 1, 1)
 phase2Button3.Visible = false
 phase2Button3.Parent = frame
@@ -307,7 +307,7 @@ local phase3Button1 = Instance.new("TextButton")
 phase3Button1.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button1.Position = UDim2.new(0.05, 0, 0, 40)
 phase3Button1.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button1.Text = "Zombie R6"
+phase3Button1.Text = "Anti Sit: OFF"
 phase3Button1.TextColor3 = Color3.new(1, 1, 1)
 phase3Button1.Visible = false
 phase3Button1.Parent = frame
@@ -318,7 +318,7 @@ local phase3Button2 = Instance.new("TextButton")
 phase3Button2.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button2.Position = UDim2.new(0.05, 0, 0, 80)
 phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button2.Text = "Head throw R6"
+phase3Button2.Text = "Fire Parts Tool"
 phase3Button2.TextColor3 = Color3.new(1, 1, 1)
 phase3Button2.Visible = false
 phase3Button2.Parent = frame
@@ -329,7 +329,7 @@ local phase3Button3 = Instance.new("TextButton")
 phase3Button3.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button3.Position = UDim2.new(0.05, 0, 0, 120)
 phase3Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button3.Text = "Glios"
+phase3Button3.Text = "FreeCam: OFF"
 phase3Button3.TextColor3 = Color3.new(1, 1, 1)
 phase3Button3.Visible = false
 phase3Button3.Parent = frame
@@ -340,7 +340,7 @@ local phase3Button4 = Instance.new("TextButton")
 phase3Button4.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button4.Position = UDim2.new(0.05, 0, 0, 160)
 phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button4.Text = "Zombie R15"
+phase3Button4.Text = "Invis: OFF"
 phase3Button4.TextColor3 = Color3.new(1, 1, 1)
 phase3Button4.Visible = false
 phase3Button4.Parent = frame
@@ -351,7 +351,7 @@ local phase3Button5 = Instance.new("TextButton")
 phase3Button5.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button5.Position = UDim2.new(0.05, 0, 0, 200)
 phase3Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button5.Text = "Hunter"
+phase3Button5.Text = "Anti Ragdoll: OFF"
 phase3Button5.TextColor3 = Color3.new(1, 1, 1)
 phase3Button5.Visible = false
 phase3Button5.Parent = frame
@@ -711,21 +711,21 @@ phase2Button3.MouseButton1Click:Connect(function()
     as = not as
     
     if as then
-        phase2Button3.Text = "Anti-Slap: ON"
+        phase2Button3.Text = "Anti Slap: ON"
         phase2Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         
         if localPlayer.Character then
             dc(localPlayer.Character)
         end
     else
-        phase2Button3.Text = "Anti-Slap: OFF"
+        phase2Button3.Text = "Anti Slap: OFF"
         phase2Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
 end)
 
 localPlayer.CharacterAdded:Connect(dc)
 
-phase2Button3.Text = "Anti-Slap: OFF"
+phase2Button3.Text = "Anti Slap: OFF"
 phase2Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
 local XenoAntiFlingEnabled = false
@@ -956,25 +956,442 @@ phase2Button6.Text = "NDS Anti Fall Damage: OFF"
 phase2Button6.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 phase2Button6.MouseButton1Click:Connect(toggleAFD)
 
-phase3Button1.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://pastefy.app/w7KnPY70/raw"))()
+local noSitEnabled = false
+
+local function toggleNoSit()
+    noSitEnabled = not noSitEnabled
+    
+    local character = localPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            if noSitEnabled then
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                if humanoid.Sit then
+                    humanoid.Sit = false
+                end
+                humanoid.Sit = true
+            else
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                humanoid.Sit = false
+            end
+        end
+    end
+    
+    phase3Button1.Text = noSitEnabled and "Anti Sit: ON" or "Anti Sit: OFF"
+    phase3Button1.BackgroundColor3 = noSitEnabled and Color3.fromRGB(80, 20, 20) or Color3.fromRGB(60, 60, 60)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Anti Sit",
+        Text = noSitEnabled and "Enabled (Can't sit)" or "Disabled (Can sit)",
+        Duration = 2
+    })
+end
+
+phase3Button1.MouseButton1Click:Connect(toggleNoSit)
+
+phase3Button1.Text = "Anti Sit: OFF"
+phase3Button1.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+localPlayer.CharacterAdded:Connect(function(character)
+    if noSitEnabled then
+        local humanoid = character:WaitForChildOfClass("Humanoid")
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        
+        if humanoid.Sit then
+            humanoid.Sit = false
+        end
+        humanoid.Sit = true
+    end
 end)
 
 phase3Button2.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://pastefy.app/tI5b3OVD/raw"))()
+    loadstring(game:HttpGet("https://glot.io/snippets/h9wgykubaz/raw/FireParts.lua"))()
 end)
+
+local freeCamEnabled = false
+local movePart = nil
+local currentPos = Vector3.new()
+local currentYaw = 0
+local rotateSmooth = 0.2
+local joystickGui = nil
+local outer, inner
+local sizeOuter = 110
+local sizeInner = 50
+local radius = sizeOuter/2
+local center
+local dragging = false
+local activeTouch
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+_G.JoystickData = {
+    DraggingLevel = 0,
+    Direction = Vector3.new(0,0,0)
+}
+
+local function createJoystick()
+    if joystickGui then joystickGui:Destroy() end
+    
+    joystickGui = Instance.new("ScreenGui")
+    joystickGui.Parent = game.CoreGui
+    joystickGui.Name = "JoystickFreeCam"
+
+    outer = Instance.new("ImageLabel")
+    outer.Size = UDim2.fromOffset(sizeOuter, sizeOuter)
+    outer.Position = UDim2.new(0.1, 0, 0.75, 0)
+    outer.AnchorPoint = Vector2.new(0.5, 0.5)
+    outer.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    outer.BackgroundTransparency = 0.3
+    outer.Parent = joystickGui
+    outer.BorderSizePixel = 0
+    outer.ZIndex = 1
+    outer.Active = true
+    outer.Image = "rbxasset://textures/ui/TouchControlsSheet.png"
+    outer.ImageRectSize = Vector2.new(220, 220)
+    Instance.new("UICorner", outer).CornerRadius = UDim.new(1,0)
+
+    inner = Instance.new("ImageLabel")
+    inner.Size = UDim2.fromOffset(sizeInner, sizeInner)
+    inner.Position = UDim2.new(0.5, -sizeInner/2, 0.5, -sizeInner/2)
+    inner.BackgroundColor3 = Color3.fromRGB(150,150,150)
+    inner.Parent = outer
+    inner.BorderSizePixel = 0
+    inner.ZIndex = 2
+    inner.Active = true
+    inner.Image = "rbxasset://textures/ui/TouchControlsSheet.png"
+    inner.ImageRectOffset = Vector2.new(220, 0)
+    inner.ImageRectSize = Vector2.new(111, 111)
+    Instance.new("UICorner", inner).CornerRadius = UDim.new(1,0)
+
+    local function toV2(pos)
+        return Vector2.new(pos.X, pos.Y)
+    end
+
+    local function updateCenter()
+        center = Vector2.new(
+            outer.AbsolutePosition.X + radius,
+            outer.AbsolutePosition.Y + radius
+        )
+    end
+
+    local function moveInner(posV2)
+        local dir = posV2 - center
+        local dist = math.min(dir.Magnitude, radius)
+        local offset = dir.Magnitude > 0 and dir.Unit * dist or Vector2.new(0,0)
+        inner.Position = UDim2.new(0.5, offset.X - sizeInner/2, 0.5, offset.Y - sizeInner/2)
+        local dragLevel = math.floor((dist / radius) * 100)
+        local dir3 = Vector3.new(offset.X / radius, 0, offset.Y / radius)
+        _G.JoystickData.DraggingLevel = dragLevel
+        _G.JoystickData.Direction = dir3
+    end
+
+    local function animatePress()
+        TweenService:Create(outer, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(sizeOuter * 1.1, sizeOuter * 1.1),
+            BackgroundColor3 = Color3.fromRGB(120,120,120)
+        }):Play()
+        TweenService:Create(inner, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(sizeInner * 1.2, sizeInner * 1.2),
+            BackgroundColor3 = Color3.fromRGB(200,200,200)
+        }):Play()
+    end
+
+    local function animateRelease()
+        TweenService:Create(outer, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(sizeOuter, sizeOuter),
+            BackgroundColor3 = Color3.fromRGB(80,80,80)
+        }):Play()
+        TweenService:Create(inner, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.fromOffset(sizeInner, sizeInner),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+    end
+
+    for _, obj in ipairs({outer, inner}) do
+        obj.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch and not dragging then
+                updateCenter()
+                dragging = true
+                activeTouch = input
+                moveInner(toV2(input.Position))
+                animatePress()
+            end
+        end)
+    end
+
+    UIS.TouchMoved:Connect(function(input)
+        if dragging and activeTouch and input == activeTouch then
+            moveInner(toV2(input.Position))
+        end
+    end)
+
+    UIS.TouchEnded:Connect(function(input)
+        if dragging and activeTouch and input == activeTouch then
+            dragging = false
+            activeTouch = nil
+            inner.Position = UDim2.new(0.5, -sizeInner/2, 0.5, -sizeInner/2)
+            _G.JoystickData.DraggingLevel = 0
+            _G.JoystickData.Direction = Vector3.new(0,0,0)
+            animateRelease()
+        end
+    end)
+end
+
+local function enableFreeCam()
+    if freeCamEnabled then return end
+    
+    createJoystick()
+    
+    local camera = workspace.CurrentCamera
+    local origCFrame = camera.CFrame
+    origMinZoom = localPlayer.CameraMinZoomDistance
+    origMaxZoom = localPlayer.CameraMaxZoomDistance
+    
+    movePart = Instance.new("Part")
+    movePart.Size = Vector3.new(0, 0, 0)
+    movePart.Anchored = true
+    movePart.Transparency = 1
+    movePart.CanCollide = false
+    movePart.Parent = workspace
+    movePart.Name = "FreeCamPart"
+    movePart.CFrame = origCFrame
+    currentPos = movePart.Position
+    
+    camera.CameraSubject = movePart
+    camera.CameraType = Enum.CameraType.Custom
+    localPlayer.CameraMinZoomDistance = 0
+    localPlayer.CameraMaxZoomDistance = 0
+    
+    phase3Button3.Text = "FreeCam: ON"
+    phase3Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+    freeCamEnabled = true
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "FreeCam",
+        Text = "Активирован (используйте джойстик)",
+        Duration = 3
+    })
+end
+
+local function disableFreeCam()
+    if not freeCamEnabled then return end
+    
+    local camera = workspace.CurrentCamera
+    camera.CameraSubject = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") or nil
+    camera.CameraType = Enum.CameraType.Custom
+    localPlayer.CameraMinZoomDistance = origMinZoom
+    localPlayer.CameraMaxZoomDistance = origMaxZoom
+    
+    if movePart then
+        movePart:Destroy()
+        movePart = nil
+    end
+    
+    if joystickGui then
+        joystickGui:Destroy()
+        joystickGui = nil
+    end
+    
+    phase3Button3.Text = "FreeCam: OFF"
+    phase3Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    freeCamEnabled = false
+end
+
+local function updateFreeCam(dt)
+    if not freeCamEnabled or not movePart then return end
+    
+    local dir = _G.JoystickData.Direction
+    local level = _G.JoystickData.DraggingLevel
+
+    if level > 1 then
+        local moveSpeed = level * 0.02
+        local camCF = workspace.CurrentCamera.CFrame
+        local forward = camCF.LookVector
+        local right = camCF.RightVector
+        local moveDir = (forward * -dir.Z) + (right * dir.X)
+        moveDir += Vector3.new(0, dir.Y, 0)
+        
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit
+            currentPos = currentPos + moveDir * moveSpeed * dt * 60
+        end
+    end
+
+    local camLook = workspace.CurrentCamera.CFrame.LookVector
+    local yaw = math.atan2(camLook.X, camLook.Z)
+    movePart.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, yaw, 0)
+end
 
 phase3Button3.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://glot.io/snippets/gua2ntmbdm/raw/main.lua"))()
+    if freeCamEnabled then
+        disableFreeCam()
+    else
+        enableFreeCam()
+    end
 end)
+
+local renderSteppedConn
+renderSteppedConn = game:GetService("RunService").RenderStepped:Connect(function(dt)
+    updateFreeCam(dt)
+end)
+
+game:GetService("UserInputService").WindowFocusReleased:Connect(function()
+    if freeCamEnabled then
+        disableFreeCam()
+    end
+end)
+
+phase3Button3.Text = "FreeCam: OFF"
+phase3Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+local InvisEnabled = false
+local InvisCooldown = false
+local InvisSeat = nil
 
 phase3Button4.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://pastefy.app/n42Ougzx/raw"))()
+    if InvisCooldown then return end
+    InvisCooldown = true
+    
+    InvisEnabled = not InvisEnabled
+    local Player = game.Players.LocalPlayer
+    local Camera = workspace.CurrentCamera
+
+    if InvisEnabled then
+        phase3Button4.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+        phase3Button4.Text = "Invis: ON"
+        
+        if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+            InvisCooldown = false
+            return 
+        end
+        
+        Camera.CameraType = Enum.CameraType.Scriptable
+        local SavedPos = Player.Character.HumanoidRootPart.CFrame
+        
+        Player.Character:MoveTo(Vector3.new(0, -10000, 0))
+        wait(0.15)
+
+        InvisSeat = Instance.new('Seat', workspace)
+        InvisSeat.Anchored = false
+        InvisSeat.CanCollide = false
+        InvisSeat.Name = 'InvisChair'
+        InvisSeat.Transparency = 1
+        InvisSeat.Position = Vector3.new(0, -10000, 0)
+
+        local Weld = Instance.new("Weld", InvisSeat)
+        Weld.Part0 = InvisSeat
+        Weld.Part1 = Player.Character:FindFirstChild("Torso") or Player.Character:FindFirstChild("UpperTorso")
+        
+        wait()
+        InvisSeat.CFrame = SavedPos
+        Camera.CameraType = Enum.CameraType.Custom
+        
+        local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local deathConnection
+            deathConnection = humanoid.Died:Connect(function()
+                if InvisEnabled then
+                    InvisEnabled = false
+                    phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    phase3Button4.Text = "Invis: OFF"
+                    
+                    if InvisSeat then
+                        InvisSeat:Destroy()
+                        InvisSeat = nil
+                    end
+                end
+                if deathConnection then
+                    deathConnection:Disconnect()
+                end
+            end)
+        end
+    else
+        phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        phase3Button4.Text = "Invis: OFF"
+
+        if InvisSeat then
+            local character = Player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = InvisSeat.CFrame
+            end
+            InvisSeat:Destroy()
+            InvisSeat = nil
+        end
+    end
+
+    wait(0.1)
+    InvisCooldown = false
 end)
 
+phase3Button4.Text = "Invis: OFF"
+phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+local antiRagdollEnabled = false
+local antiRagdollDisconnectFunc = nil
+
+local function createAntiRagdoll(character)
+    local connections = {}
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    humanoid.PlatformStand = false
+    
+    local function onStateChanged(_, newState)
+        if newState == Enum.HumanoidStateType.Physics or 
+           newState == Enum.HumanoidStateType.FallingDown or 
+           newState == Enum.HumanoidStateType.Ragdoll then
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end
+    
+    local function onPlatformStandChanged()
+        if humanoid.PlatformStand then
+            humanoid.PlatformStand = false
+        end
+    end
+    
+    table.insert(connections, humanoid.StateChanged:Connect(onStateChanged))
+    table.insert(connections, humanoid:GetPropertyChangedSignal("PlatformStand"):Connect(onPlatformStandChanged))
+    
+    return function()
+        for _, connection in ipairs(connections) do
+            connection:Disconnect()
+        end
+        table.clear(connections)
+    end
+end
+
 phase3Button5.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://pastefy.app/KYs0sftX/raw"))()
+    antiRagdollEnabled = not antiRagdollEnabled
+    
+    if antiRagdollEnabled then
+        if antiRagdollDisconnectFunc then
+            antiRagdollDisconnectFunc()
+        end
+        
+        if localPlayer.Character then
+            local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.PlatformStand = false
+            end
+            antiRagdollDisconnectFunc = createAntiRagdoll(localPlayer.Character)
+        end
+        
+        phase3Button5.Text = "Anti Ragdoll: ON"
+        phase3Button5.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+    else
+        if antiRagdollDisconnectFunc then
+            antiRagdollDisconnectFunc()
+            antiRagdollDisconnectFunc = nil
+        end
+        
+        phase3Button5.Text = "Anti Ragdoll: OFF"
+        phase3Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
 end)
+
+phase3Button5.Text = "Anti Ragdoll: OFF"
+phase3Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
 phase3Button6.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE/main/punch"))()
@@ -1949,6 +2366,62 @@ camera.DescendantAdded:Connect(function(descendant)
     end
 end)
 
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, 0, 0, 20)
+speedLabel.Position = UDim2.new(0, 0, 0, 300)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed: 0 studs/s"
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 14
+speedLabel.Parent = frame
+
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.Position = UDim2.new(0, 0, 0, 280)
+
+local function updateSpeed()
+    while true do
+        task.wait()
+        
+        local character = localPlayer.Character
+        if character then
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                local speed = math.floor(humanoidRootPart.Velocity.Magnitude)
+                speedLabel.Text = "Speed: "..tostring(speed).." studs/s"
+                
+                if speed > 1e38 then
+                    speedLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                elseif speed > 100000 then
+                    speedLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+                else
+                    speedLabel.TextColor3 = Color3.new(1, 1, 1)
+                end
+            else
+                speedLabel.Text = "Speed: N/A"
+            end
+        else
+            speedLabel.Text = "Speed: N/A"
+        end
+    end
+end
+
+coroutine.wrap(updateSpeed)()
+
+local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Fling GUI",
+    Text = "version V23.5",
+    Icon = content,
+    Duration = 7
+})
+
+toggleMinimize()
+
 local function enableAntiKick()
     if not hookmetamethod then 
         warn("Your exploit does not support this anti-kick (missing hookmetamethod)")
@@ -1984,17 +2457,3 @@ local function enableAntiKick()
 end
 
 enableAntiKick()
-
-local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
-local thumbType = Enum.ThumbnailType.HeadShot
-local thumbSize = Enum.ThumbnailSize.Size420x420
-local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
-
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Fling GUI",
-    Text = "version V19.5",
-    Icon = content,
-    Duration = 7
-})
-
-toggleMinimize()
