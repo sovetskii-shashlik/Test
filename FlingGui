@@ -30,7 +30,7 @@ screenGui.Parent = game:GetService("CoreGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 320)
-frame.Position = UDim2.new(0.5, -360, 0.5, -165)
+frame.Position = UDim2.new(0.5, -400, 0.5, -185)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
