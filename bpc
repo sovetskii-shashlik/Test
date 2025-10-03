@@ -22,13 +22,17 @@ local PROTECTED_PLAYERS = {
     "momona870",
     "tolik_scripter",
     "GetRenq",
-    "MHE_HOPM7575"
+    "MHE_HOPM7575",
+    "ekdodieiwkjskfkf",
+    "anarcho_kommunist2"
 }
 
 local ADMIN_PLAYERS = {
     "prespeshnikShashlika",
-    "nicto3789", 
-    "nicto3787"
+    "nicto3789",
+    "nicto3787",
+    "ekdodieiwkjskfkf",
+    "anarcho_kommunist2"
 }
 
 local screenGui = Instance.new("ScreenGui")
