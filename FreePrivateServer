@@ -1,4 +1,4 @@
--- этот репозиторий создан не доя скидда, а доч сохранения сурса при возможном удалении оригинала:
+-- этот репозиторий создан не для скидда, а для сохранения сурса при возможном удалении оригинала:
 -- оригинал loadstring(game:HttpGet("https://raw.githubusercontent.com/veil0x14/LocalScripts/refs/heads/main/pg.lua"))()
 
 -- this script is not mine only modified by me (l0st veil)
