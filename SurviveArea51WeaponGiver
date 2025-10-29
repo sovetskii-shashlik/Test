@@ -1,0 +1,263 @@
+--// Weapon Giver GUI
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WeaponSelectorGUI"
+screenGui.Parent = CoreGui
+
+local GUI_WIDTH = 200
+local GUI_HEIGHT = 110
+
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
+frame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+frame.BackgroundTransparency = 0.65
+frame.BorderSizePixel = 0
+frame.Position = UDim2.new(0.5, -GUI_WIDTH/2, 0.5, -GUI_HEIGHT/2)
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner")
+corner.Parent = frame
+corner.CornerRadius = UDim.new(0.1, 0)
+
+local borderFrame = Instance.new("Frame")
+borderFrame.Size = frame.Size
+borderFrame.Position = frame.Position
+borderFrame.BackgroundTransparency = 1
+borderFrame.AnchorPoint = frame.AnchorPoint
+borderFrame.ZIndex = frame.ZIndex - 1
+borderFrame.Parent = screenGui
+
+local borderCorner = frame.UICorner:Clone()
+borderCorner.Parent = borderFrame
+
+local borderStroke = Instance.new("UIStroke")
+borderStroke.Thickness = 3
+borderStroke.LineJoinMode = Enum.LineJoinMode.Round
+borderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+borderStroke.Parent = borderFrame
+
+frame:GetPropertyChangedSignal("Position"):Connect(function()
+    borderFrame.Position = frame.Position
+end)
+
+frame:GetPropertyChangedSignal("Size"):Connect(function()
+    borderFrame.Size = frame.Size
+end)
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = frame
+titleLabel.Size = UDim2.new(0.9, 0, 0.15, 0)
+titleLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Weapon Selector"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextStrokeTransparency = 0.7
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Parent = frame
+statusLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+statusLabel.Position = UDim2.new(0.05, 0, 0.25, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Ready"
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextStrokeTransparency = 0.7
+
+local buttonsContainer = Instance.new("Frame")
+buttonsContainer.Parent = frame
+buttonsContainer.Size = UDim2.new(0.9, 0, 0.4, 0)
+buttonsContainer.Position = UDim2.new(0.05, 0, 0.6, 0)
+buttonsContainer.BackgroundTransparency = 1
+
+local toggleGuiButton = Instance.new("TextButton")
+toggleGuiButton.Parent = buttonsContainer
+toggleGuiButton.Size = UDim2.new(1, 0, 0.7, 0)
+toggleGuiButton.Position = UDim2.new(0, 0, 0, 0)
+toggleGuiButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+toggleGuiButton.BackgroundTransparency = 0.35
+toggleGuiButton.Text = "Weapon List"
+toggleGuiButton.TextColor3 = Color3.new(1, 1, 1)
+toggleGuiButton.TextScaled = true
+toggleGuiButton.BorderSizePixel = 0
+toggleGuiButton.Font = Enum.Font.GothamBold
+
+local toggleGuiButtonCorner = Instance.new("UICorner")
+toggleGuiButtonCorner.Parent = toggleGuiButton
+toggleGuiButtonCorner.CornerRadius = UDim.new(0.2, 0)
+
+local extendedFrame = Instance.new("Frame")
+extendedFrame.Parent = screenGui
+extendedFrame.Size = UDim2.new(0, 180, 0, 250)
+extendedFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+extendedFrame.BackgroundTransparency = 0.65
+extendedFrame.BorderSizePixel = 0
+extendedFrame.Position = UDim2.new(0.5, -GUI_WIDTH/2 - 190, 0.5, -125)
+extendedFrame.Visible = false
+extendedFrame.Active = true
+extendedFrame.Draggable = true
+
+local extendedCorner = Instance.new("UICorner")
+extendedCorner.Parent = extendedFrame
+extendedCorner.CornerRadius = UDim.new(0.1, 0)
+
+local extendedBorderFrame = Instance.new("Frame")
+extendedBorderFrame.Size = extendedFrame.Size
+extendedBorderFrame.Position = extendedFrame.Position
+extendedBorderFrame.BackgroundTransparency = 1
+extendedBorderFrame.AnchorPoint = extendedFrame.AnchorPoint
+extendedBorderFrame.ZIndex = extendedFrame.ZIndex - 1
+extendedBorderFrame.Parent = screenGui
+extendedBorderFrame.Visible = false
+
+local extendedBorderCorner = extendedCorner:Clone()
+extendedBorderCorner.Parent = extendedBorderFrame
+
+local extendedBorderStroke = Instance.new("UIStroke")
+extendedBorderStroke.Thickness = 3
+extendedBorderStroke.LineJoinMode = Enum.LineJoinMode.Round
+extendedBorderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+extendedBorderStroke.Parent = extendedBorderFrame
+
+extendedFrame:GetPropertyChangedSignal("Position"):Connect(function()
+    extendedBorderFrame.Position = extendedFrame.Position
+end)
+
+extendedFrame:GetPropertyChangedSignal("Size"):Connect(function()
+    extendedBorderFrame.Size = extendedFrame.Size
+end)
+
+local extendedTitle = Instance.new("TextLabel")
+extendedTitle.Parent = extendedFrame
+extendedTitle.Size = UDim2.new(0.9, 0, 0.1, 0)
+extendedTitle.Position = UDim2.new(0.05, 0, 0.02, 0)
+extendedTitle.BackgroundTransparency = 1
+extendedTitle.Text = "Weapons"
+extendedTitle.TextColor3 = Color3.new(1, 1, 1)
+extendedTitle.TextScaled = true
+extendedTitle.Font = Enum.Font.GothamBold
+extendedTitle.TextStrokeTransparency = 0.7
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Parent = extendedFrame
+scrollFrame.Size = UDim2.new(0.9, 0, 0.85, 0)
+scrollFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local function findWeapons()
+    local weaponsFolder = workspace:FindFirstChild("Weapons")
+    local weapons = {}
+    
+    if weaponsFolder then
+        for _, weapon in ipairs(weaponsFolder:GetChildren()) do
+            if weapon:IsA("Model") then
+                local hitbox = weapon:FindFirstChild("Hitbox")
+                if hitbox then
+                    local touchInterest = hitbox:FindFirstChild("TouchInterest")
+                    if touchInterest then
+                        table.insert(weapons, {
+                            Name = weapon.Name,
+                            Model = weapon,
+                            TouchInterest = touchInterest
+                        })
+                    end
+                end
+            end
+        end
+    end
+    
+    return weapons
+end
+
+local function activateWeapon(weaponData)
+    if weaponData and weaponData.TouchInterest then
+        local character = Players.LocalPlayer.Character
+        if character then
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                firetouchinterest(humanoidRootPart, weaponData.TouchInterest.Parent, 0)
+                firetouchinterest(humanoidRootPart, weaponData.TouchInterest.Parent, 1)
+                
+                statusLabel.Text = "Gived: " .. weaponData.Name
+                return true
+            end
+        end
+    end
+    statusLabel.Text = "Failed to give"
+    return false
+end
+
+local function createWeaponButton(weaponData, position)
+    local button = Instance.new("TextButton")
+    button.Parent = scrollFrame
+    button.Size = UDim2.new(1, 0, 0, 30)
+    button.Position = position
+    button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    button.BackgroundTransparency = 0.35
+    button.Text = weaponData.Name
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextScaled = true
+    button.BorderSizePixel = 0
+    button.Font = Enum.Font.Gotham
+    button.AutoButtonColor = true
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.Parent = button
+    buttonCorner.CornerRadius = UDim.new(0.2, 0)
+
+    button.MouseButton1Click:Connect(function()
+        activateWeapon(weaponData)
+    end)
+
+    return button
+end
+
+local function updateWeaponsList()
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    local weapons = findWeapons()
+    
+    if #weapons == 0 then
+        local noWeaponsLabel = Instance.new("TextLabel")
+        noWeaponsLabel.Parent = scrollFrame
+        noWeaponsLabel.Size = UDim2.new(1, 0, 0, 30)
+        noWeaponsLabel.Position = UDim2.new(0, 0, 0, 0)
+        noWeaponsLabel.BackgroundTransparency = 1
+        noWeaponsLabel.Text = "No weapons found"
+        noWeaponsLabel.TextColor3 = Color3.new(1, 1, 1)
+        noWeaponsLabel.TextScaled = true
+        noWeaponsLabel.Font = Enum.Font.Gotham
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 35)
+    else
+        for i, weaponData in ipairs(weapons) do
+            createWeaponButton(weaponData, UDim2.new(0, 0, 0, (i-1)*35))
+        end
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #weapons * 35)
+        statusLabel.Text = "Found " .. #weapons .. " weapons"
+    end
+end
+
+toggleGuiButton.MouseButton1Click:Connect(function()
+    extendedFrame.Visible = not extendedFrame.Visible
+    extendedBorderFrame.Visible = extendedFrame.Visible
+    
+    if extendedFrame.Visible then
+        updateWeaponsList()
+    end
+end)
+
+updateWeaponsList()
