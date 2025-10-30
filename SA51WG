@@ -429,8 +429,8 @@ local function updateOtherItemsList()
     end
 
     local otherItems = {
-        {"Box of Shells", {"AREA51", "PlantRoom", "Box of Shells", "Box", "TouchInterest"}},
-        {"Armory Giver", {"AREA51", "Amory2Room", "Armory", "Giver", "TouchInterest"}}
+        {"ammo", {"AREA51", "PlantRoom", "Box of Shells", "Box", "TouchInterest"}},
+        {"Armory", {"AREA51", "Amory2Room", "Armory", "Giver", "TouchInterest"}}
     }
 
     for i, itemData in ipairs(otherItems) do
