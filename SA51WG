@@ -2,6 +2,7 @@
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "WeaponSelectorGUI"
@@ -231,6 +232,10 @@ otherScrollFrame.BorderSizePixel = 0
 otherScrollFrame.ScrollBarThickness = 5
 otherScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 
+local autoAmmoEnabled = false
+local autoAmmoConnection = nil
+local autoAmmoButton = nil
+
 local function findWeapons()
     local weaponsFolder = workspace:FindFirstChild("Weapons")
     local weapons = {}
@@ -321,6 +326,66 @@ local function activateAllWeapons()
     return activatedCount > 0
 end
 
+local function toggleAutoAmmo()
+    autoAmmoEnabled = not autoAmmoEnabled
+    
+    if autoAmmoEnabled then
+        statusLabel.Text = "Auto Ammo: ON"
+        
+        autoAmmoConnection = RunService.Heartbeat:Connect(function()
+            local character = Players.LocalPlayer.Character
+            if character then
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    local ammoPath = {"AREA51", "PlantRoom", "Box of Shells", "Box", "TouchInterest"}
+                    local current = workspace
+                    local found = true
+                    
+                    for _, partName in ipairs(ammoPath) do
+                        current = current:FindFirstChild(partName)
+                        if not current then
+                            found = false
+                            break
+                        end
+                    end
+                    
+                    if found and current then
+                        firetouchinterest(humanoidRootPart, current.Parent, 0)
+                        firetouchinterest(humanoidRootPart, current.Parent, 1)
+                    end
+                end
+            end
+        end)
+    else
+        statusLabel.Text = "Auto Ammo: OFF"
+        
+        if autoAmmoConnection then
+            autoAmmoConnection:Disconnect()
+            autoAmmoConnection = nil
+        end
+    end
+    
+    if autoAmmoButton then
+        if autoAmmoEnabled then
+            autoAmmoButton.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
+        else
+            autoAmmoButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+        end
+    end
+    
+    return autoAmmoEnabled
+end
+
+local function updateAutoAmmoButton()
+    if autoAmmoButton then
+        if autoAmmoEnabled then
+            autoAmmoButton.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
+        else
+            autoAmmoButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+        end
+    end
+end
+
 local function createWeaponButton(weaponData, position)
     local button = Instance.new("TextButton")
     button.Parent = scrollFrame
@@ -346,7 +411,7 @@ local function createWeaponButton(weaponData, position)
     return button
 end
 
-local function createOtherButton(itemName, path, position)
+local function createOtherButton(itemName, path, position, isAutoAmmo)
     local button = Instance.new("TextButton")
     button.Parent = otherScrollFrame
     button.Size = UDim2.new(1, 0, 0, 30)
@@ -364,9 +429,18 @@ local function createOtherButton(itemName, path, position)
     buttonCorner.Parent = button
     buttonCorner.CornerRadius = UDim.new(0.2, 0)
 
-    button.MouseButton1Click:Connect(function()
-        activateTouchInterest(path)
-    end)
+    if isAutoAmmo then
+        autoAmmoButton = button
+        updateAutoAmmoButton()
+        
+        button.MouseButton1Click:Connect(function()
+            toggleAutoAmmo()
+        end)
+    else
+        button.MouseButton1Click:Connect(function()
+            activateTouchInterest(path)
+        end)
+    end
 
     return button
 end
@@ -429,12 +503,14 @@ local function updateOtherItemsList()
     end
 
     local otherItems = {
-        {"ammo", {"AREA51", "PlantRoom", "Box of Shells", "Box", "TouchInterest"}},
-        {"Armory", {"AREA51", "Amory2Room", "Armory", "Giver", "TouchInterest"}}
+        {"Ammo", {"AREA51", "PlantRoom", "Box of Shells", "Box", "TouchInterest"}},
+        {"Armory", {"AREA51", "Amory2Room", "Armory", "Giver", "TouchInterest"}},
+        {"Auto Ammo", {}, true}
     }
 
     for i, itemData in ipairs(otherItems) do
-        createOtherButton(itemData[1], itemData[2], UDim2.new(0, 0, 0, (i-1)*35))
+        local isAutoAmmo = itemData[3] or false
+        createOtherButton(itemData[1], itemData[2], UDim2.new(0, 0, 0, (i-1)*35), isAutoAmmo)
     end
     otherScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #otherItems * 35)
 end
@@ -442,8 +518,6 @@ end
 toggleGuiButton.MouseButton1Click:Connect(function()
     extendedFrame.Visible = not extendedFrame.Visible
     extendedBorderFrame.Visible = extendedFrame.Visible
-    otherExtendedFrame.Visible = false
-    otherExtendedBorderFrame.Visible = false
 
     if extendedFrame.Visible then
         updateWeaponsList()
@@ -453,10 +527,14 @@ end)
 toggleOtherButton.MouseButton1Click:Connect(function()
     otherExtendedFrame.Visible = not otherExtendedFrame.Visible
     otherExtendedBorderFrame.Visible = otherExtendedFrame.Visible
-    extendedFrame.Visible = false
-    extendedBorderFrame.Visible = false
 
     if otherExtendedFrame.Visible then
         updateOtherItemsList()
+    end
+end)
+
+Players.LocalPlayer.CharacterAdded:Connect(function()
+    if autoAmmoEnabled then
+        statusLabel.Text = "Auto Ammo: ON"
     end
 end)
