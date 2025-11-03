@@ -1,0 +1,168 @@
+-- ==========================================
+-- ПОЛНЫЙ УНИВЕРСАЛЬНЫЙ СКРИПТ ДЛЯ ЛЮБОГО ОРУЖИЯ
+-- ==========================================
+
+local garbage = getgc(true)
+
+for i, table in pairs(garbage) do
+    if type(table) == "table" and rawget(table, "FireRate") then
+        
+        -- =======================
+        -- ОСНОВНЫЕ НАСТРОЙКИ СТРЕЛЬБЫ
+        -- =======================
+        rawset(table, "Auto", true)                    -- Автоматическая стрельба
+        rawset(table, "MuzzleOffset", Vector3.new(0, 0, 0)) -- Смещение дула
+        rawset(table, "BaseDamage", 1000)              -- Урон за пулю
+        rawset(table, "FireRate", 0)                   -- Максимальная скорострельность
+        rawset(table, "ReloadTime", 0)                 -- Мгновенная перезарядка
+        rawset(table, "AmmoPerClip", 999)              -- Патронов в обойме
+        rawset(table, "AmmoPerMag", 999)               -- Патронов в магазине
+        rawset(table, "Spread", 0)                     -- Нет разброса
+        rawset(table, "Range", 1000)                   -- Дальность стрельбы
+        
+        -- =======================
+        -- НАСТРОЙКИ ХЕДШОТОВ
+        -- =======================
+        rawset(table, "HeadshotEnabled", true)         -- Включить хедшоты
+        rawset(table, "HeadshotDamageMultiplier", 10)  -- Множитель урона в голову
+        
+        -- =======================
+        -- АНИМАЦИИ
+        -- =======================
+        rawset(table, "EquipTime", 0)                  -- Время экипировки
+        rawset(table, "IdleAnimationSpeed", 1)
+        rawset(table, "FireAnimationSpeed", 1)
+        rawset(table, "ReloadAnimationSpeed", 1)
+        rawset(table, "EquippedAnimationSpeed", 1)
+        
+        -- =======================
+        -- ПРИЦЕЛИВАНИЕ
+        -- =======================
+        rawset(table, "AimAnimationsEnabled", true)
+        rawset(table, "AimIdleAnimationSpeed", 1)
+        rawset(table, "AimFireAnimationSpeed", 1)
+        rawset(table, "IronsightEnabled", true)
+        rawset(table, "FieldOfViewIS", 70)
+        rawset(table, "MouseSensitiveIS", 0.1)
+        rawset(table, "SpreadRedutionIS", 1)
+        
+        -- =======================
+        -- СИСТЕМА БОЕПРИПАСОВ
+        -- =======================
+        rawset(table, "LimitedClipEnabled", false)     -- Безлимитные обоймы
+        rawset(table, "LimitedAmmoEnabled", false)     -- Безлимитные патроны
+        rawset(table, "Clips", 999)                    -- Количество обойм
+        rawset(table, "MaxClip", 999)                  -- Максимум обойм
+        rawset(table, "Ammo", 9999)                    -- Текущие патроны
+        rawset(table, "MaxAmmo", 9999)                 -- Максимум патронов
+        rawset(table, "AutoReload", true)              -- Автоперезарядка
+        
+        -- =======================
+        -- РЕЖИМЫ СТРЕЛЬБЫ
+        -- =======================
+        rawset(table, "ShotgunEnabled", false)         -- Отключить дробовик
+        rawset(table, "BulletPerShot", 1)              -- Пуль за выстрел
+        rawset(table, "BurstFireEnabled", false)       -- Отключить очереди
+        rawset(table, "BulletPerBurst", 1)             -- Пуль за очередь
+        rawset(table, "BurstRate", 0)                  -- Скорость очереди
+        rawset(table, "SniperEnabled", false)          -- Отключить снайперку
+        
+        -- =======================
+        -- ВЗРЫВНЫЕ ПУЛИ
+        -- =======================
+        rawset(table, "ExplosiveEnabled", true)        -- Включить взрывные пули
+        rawset(table, "ExplosionRadius", 50)           -- Радиус взрыва
+        rawset(table, "SelfDamage", false)             -- Урон себе
+        rawset(table, "DamageBasedOnDistance", false)  -- Урон от расстояния
+        
+        -- =======================
+        -- ХАРАКТЕРИСТИКИ ПУЛЬ
+        -- =======================
+        rawset(table, "BulletSpeed", 10000)            -- Скорость пули
+        rawset(table, "BulletSize", Vector3.new(1, 1, 200)) -- Размер пули
+        rawset(table, "VisualizerEnabled", true)       -- Визуализация пуль
+        rawset(table, "Piercing", 10)                  -- Пробивание
+        rawset(table, "PenetrationDepth", 10)          -- Глубина пробивания
+        rawset(table, "PenetrationAmount", 10)         -- Количество пробиваний
+        
+        -- =======================
+        -- ЭФФЕКТЫ И ТРЯСКА
+        -- =======================
+        rawset(table, "CameraShakingEnabled", true)    -- Тряска камеры
+        rawset(table, "Intensity", 0.2)                -- Интенсивность тряски
+        rawset(table, "CameraRecoilingEnabled", false) -- Отдача камеры
+        rawset(table, "Recoil", 0)                     -- Отдача
+        
+        -- =======================
+        -- ЗВУКИ И ЭФФЕКТЫ ПОПАДАНИЙ
+        -- =======================
+        rawset(table, "HitEffectEnabled", true)
+        rawset(table, "HitSoundVolume", 1)
+        rawset(table, "HitSoundPitchMin", 1)
+        rawset(table, "HitSoundPitchMax", 1.5)
+        rawset(table, "HitmarkerEnabled", true)
+        
+        -- =======================
+        -- МУШКА И ПАТРОНЫ
+        -- =======================
+        rawset(table, "MuzzleFlashEnabled", true)
+        rawset(table, "MuzzleLightEnabled", true)
+        rawset(table, "BulletShellEnabled", true)
+        rawset(table, "BulletShellVelocity", 50)
+        
+        -- =======================
+        -- БЛИЖНИЙ БОЙ
+        -- =======================
+        rawset(table, "MeleeAttackEnabled", false)     -- Отключить ближний бой
+        rawset(table, "MeleeDamage", 100)              -- Урон в ближнем бою
+        rawset(table, "MeleeHeadshotDamageMultiplier", 5)
+        rawset(table, "MeleeAttackRange", 10)
+        
+        -- =======================
+        -- СПЕЦИАЛЬНЫЕ ЭФФЕКТЫ
+        -- =======================
+        rawset(table, "Knockback", 10)                 -- Отталкивание
+        rawset(table, "Lifesteal", 100)                -- Вампиризм 100%
+        rawset(table, "FlamingBullet", true)           -- Горящие пули
+        rawset(table, "Affliction", true)              -- Эффекты статуса
+        rawset(table, "AfflictChance", 100)            -- Шанс эффекта
+        
+        -- =======================
+        -- ДОПОЛНИТЕЛЬНЫЕ СИСТЕМЫ
+        -- =======================
+        rawset(table, "ChargedShotEnabled", false)     -- Отключить зарядку
+        rawset(table, "MinigunEnabled", false)         -- Отключить миниган
+        rawset(table, "BatteryEnabled", false)         -- Отключить перегрев
+        rawset(table, "DualEnabled", false)            -- Отключить двойное оружие
+        rawset(table, "ProjectileMotion", false)       -- Отключить физику пуль
+        
+        -- =======================
+        -- КРИТИЧЕСКИЙ УРОН
+        -- =======================
+        rawset(table, "CriticalDamageEnabled", true)   -- Включить криты
+        rawset(table, "CriticalBaseChance", 100)       -- 100% шанс крита
+        rawset(table, "CriticalDamageMultiplier", 5)   -- Множитель крита
+        
+        -- =======================
+        -- НАСТРОЙКИ ИГРОКА
+        -- =======================
+        rawset(table, "WalkSpeedRedutionEnabled", false) -- Не замедлять при прицеливании
+        rawset(table, "FriendlyFire", false)           -- Без дружественного огня
+        rawset(table, "FirstPersonArms", true)         -- Руки от первого лица
+        
+        -- =======================
+        -- ГРАФИЧЕСКИЕ ЭФФЕКТЫ
+        -- =======================
+        rawset(table, "MarkerEffectEnabled", true)
+        rawset(table, "MarkerEffectSize", 1)
+        rawset(table, "GoreEffectEnabled", true)
+        rawset(table, "BloodEnabled", true)
+        rawset(table, "SmokeTrailEnabled", true)
+        
+        -- =======================
+        -- УПРАВЛЕНИЕ (не изменяем)
+        -- =======================
+        -- Keyboard и Controller оставляем без изменений
+        
+    end
+end
