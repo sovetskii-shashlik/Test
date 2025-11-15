@@ -1,0 +1,820 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local localPlayer = Players.LocalPlayer
+
+local currentLanguage = "russian"
+
+local translations = {
+    russian = {
+        title = "Редактор Оружия",
+        basicSettings = "Основные",
+        fireSettings = "Стрельба", 
+        ammoSystem = "Боеприпасы",
+        bulletSettings = "Пули",
+        effects = "Эффекты",
+        special = "Особые",
+        advanced = "Дополнительно",
+        apply = "Применить ко всему",
+        reset = "Сброс",
+        hide = "Скрыть",
+        show = "Показать",
+        language = "Язык",
+        
+        autoFire = "Авто-огонь",
+        fireRate = "Скорострельность",
+        reloadTime = "Перезарядка",
+        baseDamage = "Базовый урон",
+        headshotMultiplier = "Множитель хедшота",
+        range = "Дальность",
+        spread = "Разброс",
+        equipTime = "Время экипировки",
+        
+        ammoPerClip = "Патроны в обойме",
+        ammoPerMag = "Патроны в магазине",
+        shotgunMode = "Дробовик",
+        bulletsPerShot = "Пули за выстрел",
+        burstFire = "Очередь",
+        burstCount = "Пули в очереди",
+        
+        limitedAmmo = "Ограниченные патроны",
+        currentAmmo = "Текущие патроны",
+        maxAmmo = "Макс патроны",
+        clips = "Обоймы",
+        maxClips = "Макс обойм",
+        autoReload = "Авто-перезарядка",
+        
+        bulletSpeed = "Скорость пули",
+        piercing = "Пробивание",
+        explosiveBullets = "Взрывные пули",
+        explosionRadius = "Радиус взрыва",
+        selfDamage = "Урон себе",
+        
+        muzzleFlash = "Вспышка дула", 
+        cameraShake = "Тряска камеры",
+        recoil = "Отдача",
+        hitEffects = "Эффекты попадания",
+        hitMarker = "Маркер попадания",
+        
+        criticalDamage = "Критический урон",
+        critChance = "Шанс крита", 
+        critMultiplier = "Множитель крита",
+        lifesteal = "Вампиризм",
+        knockback = "Отталкивание",
+        flamingBullet = "Горящие пули",
+        
+        ironsight = "Прицеливание",
+        fieldOfView = "Поле зрения",
+        mouseSensitivity = "Чувств. мыши",
+        walkSpeedReduction = "Замедление",
+        friendlyFire = "Дружественный огонь",
+        
+        headshotEnabled = "Хедшоты",
+        aimAnimations = "Анимации прицела",
+        limitedClip = "Ограниченные обоймы",
+        sniperEnabled = "Снайперский режим",
+        firstPersonArms = "Рубы от 1 лица",
+        idleAnimSpeed = "Скорость анимации покоя",
+        fireAnimSpeed = "Скорость анимации стрельбы",
+        reloadAnimSpeed = "Скорость перезарядки",
+        equippedAnimSpeed = "Скорость экипировки",
+        aimIdleSpeed = "Скорость прицела покоя",
+        aimFireSpeed = "Скорость прицела стрельбы",
+        spreadReduction = "Снижение разброса",
+        shellVelocity = "Скорость гильз",
+        markerSize = "Размер маркера",
+        penetrationDepth = "Глубина пробивания",
+        penetrationAmount = "Кол-во пробиваний",
+        intensity = "Интенсивность",
+        damageDistance = "Урон от расстояния",
+        visualizer = "Визуализация пуль",
+        cameraRecoiling = "Отдача камеры",
+        projectileMotion = "Физика пуль",
+        soundVolume = "Громкость звука",
+        soundPitchMin = "Минимальный тон",
+        soundPitchMax = "Максимальный тон",
+        afflictChance = "Шанс эффекта",
+        meleeDamage = "Урон ближнего",
+        muzzleLight = "Свет дула",
+        bulletShell = "Гильзы",
+        markerEffect = "Эффект маркера",
+        meleeHeadshotMulti = "Множитель хедшота ближнего",
+        meleeAttackRange = "Дальность ближнего",
+        affliction = "Эффекты статуса",
+        meleeAttack = "Ближний бой",
+        goreEffect = "Горе-эффекты",
+        bloodEnabled = "Кровь",
+        smokeTrail = "Дымовой след",
+        chargedShot = "Заряжаемый выстрел",
+        minigunEnabled = "Миниган",
+        batteryEnabled = "Батарея",
+        dualEnabled = "Двойное оружие"
+    },
+    
+    english = {
+        title = "Weapon Editor",
+        basicSettings = "Basic",
+        fireSettings = "Fire",
+        ammoSystem = "Ammo", 
+        bulletSettings = "Bullets",
+        effects = "Effects",
+        special = "Special",
+        advanced = "Advanced",
+        apply = "Apply to all",
+        reset = "Reset",
+        hide = "Hide",
+        show = "Show",
+        language = "Language",
+        
+        autoFire = "Auto Fire",
+        fireRate = "Fire Rate",
+        reloadTime = "Reload Time", 
+        baseDamage = "Base Damage",
+        headshotMultiplier = "Headshot Multiplier",
+        range = "Range",
+        spread = "Spread",
+        equipTime = "Equip Time",
+        
+        ammoPerClip = "Ammo Per Clip",
+        ammoPerMag = "Ammo Per Mag",
+        shotgunMode = "Shotgun Mode",
+        bulletsPerShot = "Bullets Per Shot",
+        burstFire = "Burst Fire",
+        burstCount = "Burst Count",
+        
+        limitedAmmo = "Limited Ammo",
+        currentAmmo = "Current Ammo",
+        maxAmmo = "Max Ammo",
+        clips = "Clips",
+        maxClips = "Max Clips",
+        autoReload = "Auto Reload",
+        
+        bulletSpeed = "Bullet Speed",
+        piercing = "Piercing",
+        explosiveBullets = "Explosive Bullets",
+        explosionRadius = "Explosion Radius",
+        selfDamage = "Self Damage",
+        
+        muzzleFlash = "Muzzle Flash",
+        cameraShake = "Camera Shake",
+        recoil = "Recoil",
+        hitEffects = "Hit Effects",
+        hitMarker = "Hit Marker",
+        
+        criticalDamage = "Critical Damage",
+        critChance = "Crit Chance",
+        critMultiplier = "Crit Multiplier",
+        lifesteal = "Lifesteal",
+        knockback = "Knockback",
+        flamingBullet = "Flaming Bullets",
+        
+        ironsight = "Ironsight",
+        fieldOfView = "Field of View",
+        mouseSensitivity = "Mouse Sensitivity",
+        walkSpeedReduction = "Walk Speed Reduction",
+        friendlyFire = "Friendly Fire",
+        
+        headshotEnabled = "Headshots",
+        aimAnimations = "Aim Animations",
+        limitedClip = "Limited Clip",
+        sniperEnabled = "Sniper Mode",
+        firstPersonArms = "First Person Arms",
+        idleAnimSpeed = "Idle Anim Speed",
+        fireAnimSpeed = "Fire Anim Speed",
+        reloadAnimSpeed = "Reload Anim Speed",
+        equippedAnimSpeed = "Equipped Anim Speed",
+        aimIdleSpeed = "Aim Idle Speed",
+        aimFireSpeed = "Aim Fire Speed",
+        spreadReduction = "Spread Reduction",
+        shellVelocity = "Shell Velocity",
+        markerSize = "Marker Size",
+        penetrationDepth = "Penetration Depth",
+        penetrationAmount = "Penetration Amount",
+        intensity = "Intensity",
+        damageDistance = "Damage by Distance",
+        visualizer = "Bullet Visualizer",
+        cameraRecoiling = "Camera Recoil",
+        projectileMotion = "Projectile Motion",
+        soundVolume = "Sound Volume",
+        soundPitchMin = "Sound Pitch Min",
+        soundPitchMax = "Sound Pitch Max",
+        afflictChance = "Afflict Chance",
+        meleeDamage = "Melee Damage",
+        muzzleLight = "Muzzle Light",
+        bulletShell = "Bullet Shell",
+        markerEffect = "Marker Effect",
+        meleeHeadshotMulti = "Melee Headshot Multi",
+        meleeAttackRange = "Melee Range",
+        affliction = "Affliction",
+        meleeAttack = "Melee Attack",
+        goreEffect = "Gore Effects",
+        bloodEnabled = "Blood Effects",
+        smokeTrail = "Smoke Trail",
+        chargedShot = "Charged Shot",
+        minigunEnabled = "Minigun",
+        batteryEnabled = "Battery",
+        dualEnabled = "Dual Weapons"
+    }
+}
+
+local function t(key)
+    return translations[currentLanguage][key] or key
+end
+
+local weaponSettings = {
+    Auto = true,
+    MuzzleOffset = Vector3.new(0, 0, 0),
+    BaseDamage = 1000,
+    FireRate = 0,
+    ReloadTime = 0,
+    AmmoPerClip = 999999999,
+    AmmoPerMag = 999999999,
+    Spread = 0,
+    Range = 1000,
+    
+    HeadshotEnabled = true,
+    HeadshotDamageMultiplier = 10,
+    
+    EquipTime = 0,
+    IdleAnimationSpeed = 1,
+    FireAnimationSpeed = 1,
+    ReloadAnimationSpeed = 1,
+    EquippedAnimationSpeed = 1,
+    
+    AimAnimationsEnabled = true,
+    AimIdleAnimationSpeed = 1,
+    AimFireAnimationSpeed = 1,
+    IronsightEnabled = true,
+    FieldOfViewIS = 70,
+    MouseSensitiveIS = 0.1,
+    SpreadRedutionIS = 1,
+    
+    LimitedClipEnabled = false,
+    LimitedAmmoEnabled = false,
+    Clips = 999999999,
+    MaxClip = 999999999,
+    Ammo = 9999999999,
+    MaxAmmo = 9999999999,
+    AutoReload = true,
+    
+    ShotgunEnabled = false,
+    BulletPerShot = 1,
+    BurstFireEnabled = false,
+    BulletPerBurst = 1,
+    BurstRate = 0,
+    SniperEnabled = false,
+    
+    ExplosiveEnabled = true,
+    ExplosionRadius = 50,
+    SelfDamage = false,
+    DamageBasedOnDistance = false,
+    
+    BulletSpeed = 10000,
+    BulletSize = Vector3.new(1, 1, 200),
+    VisualizerEnabled = true,
+    Piercing = 10,
+    PenetrationDepth = 10,
+    PenetrationAmount = 10,
+    
+    CameraShakingEnabled = true,
+    Intensity = 0.2,
+    CameraRecoilingEnabled = false,
+    Recoil = 0,
+    
+    HitEffectEnabled = true,
+    HitSoundVolume = 1,
+    HitSoundPitchMin = 1,
+    HitSoundPitchMax = 1.5,
+    HitmarkerEnabled = true,
+    
+    MuzzleFlashEnabled = true,
+    MuzzleLightEnabled = true,
+    BulletShellEnabled = true,
+    BulletShellVelocity = 50,
+    
+    MeleeAttackEnabled = false,
+    MeleeDamage = 100,
+    MeleeHeadshotDamageMultiplier = 5,
+    MeleeAttackRange = 10,
+    
+    Knockback = 10,
+    Lifesteal = 100,
+    FlamingBullet = true,
+    Affliction = true,
+    AfflictChance = 100,
+    
+    ChargedShotEnabled = false,
+    MinigunEnabled = false,
+    BatteryEnabled = false,
+    DualEnabled = false,
+    ProjectileMotion = false,
+    
+    CriticalDamageEnabled = true,
+    CriticalBaseChance = 100,
+    CriticalDamageMultiplier = 5,
+    
+    WalkSpeedRedutionEnabled = false,
+    FriendlyFire = false,
+    FirstPersonArms = true,
+    
+    MarkerEffectEnabled = true,
+    MarkerEffectSize = 1,
+    GoreEffectEnabled = true,
+    BloodEnabled = true,
+    SmokeTrailEnabled = true
+}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WeaponEditor"
+screenGui.Parent = game:GetService("CoreGui")
+
+local showBtn = Instance.new("TextButton")
+showBtn.Size = UDim2.new(0, 150, 0, 45)
+showBtn.Position = UDim2.new(0, 10, 0, 10)
+showBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+showBtn.TextColor3 = Color3.new(1, 1, 1)
+showBtn.Text = "Открыть редактор"
+showBtn.Font = Enum.Font.GothamBold
+showBtn.TextSize = 14
+showBtn.Parent = screenGui
+showBtn.Active = true
+showBtn.Draggable = true
+
+local showCorner = Instance.new("UICorner")
+showCorner.CornerRadius = UDim.new(0, 8)
+showCorner.Parent = showBtn
+
+local showStroke = Instance.new("UIStroke")
+showStroke.Thickness = 2
+showStroke.Color = Color3.fromRGB(100, 100, 255)
+showStroke.Parent = showBtn
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 600, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = false
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 40)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+header.Parent = mainFrame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 8)
+headerCorner.Parent = header
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -80, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = t("title")
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.TextSize = 14
+closeBtn.Parent = header
+
+local hideBtn = Instance.new("TextButton")
+hideBtn.Size = UDim2.new(0, 30, 0, 30)
+hideBtn.Position = UDim2.new(1, -70, 0, 5)
+hideBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+hideBtn.Text = "_"
+hideBtn.TextColor3 = Color3.new(1, 1, 1)
+hideBtn.TextSize = 14
+hideBtn.Parent = header
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = closeBtn
+btnCorner:Clone().Parent = hideBtn
+
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -20, 1, -60)
+contentFrame.Position = UDim2.new(0, 10, 0, 50)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+local tabContainer = Instance.new("Frame")
+tabContainer.Size = UDim2.new(1, 0, 0, 30)
+tabContainer.Position = UDim2.new(0, 0, 0, 0)
+tabContainer.BackgroundTransparency = 1
+tabContainer.Parent = contentFrame
+
+local tabs = {"basic", "fire", "ammo", "bullet", "effects", "special", "advanced"}
+local tabButtons = {}
+local tabFrames = {}
+local currentTab = "basic"
+
+for i, tabName in ipairs(tabs) do
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Size = UDim2.new(1/#tabs, -2, 1, 0)
+    tabBtn.Position = UDim2.new((i-1)/#tabs, 0, 0, 0)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    tabBtn.Text = t(tabName.."Settings")
+    tabBtn.TextColor3 = Color3.new(1, 1, 1)
+    tabBtn.Font = Enum.Font.Gotham
+    tabBtn.TextSize = 11
+    tabBtn.Parent = tabContainer
+    
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 4)
+    tabCorner.Parent = tabBtn
+    
+    local tabFrame = Instance.new("ScrollingFrame")
+    tabFrame.Size = UDim2.new(1, 0, 1, -40)
+    tabFrame.Position = UDim2.new(0, 0, 0, 35)
+    tabFrame.BackgroundTransparency = 1
+    tabFrame.ScrollBarThickness = 4
+    tabFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 255)
+    tabFrame.Visible = false
+    tabFrame.Parent = contentFrame
+    
+    tabButtons[tabName] = tabBtn
+    tabFrames[tabName] = tabFrame
+    
+    tabBtn.MouseButton1Click:Connect(function()
+        currentTab = tabName
+        for name, frame in pairs(tabFrames) do
+            frame.Visible = (name == tabName)
+        end
+        for _, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        end
+        tabBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    end)
+end
+
+local function createNumberInput(parent, label, value, yPosition, settingName)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(0.48, 0, 0, 30)
+    container.Position = UDim2.new(0, 0, 0, yPosition)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+    
+    local labelText = Instance.new("TextLabel")
+    labelText.Size = UDim2.new(0.7, -5, 1, 0)
+    labelText.Position = UDim2.new(0, 0, 0, 0)
+    labelText.BackgroundTransparency = 1
+    labelText.Text = label
+    labelText.TextColor3 = Color3.new(1, 1, 1)
+    labelText.Font = Enum.Font.Gotham
+    labelText.TextSize = 10
+    labelText.TextXAlignment = Enum.TextXAlignment.Left
+    labelText.TextWrapped = true
+    labelText.Parent = container
+    
+    local inputFrame = Instance.new("Frame")
+    inputFrame.Size = UDim2.new(0.3, 0, 0, 25)
+    inputFrame.Position = UDim2.new(0.7, 0, 0, 2)
+    inputFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    inputFrame.Parent = container
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 4)
+    inputCorner.Parent = inputFrame
+    
+    local valueBox = Instance.new("TextBox")
+    valueBox.Size = UDim2.new(1, 0, 1, 0)
+    valueBox.Position = UDim2.new(0, 0, 0, 0)
+    valueBox.BackgroundTransparency = 1
+    valueBox.Text = tostring(value)
+    valueBox.TextColor3 = Color3.new(1, 1, 1)
+    valueBox.Font = Enum.Font.Gotham
+    valueBox.TextSize = 10
+    valueBox.ClearTextOnFocus = false
+    valueBox.Parent = inputFrame
+    
+    valueBox.FocusLost:Connect(function()
+        local num = tonumber(valueBox.Text)
+        if num then
+            valueBox.Text = tostring(num)
+            weaponSettings[settingName] = num
+        else
+            valueBox.Text = tostring(value)
+        end
+    end)
+    
+    return container
+end
+
+local function createToggle(parent, label, value, yPosition, settingName)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(0.48, 0, 0, 30)
+    container.Position = UDim2.new(0, 0, 0, yPosition)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+    
+    local labelText = Instance.new("TextLabel")
+    labelText.Size = UDim2.new(0.7, -5, 1, 0)
+    labelText.Position = UDim2.new(0, 0, 0, 0)
+    labelText.BackgroundTransparency = 1
+    labelText.Text = label
+    labelText.TextColor3 = Color3.new(1, 1, 1)
+    labelText.Font = Enum.Font.Gotham
+    labelText.TextSize = 10
+    labelText.TextXAlignment = Enum.TextXAlignment.Left
+    labelText.TextWrapped = true
+    labelText.Parent = container
+    
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0.3, 0, 0, 25)
+    toggle.Position = UDim2.new(0.7, 0, 0, 2)
+    toggle.BackgroundColor3 = value and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
+    toggle.Text = value and "ON" or "OFF"
+    toggle.TextColor3 = Color3.new(1, 1, 1)
+    toggle.Font = Enum.Font.GothamBold
+    toggle.TextSize = 9
+    toggle.Parent = container
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggle
+    
+    toggle.MouseButton1Click:Connect(function()
+        value = not value
+        weaponSettings[settingName] = value
+        toggle.BackgroundColor3 = value and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
+        toggle.Text = value and "ON" or "OFF"
+    end)
+    
+    return container
+end
+
+local function createColumn(parent, xOffset)
+    local column = Instance.new("Frame")
+    column.Size = UDim2.new(0.48, 0, 1, 0)
+    column.Position = UDim2.new(xOffset, 0, 0, 0)
+    column.BackgroundTransparency = 1
+    column.Parent = parent
+    return column
+end
+
+local basicColumn1 = createColumn(tabFrames.basic, 0)
+local basicColumn2 = createColumn(tabFrames.basic, 0.5)
+
+createNumberInput(basicColumn1, t("fireRate"), weaponSettings.FireRate, 0, "FireRate")
+createNumberInput(basicColumn1, t("reloadTime"), weaponSettings.ReloadTime, 35, "ReloadTime")
+createNumberInput(basicColumn1, t("baseDamage"), weaponSettings.BaseDamage, 70, "BaseDamage")
+createNumberInput(basicColumn1, t("headshotMultiplier"), weaponSettings.HeadshotDamageMultiplier, 105, "HeadshotDamageMultiplier")
+createNumberInput(basicColumn1, t("range"), weaponSettings.Range, 140, "Range")
+createNumberInput(basicColumn1, t("spread"), weaponSettings.Spread, 175, "Spread")
+createNumberInput(basicColumn1, t("equipTime"), weaponSettings.EquipTime, 210, "EquipTime")
+
+createToggle(basicColumn2, t("autoFire"), weaponSettings.Auto, 0, "Auto")
+createToggle(basicColumn2, t("headshotEnabled"), weaponSettings.HeadshotEnabled, 35, "HeadshotEnabled")
+createToggle(basicColumn2, t("aimAnimations"), weaponSettings.AimAnimationsEnabled, 70, "AimAnimationsEnabled")
+createToggle(basicColumn2, t("ironsight"), weaponSettings.IronsightEnabled, 105, "IronsightEnabled")
+createToggle(basicColumn2, t("autoReload"), weaponSettings.AutoReload, 140, "AutoReload")
+createToggle(basicColumn2, t("walkSpeedReduction"), weaponSettings.WalkSpeedRedutionEnabled, 175, "WalkSpeedRedutionEnabled")
+createToggle(basicColumn2, t("friendlyFire"), weaponSettings.FriendlyFire, 210, "FriendlyFire")
+
+local fireColumn1 = createColumn(tabFrames.fire, 0)
+local fireColumn2 = createColumn(tabFrames.fire, 0.5)
+
+createNumberInput(fireColumn1, t("ammoPerClip"), weaponSettings.AmmoPerClip, 0, "AmmoPerClip")
+createNumberInput(fireColumn1, t("ammoPerMag"), weaponSettings.AmmoPerMag, 35, "AmmoPerMag")
+createNumberInput(fireColumn1, t("bulletsPerShot"), weaponSettings.BulletPerShot, 70, "BulletPerShot")
+createNumberInput(fireColumn1, t("burstCount"), weaponSettings.BulletPerBurst, 105, "BulletPerBurst")
+createNumberInput(fireColumn1, "Burst Rate", weaponSettings.BurstRate, 140, "BurstRate")
+createNumberInput(fireColumn1, t("fieldOfView"), weaponSettings.FieldOfViewIS, 175, "FieldOfViewIS")
+createNumberInput(fireColumn1, t("mouseSensitivity"), weaponSettings.MouseSensitiveIS, 210, "MouseSensitiveIS")
+
+createToggle(fireColumn2, t("shotgunMode"), weaponSettings.ShotgunEnabled, 0, "ShotgunEnabled")
+createToggle(fireColumn2, t("burstFire"), weaponSettings.BurstFireEnabled, 35, "BurstFireEnabled")
+createToggle(fireColumn2, t("sniperEnabled"), weaponSettings.SniperEnabled, 70, "SniperEnabled")
+createToggle(fireColumn2, t("limitedClip"), weaponSettings.LimitedClipEnabled, 105, "LimitedClipEnabled")
+createToggle(fireColumn2, t("limitedAmmo"), weaponSettings.LimitedAmmoEnabled, 140, "LimitedAmmoEnabled")
+createToggle(fireColumn2, t("firstPersonArms"), weaponSettings.FirstPersonArms, 175, "FirstPersonArms")
+
+local ammoColumn1 = createColumn(tabFrames.ammo, 0)
+local ammoColumn2 = createColumn(tabFrames.ammo, 0.5)
+
+createNumberInput(ammoColumn1, t("currentAmmo"), weaponSettings.Ammo, 0, "Ammo")
+createNumberInput(ammoColumn1, t("maxAmmo"), weaponSettings.MaxAmmo, 35, "MaxAmmo")
+createNumberInput(ammoColumn1, t("clips"), weaponSettings.Clips, 70, "Clips")
+createNumberInput(ammoColumn1, t("maxClips"), weaponSettings.MaxClip, 105, "MaxClip")
+createNumberInput(ammoColumn1, t("idleAnimSpeed"), weaponSettings.IdleAnimationSpeed, 140, "IdleAnimationSpeed")
+createNumberInput(ammoColumn1, t("fireAnimSpeed"), weaponSettings.FireAnimationSpeed, 175, "FireAnimationSpeed")
+createNumberInput(ammoColumn1, t("reloadAnimSpeed"), weaponSettings.ReloadAnimationSpeed, 210, "ReloadAnimationSpeed")
+
+createNumberInput(ammoColumn2, t("equippedAnimSpeed"), weaponSettings.EquippedAnimationSpeed, 0, "EquippedAnimationSpeed")
+createNumberInput(ammoColumn2, t("aimIdleSpeed"), weaponSettings.AimIdleAnimationSpeed, 35, "AimIdleAnimationSpeed")
+createNumberInput(ammoColumn2, t("aimFireSpeed"), weaponSettings.AimFireAnimationSpeed, 70, "AimFireAnimationSpeed")
+createNumberInput(ammoColumn2, t("spreadReduction"), weaponSettings.SpreadRedutionIS, 105, "SpreadRedutionIS")
+createNumberInput(ammoColumn2, t("shellVelocity"), weaponSettings.BulletShellVelocity, 140, "BulletShellVelocity")
+createNumberInput(ammoColumn2, t("markerSize"), weaponSettings.MarkerEffectSize, 175, "MarkerEffectSize")
+
+local bulletColumn1 = createColumn(tabFrames.bullet, 0)
+local bulletColumn2 = createColumn(tabFrames.bullet, 0.5)
+
+createNumberInput(bulletColumn1, t("bulletSpeed"), weaponSettings.BulletSpeed, 0, "BulletSpeed")
+createNumberInput(bulletColumn1, t("piercing"), weaponSettings.Piercing, 35, "Piercing")
+createNumberInput(bulletColumn1, t("penetrationDepth"), weaponSettings.PenetrationDepth, 70, "PenetrationDepth")
+createNumberInput(bulletColumn1, t("penetrationAmount"), weaponSettings.PenetrationAmount, 105, "PenetrationAmount")
+createNumberInput(bulletColumn1, t("explosionRadius"), weaponSettings.ExplosionRadius, 140, "ExplosionRadius")
+createNumberInput(bulletColumn1, t("intensity"), weaponSettings.Intensity, 175, "Intensity")
+createNumberInput(bulletColumn1, t("recoil"), weaponSettings.Recoil, 210, "Recoil")
+
+createToggle(bulletColumn2, t("explosiveBullets"), weaponSettings.ExplosiveEnabled, 0, "ExplosiveEnabled")
+createToggle(bulletColumn2, t("selfDamage"), weaponSettings.SelfDamage, 35, "SelfDamage")
+createToggle(bulletColumn2, t("damageDistance"), weaponSettings.DamageBasedOnDistance, 70, "DamageBasedOnDistance")
+createToggle(bulletColumn2, t("visualizer"), weaponSettings.VisualizerEnabled, 105, "VisualizerEnabled")
+createToggle(bulletColumn2, t("cameraRecoiling"), weaponSettings.CameraRecoilingEnabled, 140, "CameraRecoilingEnabled")
+createToggle(bulletColumn2, t("projectileMotion"), weaponSettings.ProjectileMotion, 175, "ProjectileMotion")
+
+local effectsColumn1 = createColumn(tabFrames.effects, 0)
+local effectsColumn2 = createColumn(tabFrames.effects, 0.5)
+
+createNumberInput(effectsColumn1, t("soundVolume"), weaponSettings.HitSoundVolume, 0, "HitSoundVolume")
+createNumberInput(effectsColumn1, t("soundPitchMin"), weaponSettings.HitSoundPitchMin, 35, "HitSoundPitchMin")
+createNumberInput(effectsColumn1, t("soundPitchMax"), weaponSettings.HitSoundPitchMax, 70, "HitSoundPitchMax")
+createNumberInput(effectsColumn1, t("knockback"), weaponSettings.Knockback, 105, "Knockback")
+createNumberInput(effectsColumn1, t("lifesteal"), weaponSettings.Lifesteal, 140, "Lifesteal")
+createNumberInput(effectsColumn1, t("afflictChance"), weaponSettings.AfflictChance, 175, "AfflictChance")
+createNumberInput(effectsColumn1, t("meleeDamage"), weaponSettings.MeleeDamage, 210, "MeleeDamage")
+
+createToggle(effectsColumn2, t("muzzleFlash"), weaponSettings.MuzzleFlashEnabled, 0, "MuzzleFlashEnabled")
+createToggle(effectsColumn2, t("cameraShake"), weaponSettings.CameraShakingEnabled, 35, "CameraShakingEnabled")
+createToggle(effectsColumn2, t("hitEffects"), weaponSettings.HitEffectEnabled, 70, "HitEffectEnabled")
+createToggle(effectsColumn2, t("hitMarker"), weaponSettings.HitmarkerEnabled, 105, "HitmarkerEnabled")
+createToggle(effectsColumn2, t("muzzleLight"), weaponSettings.MuzzleLightEnabled, 140, "MuzzleLightEnabled")
+createToggle(effectsColumn2, t("bulletShell"), weaponSettings.BulletShellEnabled, 175, "BulletShellEnabled")
+createToggle(effectsColumn2, t("markerEffect"), weaponSettings.MarkerEffectEnabled, 210, "MarkerEffectEnabled")
+
+local specialColumn1 = createColumn(tabFrames.special, 0)
+local specialColumn2 = createColumn(tabFrames.special, 0.5)
+
+createNumberInput(specialColumn1, t("critChance"), weaponSettings.CriticalBaseChance, 0, "CriticalBaseChance")
+createNumberInput(specialColumn1, t("critMultiplier"), weaponSettings.CriticalDamageMultiplier, 35, "CriticalDamageMultiplier")
+createNumberInput(specialColumn1, t("meleeHeadshotMulti"), weaponSettings.MeleeHeadshotDamageMultiplier, 70, "MeleeHeadshotDamageMultiplier")
+createNumberInput(specialColumn1, t("meleeAttackRange"), weaponSettings.MeleeAttackRange, 105, "MeleeAttackRange")
+
+createToggle(specialColumn2, t("criticalDamage"), weaponSettings.CriticalDamageEnabled, 0, "CriticalDamageEnabled")
+createToggle(specialColumn2, t("flamingBullet"), weaponSettings.FlamingBullet, 35, "FlamingBullet")
+createToggle(specialColumn2, t("affliction"), weaponSettings.Affliction, 70, "Affliction")
+createToggle(specialColumn2, t("meleeAttack"), weaponSettings.MeleeAttackEnabled, 105, "MeleeAttackEnabled")
+createToggle(specialColumn2, t("goreEffect"), weaponSettings.GoreEffectEnabled, 140, "GoreEffectEnabled")
+createToggle(specialColumn2, t("bloodEnabled"), weaponSettings.BloodEnabled, 175, "BloodEnabled")
+createToggle(specialColumn2, t("smokeTrail"), weaponSettings.SmokeTrailEnabled, 210, "SmokeTrailEnabled")
+
+local advancedColumn1 = createColumn(tabFrames.advanced, 0)
+local advancedColumn2 = createColumn(tabFrames.advanced, 0.5)
+
+createToggle(advancedColumn1, t("chargedShot"), weaponSettings.ChargedShotEnabled, 0, "ChargedShotEnabled")
+createToggle(advancedColumn1, t("minigunEnabled"), weaponSettings.MinigunEnabled, 35, "MinigunEnabled")
+createToggle(advancedColumn1, t("batteryEnabled"), weaponSettings.BatteryEnabled, 70, "BatteryEnabled")
+createToggle(advancedColumn1, t("dualEnabled"), weaponSettings.DualEnabled, 105, "DualEnabled")
+
+local actionFrame = Instance.new("Frame")
+actionFrame.Size = UDim2.new(1, 0, 0, 40)
+actionFrame.Position = UDim2.new(0, 0, 1, -40)
+actionFrame.BackgroundTransparency = 1
+actionFrame.Parent = contentFrame
+
+local applyBtn = Instance.new("TextButton")
+applyBtn.Size = UDim2.new(0.6, -5, 0, 35)
+applyBtn.Position = UDim2.new(0, 0, 0, 2)
+applyBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
+applyBtn.Text = t("apply")
+applyBtn.TextColor3 = Color3.new(1, 1, 1)
+applyBtn.Font = Enum.Font.GothamBold
+applyBtn.TextSize = 12
+applyBtn.Parent = actionFrame
+
+local resetBtn = Instance.new("TextButton")
+resetBtn.Size = UDim2.new(0.2, -5, 0, 35)
+resetBtn.Position = UDim2.new(0.6, 5, 0, 2)
+resetBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 60)
+resetBtn.Text = t("reset")
+resetBtn.TextColor3 = Color3.new(1, 1, 1)
+resetBtn.Font = Enum.Font.GothamBold
+resetBtn.TextSize = 12
+resetBtn.Parent = actionFrame
+
+local languageBtn = Instance.new("TextButton")
+languageBtn.Size = UDim2.new(0.15, -5, 0, 35)
+languageBtn.Position = UDim2.new(0.85, 5, 0, 2)
+languageBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 150)
+languageBtn.Text = currentLanguage == "russian" and "EN" or "RU"
+languageBtn.TextColor3 = Color3.new(1, 1, 1)
+languageBtn.Font = Enum.Font.GothamBold
+languageBtn.TextSize = 12
+languageBtn.Parent = actionFrame
+
+local actionCorner = Instance.new("UICorner")
+actionCorner.CornerRadius = UDim.new(0, 6)
+actionCorner.Parent = applyBtn
+actionCorner:Clone().Parent = resetBtn
+actionCorner:Clone().Parent = languageBtn
+
+local function applyToAllWeapons()
+    local garbage = getgc(true)
+    for i, table in pairs(garbage) do
+        if type(table) == "table" and rawget(table, "FireRate") then
+            for settingName, value in pairs(weaponSettings) do
+                rawset(table, settingName, value)
+            end
+        end
+    end
+end
+
+applyBtn.MouseButton1Click:Connect(function()
+    applyToAllWeapons()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = t("title"),
+        Text = "Настройки применены ко всему оружию",
+        Duration = 2
+    })
+end)
+
+resetBtn.MouseButton1Click:Connect(function()
+    for k, v in pairs(weaponSettings) do
+        if type(v) == "boolean" then
+            weaponSettings[k] = false
+        elseif type(v) == "number" then
+            weaponSettings[k] = 0
+        end
+    end
+    weaponSettings.Auto = true
+    weaponSettings.BaseDamage = 1000
+    weaponSettings.HeadshotDamageMultiplier = 10
+    weaponSettings.Range = 1000
+    weaponSettings.AmmoPerClip = 999999999
+    weaponSettings.AmmoPerMag = 999999999
+    weaponSettings.Ammo = 9999999999
+    weaponSettings.MaxAmmo = 9999999999
+    weaponSettings.Clips = 999999999
+    weaponSettings.MaxClip = 999999999
+    weaponSettings.BulletSpeed = 10000
+    weaponSettings.Piercing = 10
+    weaponSettings.ExplosionRadius = 50
+    weaponSettings.Knockback = 10
+    weaponSettings.Lifesteal = 100
+    weaponSettings.CriticalBaseChance = 100
+    weaponSettings.CriticalDamageMultiplier = 5
+    weaponSettings.MeleeDamage = 100
+    weaponSettings.MeleeHeadshotDamageMultiplier = 5
+    weaponSettings.MeleeAttackRange = 10
+    weaponSettings.AfflictChance = 100
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = t("title"),
+        Text = "Настройки сброшены",
+        Duration = 2
+    })
+end)
+
+languageBtn.MouseButton1Click:Connect(function()
+    currentLanguage = currentLanguage == "russian" and "english" or "russian"
+    languageBtn.Text = currentLanguage == "russian" and "EN" or "RU"
+    title.Text = t("title")
+    for tabName, btn in pairs(tabButtons) do
+        btn.Text = t(tabName.."Settings")
+    end
+end)
+
+showBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    showBtn.Visible = false
+end)
+
+hideBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    showBtn.Visible = true
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+for _, frame in pairs(tabFrames) do
+    frame.CanvasSize = UDim2.new(0, 0, 0, 250)
+end
+
+tabFrames.basic.Visible = true
+tabButtons.basic.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+
+if UserInputService.TouchEnabled then
+    mainFrame.Size = UDim2.new(0, 550, 0, 380)
+    mainFrame.Position = UDim2.new(0.5, -275, 0.5, -190)
+    showBtn.Size = UDim2.new(0, 140, 0, 40)
+end
