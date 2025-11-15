@@ -52,8 +52,8 @@ local weaponSettings = {
     DamageBasedOnDistance = false,
     
     BulletSpeed = 10000,
-    BulletSize = Vector3.new(1, 1, 200),
-    VisualizerEnabled = false,
+    BulletSize = Vector3.new(0.5, 0.5, 1e10),
+    VisualizerEnabled = true,
     Piercing = 10,
     PenetrationDepth = 10,
     PenetrationAmount = 10,
@@ -671,7 +671,7 @@ resetBtn.MouseButton1Click:Connect(function()
     weaponSettings.MeleeHeadshotDamageMultiplier = 100
     weaponSettings.MeleeAttackRange = 10
     weaponSettings.AfflictChance = 0
-    weaponSettings.BulletSize = Vector3.new(1, 1, 200)
+    weaponSettings.BulletSize = Vector3.new(0.5, 0.5, 1e10)
     
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Weapon Editor",
