@@ -1,0 +1,177 @@
+-- Loadstring Logger V2.0
+
+-- Settings (modify these as needed)
+
+local SafeToFile = true
+
+local CopyToClipboard = false
+
+local FolderName = "MihaLogger"
+
+local FileName = "loadstring_logs.txt"
+
+local ShowNotifications = true
+
+-- Internal variables
+
+local originalLoadstring = loadstring or load
+
+getgenv().LoadstringLogs = {}
+
+-- Utility functions
+
+local function safeNotify(title, text, duration)
+
+    if not ShowNotifications then return end
+
+    local success, err = pcall(function()
+
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+
+            Title = title,
+
+            Text = text,
+
+            Duration = duration or 5
+
+        })
+
+    end)
+
+    if not success then
+
+        warn("[Notification Error]: "..tostring(err))
+
+    end
+
+end
+
+local function ensureDirectory()
+
+    if not isfolder(FolderName) then
+
+        makefolder(FolderName)
+
+    end
+
+end
+
+local function clearOldLogs()
+
+    if SafeToFile then
+
+        ensureDirectory()
+
+        if isfile(FolderName.."/"..FileName) then
+
+            delfile(FolderName.."/"..FileName)
+
+        end
+
+    end
+
+end
+
+local function writeToFile(content)
+
+    if not SafeToFile then return end
+
+    
+
+    ensureDirectory()
+
+    local success, err = pcall(function()
+
+        local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+
+        local filePath = FolderName.."/"..FileName
+
+        local fileContent = ""
+
+        
+
+        if isfile(filePath) then
+
+            fileContent = readfile(filePath).."\n"
+
+        else
+
+            fileContent = "-- Loadstring Logs --\n\n"
+
+        end
+
+        
+
+        local newContent = string.format("-- [%s] --\n%s\n", timestamp, content)
+
+        writefile(filePath, fileContent..newContent)
+
+    end)
+
+    
+
+    if not success then
+
+        warn("[File Error]: "..tostring(err))
+
+    end
+
+end
+
+local function copyToClipboard(content)
+
+    if not CopyToClipboard then return end
+
+    pcall(function()
+
+        if setclipboard then
+
+            setclipboard(content)
+
+        end
+
+    end)
+
+end
+
+-- Main hook
+
+clearOldLogs()
+
+getgenv().loadstring = function(code, ...)
+
+    -- Store the code
+
+    table.insert(getgenv().LoadstringLogs, code)
+
+    
+
+    -- Save to file if enabled
+
+    writeToFile(code)
+
+    
+
+    -- Copy to clipboard if enabled
+
+    copyToClipboard(code)
+
+    
+
+    -- Show notification
+
+    safeNotify("Loadstring Logger", "New loadstring logged")
+
+    
+
+    -- Call original function
+
+    return originalLoadstring(code, ...)
+
+end
+
+-- Alias for load
+
+getgenv().load = getgenv().loadstring
+
+safeNotify("Loadstring Logger", "Logger initialized successfully")
