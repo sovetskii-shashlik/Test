@@ -1,0 +1,618 @@
+--[[
+  ESP Script v3.0
+  Включает:
+  - Стандартный ESP (Highlight + линии)
+  - ESP частей тела (BoxHandleAdornment)
+  - Box ESP (ваш точный оригинальный код)
+]]
+
+-- Ожидание загрузки игры
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- Сервисы
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+
+-- Настройки
+local settings = {
+    Enabled = false,         -- Основной ESP
+    ShowNames = false,       -- Показ имен
+    ShowOutline = false,     -- Контуры
+    ShowFill = false,        -- Заливка
+    ShowLines = false,       -- Линии к игрокам
+    TeamColor = false,       -- Цвет по команде
+    PartsEnabled = false,    -- ESP частей тела
+    BoxESPEnabled = false    -- Box ESP
+}
+
+-- Системы ESP
+local partEspConnections = {}  -- Для ESP частей
+local cachedESP = {}           -- Для Box ESP (ваш оригинальный кэш)
+local ESPenabled = false       -- Флаг Box ESP
+local ESPCache = {}            -- Для стандартного ESP
+
+--[[
+  Вспомогательные функции
+]]
+
+-- Округление чисел
+local function round2(num, numDecimalPlaces)
+    local mult = 10^(numDecimalPlaces or 0)
+    return math.floor(num * mult + 0.5) / mult
+end
+
+-- Конвертация мировых координат в экранные
+local function wtvp(position)
+    local pos, vis = Camera:WorldToViewportPoint(position)
+    return Vector2.new(pos.X, pos.Y), vis, pos.Z
+end
+
+-- Проверка, что это персонаж игрока (не NPC и не свой)
+local function isPlayerCharacter(character)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character == character then
+            return player ~= Player
+        end
+    end
+    return false
+end
+
+--[[
+  Box ESP (ВАШ ТОЧНЫЙ ОРИГИНАЛЬНЫЙ КОД)
+]]
+
+-- Создание элементов Box ESP
+local function createESP(player)
+    if cachedESP[player.Name] then return end
+    
+    local espitems = {}
+    if Drawing then
+        -- Основной бокс
+        espitems.box = Drawing.new("Square")
+        espitems.box.Thickness = 1
+        espitems.box.Filled = false
+        espitems.box.Color = Color3.new(255, 0, 0)
+        espitems.box.Visible = false
+        espitems.box.ZIndex = 2
+        
+        -- Контур бокса
+        espitems.boxl = Drawing.new("Square")
+        espitems.boxl.Thickness = 2
+        espitems.boxl.Filled = false
+        espitems.boxl.Color = Color3.new(0, 0, 0)
+        espitems.boxl.Visible = false
+        espitems.boxl.ZIndex = 1
+        
+        -- Полоса здоровья
+        espitems.healthbar = Drawing.new("Square")
+        espitems.healthbar.Thickness = 1
+        espitems.healthbar.Filled = true
+        espitems.healthbar.Color = Color3.new(0, 255, 0)
+        espitems.healthbar.Visible = false
+        espitems.healthbar.ZIndex = 2
+        
+        -- Контур полосы здоровья
+        espitems.healthbarl = Drawing.new("Square")
+        espitems.healthbarl.Thickness = 2
+        espitems.healthbarl.Filled = true
+        espitems.healthbarl.Color = Color3.new(0, 0, 0)
+        espitems.healthbarl.Visible = false
+        espitems.healthbarl.ZIndex = 1
+        
+        -- Текст с именем
+        espitems.name = Drawing.new("Text")
+        espitems.name.Size = 14
+        espitems.name.Center = true
+        espitems.name.Outline = true
+        espitems.name.Color = Color3.fromRGB(255, 255, 255)
+        espitems.name.Visible = false
+        espitems.name.ZIndex = 2
+        
+        -- Текст с расстоянием
+        espitems.distance = Drawing.new("Text")
+        espitems.distance.Size = 14
+        espitems.distance.Center = true
+        espitems.distance.Outline = true
+        espitems.distance.Color = Color3.fromRGB(255, 255, 255)
+        espitems.distance.Visible = false
+        espitems.distance.ZIndex = 2
+    end
+    cachedESP[player.Name] = espitems
+end
+
+-- Удаление Box ESP
+local function removeESP(player)
+    if rawget(cachedESP, player.Name) then
+        for _, drawing in next, cachedESP[player.Name] do
+            drawing:Remove()
+        end
+        cachedESP[player.Name] = nil
+    end
+end
+
+-- Обновление Box ESP (ВАШ ТОЧНЫЙ РАСЧЕТ)
+local function updateESP(player, esp)
+    local char = player.Character
+    if char then
+        local cframe = char:GetModelCFrame()
+        local position, visible, depth = wtvp(cframe.Position)
+        esp.box.Visible = visible
+        esp.boxl.Visible = visible
+        esp.healthbar.Visible = visible
+        esp.healthbarl.Visible = visible
+        esp.name.Visible = visible
+        esp.distance.Visible = visible
+        
+        if cframe and visible then
+            -- ТОЧНЫЙ РАСЧЕТ РАЗМЕРОВ КАК У ВАС
+            local sf = 1 / (depth * math.tan(math.rad(Camera.FieldOfView / 2)) * 2) * 1000
+            local w, h = round2(4 * sf, 5 * sf) -- ТОЧНЫЕ КОЭФФИЦИЕНТЫ 4 и 5
+            
+            local x, y = round2(position.X, position.Y)
+            
+            -- Основной бокс
+            esp.box.Size = Vector2.new(w, h)
+            esp.box.Position = Vector2.new(round2(x - w / 2, y - h / 2))
+            esp.box.Color = player.TeamColor.Color or Color3.fromRGB(255, 0, 0)
+            
+            -- Контур бокса
+            esp.boxl.Size = esp.box.Size
+            esp.boxl.Position = esp.box.Position
+            
+            -- Полоса здоровья (ТОЧНЫЕ ПАРАМЕТРЫ)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                local hp = hum.Health / hum.MaxHealth
+                esp.healthbar.Size = Vector2.new(2, h * hp) -- Ширина 2
+                esp.healthbar.Position = Vector2.new(round2(x - w / 2 - 8, y - h / 2 + h * (1 - hp))) -- Смещение -8
+                esp.healthbarl.Size = Vector2.new(4, h) -- Ширина 4
+                esp.healthbarl.Position = Vector2.new(round2(x - w / 2 - 8, y - h / 2)) -- Смещение -8
+            end
+            
+            -- Имя игрока
+            esp.name.Text = player.DisplayName..` (@{player.Name})`
+            esp.name.Position = Vector2.new(x, y - h / 2 - 24) -- Смещение -24
+            
+            -- Расстояние
+            esp.distance.Text = tostring(round2(depth)).." studs"
+            esp.distance.Position = Vector2.new(x, y + h / 2 + 16) -- Смещение +16
+        end
+    else
+        esp.box.Visible = false
+        esp.boxl.Visible = false
+        esp.healthbar.Visible = false
+        esp.healthbarl.Visible = false
+        esp.name.Visible = false
+        esp.distance.Visible = false
+    end
+end
+
+-- Включение/выключение Box ESP
+local function toggleBoxESP(enable)
+    settings.BoxESPEnabled = enable
+    
+    if enable then
+        ESPenabled = true
+        -- Создаем ESP для всех игроков
+        for _, plr in next, Players:GetPlayers() do
+            if plr ~= Player then
+                createESP(plr)
+            end
+        end
+        
+        -- Запускаем рендер-степ
+        RunService:BindToRenderStep("iyresp", Enum.RenderPriority.Camera.Value, function()
+            for plr, drawing in pairs(cachedESP) do
+                local player = Players:FindFirstChild(plr)
+                if player and player ~= Player and drawing ~= nil then
+                    updateESP(player, drawing)
+                end
+            end
+        end)
+    else
+        ESPenabled = false
+        RunService:UnbindFromRenderStep("iyresp")
+        -- Удаляем ESP для всех игроков
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= Player then
+                removeESP(plr)
+            end
+        end
+    end
+end
+
+--[[
+  ESP частей тела
+]]
+
+-- Добавление ESP к части тела
+local function addEspToPart(part, player)
+    if not part:FindFirstChild(part.Name.."_PESP") then
+        local a = Instance.new("BoxHandleAdornment")
+        a.Name = part.Name.."_PESP"
+        a.Parent = part
+        a.Adornee = part
+        a.AlwaysOnTop = true
+        a.ZIndex = 0
+        a.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+        a.Transparency = 0.3
+        a.Color3 = Color3.fromRGB(0, 255, 0)
+    end
+end
+
+-- Настройка ESP частей для игрока
+local function setupPlayerParts(player)
+    if player == Player then return end
+    
+    local function handleCharacter(character)
+        if not isPlayerCharacter(character) then return end
+        
+        -- Очистка старых ESP
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BoxHandleAdornment") and part.Name:find("_PESP") then
+                part:Destroy()
+            end
+        end
+        
+        -- Добавление ESP к частям тела
+        if settings.PartsEnabled then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    addEspToPart(part, player)
+                end
+            end
+        end
+        
+        -- Обработчик новых частей
+        local conn = character.DescendantAdded:Connect(function(part)
+            if part:IsA("BasePart") and settings.PartsEnabled then
+                addEspToPart(part, player)
+            end
+        end)
+        
+        table.insert(partEspConnections, conn)
+    end
+    
+    -- Обработка существующего персонажа
+    if player.Character then
+        handleCharacter(player.Character)
+    end
+    
+    -- Обработчик появления персонажа
+    local conn = player.CharacterAdded:Connect(handleCharacter)
+    table.insert(partEspConnections, conn)
+end
+
+-- Очистка ESP частей
+local function clearPartEsp()
+    -- Удаление всех ESP частей
+    for _, part in ipairs(workspace:GetDescendants()) do
+        if part:IsA("BoxHandleAdornment") and part.Name:find("_PESP") then
+            part:Destroy()
+        end
+    end
+    
+    -- Отключение всех соединений
+    for _, conn in ipairs(partEspConnections) do
+        conn:Disconnect()
+    end
+    partEspConnections = {}
+end
+
+-- Обновление ESP частей
+local function updatePartEsp()
+    if settings.PartsEnabled then
+        clearPartEsp()
+        
+        -- Создание ESP для всех игроков
+        for _, player in ipairs(Players:GetPlayers()) do
+            setupPlayerParts(player)
+        end
+        
+        -- Обработчик новых игроков
+        local conn = Players.PlayerAdded:Connect(setupPlayerParts)
+        table.insert(partEspConnections, conn)
+    else
+        clearPartEsp()
+    end
+end
+
+--[[
+  Стандартный ESP
+]]
+
+-- Создание стандартного ESP
+local function CreateStandardESP(player)
+    if ESPCache[player] then 
+        -- Очистка старых соединений
+        if ESPCache[player].Connection then
+            ESPCache[player].Connection:Disconnect()
+        end
+        if ESPCache[player].CharacterConnection then
+            ESPCache[player].CharacterConnection:Disconnect()
+        end
+    else
+        -- Создание новых элементов
+        ESPCache[player] = {
+            Highlight = Instance.new("Highlight"),
+            NameLabel = Drawing.new("Text"),
+            Line = Drawing.new("Line"),
+            Connection = nil,
+            CharacterConnection = nil
+        }
+    end
+    
+    local esp = ESPCache[player]
+    
+    -- Настройка Highlight
+    esp.Highlight.FillTransparency = 1
+    esp.Highlight.OutlineTransparency = 1
+    esp.Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    
+    -- Настройка текста имени
+    esp.NameLabel.Visible = false
+    esp.NameLabel.Center = true
+    esp.NameLabel.Outline = true
+    esp.NameLabel.Font = 2
+    
+    -- Настройка линии
+    esp.Line.Visible = false
+    esp.Line.Thickness = 1
+    
+    -- Обработчик персонажа
+    local function setupCharacter(character)
+        if esp.Highlight and esp.Highlight.Parent then
+            esp.Highlight.Parent = nil
+        end
+        
+        esp.Highlight.Parent = character
+        
+        if esp.Connection then
+            esp.Connection:Disconnect()
+        end
+        
+        -- Основной цикл обновления
+        esp.Connection = RunService.RenderStepped:Connect(function()
+            if not character or not character.Parent then return end
+            local humanoid = character:FindFirstChild("Humanoid")
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and rootPart then
+                local headPos, headOnScreen = Camera:WorldToScreenPoint(character.Head.Position)
+                local rootPos, rootOnScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                
+                -- Настройка Highlight
+                esp.Highlight.Enabled = settings.Enabled
+                esp.Highlight.FillTransparency = settings.ShowFill and 0.5 or 1
+                esp.Highlight.OutlineTransparency = settings.ShowOutline and 0 or 1
+                
+                -- Цвет в зависимости от настроек
+                local color = settings.TeamColor and player.TeamColor.Color or Color3.fromHSV(
+                    math.clamp((rootPart.Position - Camera.CFrame.Position).Magnitude / 500, 0, 1),
+                    0.75,
+                    1
+                )
+                esp.Highlight.FillColor = color
+                esp.Highlight.OutlineColor = color
+                
+                -- Текст имени
+                esp.NameLabel.Visible = settings.Enabled and settings.ShowNames and headOnScreen
+                if esp.NameLabel.Visible then
+                    esp.NameLabel.Position = Vector2.new(headPos.X, headPos.Y + 30)
+                    esp.NameLabel.Text = player.Name
+                    esp.NameLabel.Color = color
+                    esp.NameLabel.Size = 18
+                end
+                
+                -- Линия к игроку
+                local lineVisible = settings.Enabled and settings.ShowLines and rootPos.Z > 0
+                esp.Line.Visible = lineVisible
+                if lineVisible then
+                    esp.Line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                    esp.Line.To = Vector2.new(rootPos.X, rootPos.Y)
+                    esp.Line.Color = color
+                else
+                    esp.Line.Visible = false
+                end
+            end
+        end)
+    end
+    
+    -- Обработка существующего персонажа
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    
+    -- Обработчик появления персонажа
+    esp.CharacterConnection = player.CharacterAdded:Connect(function(character)
+        setupCharacter(character)
+    end)
+end
+
+-- Обновление всего стандартного ESP
+function UpdateAllESP()
+    for player, esp in pairs(ESPCache) do
+        if esp.Highlight then
+            esp.Highlight.Enabled = settings.Enabled
+            esp.Highlight.FillTransparency = settings.ShowFill and 0.5 or 1
+            esp.Highlight.OutlineTransparency = settings.ShowOutline and 0 or 1
+        end
+        if esp.NameLabel then
+            esp.NameLabel.Visible = settings.Enabled and settings.ShowNames
+        end
+        if esp.Line then
+            esp.Line.Visible = settings.Enabled and settings.ShowLines
+        end
+    end
+end
+
+--[[
+  GUI интерфейс
+]]
+
+-- Создание основного GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.CoreGui
+screenGui.Name = "ESPConfig"
+
+-- Основной фрейм
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 310) -- Размеры (ширина, высота)
+frame.Position = UDim2.new(0.5, 0, 0.5, -155) -- Позиция (центр экрана)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40) -- Цвет фона
+frame.BorderSizePixel = 0 -- Без границы
+frame.Active = true -- Активный для взаимодействия
+frame.Draggable = true -- Перетаскиваемый
+frame.Parent = screenGui
+
+-- Заголовок
+local dragHandle = Instance.new("TextLabel")
+dragHandle.Size = UDim2.new(1, 0, 0, 20)
+dragHandle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+dragHandle.Text = "ESP Settings"
+dragHandle.TextColor3 = Color3.new(1, 1, 1)
+dragHandle.Font = Enum.Font.Gotham
+dragHandle.TextSize = 12
+dragHandle.Parent = frame
+
+-- Инструкции
+local instructions = Instance.new("TextLabel")
+instructions.Size = UDim2.new(1, -10, 0, 30)
+instructions.Position = UDim2.new(0, 5, 1, -35)
+instructions.BackgroundTransparency = 1
+instructions.Text = "Press K to toggle\nDrag top bar to move"
+instructions.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+instructions.Font = Enum.Font.Gotham
+instructions.TextSize = 12
+instructions.TextWrapped = true
+instructions.Parent = frame
+
+-- Функция создания переключателей
+local function CreateToggle(text, ypos, flag)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(1, 0, 0, 30)
+    toggleFrame.Position = UDim2.new(0, 0, 0, ypos)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = frame
+
+    -- Кнопка
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 120, 0, 25)
+    toggleButton.Position = UDim2.new(0, 10, 0, 2)
+    toggleButton.Text = text
+    toggleButton.TextColor3 = Color3.new(1, 1, 1)
+    toggleButton.Font = Enum.Font.Gotham
+    toggleButton.TextSize = 14
+    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Parent = toggleFrame
+
+    -- Индикатор состояния
+    local stateIndicator = Instance.new("Frame")
+    stateIndicator.Size = UDim2.new(0, 20, 0, 20)
+    stateIndicator.Position = UDim2.new(1, -30, 0, 5)
+    stateIndicator.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    stateIndicator.BorderSizePixel = 0
+    stateIndicator.Parent = toggleFrame
+
+    -- Обработчик клика
+    toggleButton.MouseButton1Click:Connect(function()
+        settings[flag] = not settings[flag]
+        stateIndicator.BackgroundColor3 = settings[flag] and Color3.new(0, 1, 0) or Color3.new(0.2, 0.2, 0.2)
+        
+        -- Обработка разных типов ESP
+        if flag == "PartsEnabled" then
+            updatePartEsp()
+        elseif flag == "BoxESPEnabled" then
+            toggleBoxESP(settings[flag])
+        else
+            UpdateAllESP()
+        end
+    end)
+    
+    -- Установка начального состояния
+    stateIndicator.BackgroundColor3 = settings[flag] and Color3.new(0, 1, 0) or Color3.new(0.2, 0.2, 0.2)
+end
+
+-- Создание переключателей
+CreateToggle("Enable ESP", 25, "Enabled")
+CreateToggle("Show Names", 55, "ShowNames")
+CreateToggle("Show Outline", 85, "ShowOutline")
+CreateToggle("Show Fill", 115, "ShowFill")
+CreateToggle("Show Lines", 145, "ShowLines")
+CreateToggle("Team Colors", 175, "TeamColor")
+CreateToggle("ESP Parts", 205, "PartsEnabled")
+CreateToggle("ESP Box", 235, "BoxESPEnabled")
+
+--[[
+  Обработка игроков
+]]
+
+-- Новый игрок
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        CreateStandardESP(player)
+        if settings.PartsEnabled then setupPlayerParts(player) end
+        if settings.BoxESPEnabled then createESP(player) end
+    end)
+    
+    if player.Character then
+        CreateStandardESP(player)
+        if settings.PartsEnabled then setupPlayerParts(player) end
+        if settings.BoxESPEnabled then createESP(player) end
+    end
+end)
+
+-- Игрок выходит
+Players.PlayerRemoving:Connect(function(player)
+    -- Очистка стандартного ESP
+    if ESPCache[player] then
+        if ESPCache[player].Connection then ESPCache[player].Connection:Disconnect() end
+        if ESPCache[player].CharacterConnection then ESPCache[player].CharacterConnection:Disconnect() end
+        if ESPCache[player].Highlight then ESPCache[player].Highlight:Destroy() end
+        if ESPCache[player].NameLabel then ESPCache[player].NameLabel:Remove() end
+        if ESPCache[player].Line then ESPCache[player].Line:Remove() end
+        ESPCache[player] = nil
+    end
+    
+    -- Очистка Box ESP
+    if settings.BoxESPEnabled then
+        removeESP(player)
+    end
+end)
+
+-- Инициализация для существующих игроков
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= Player then
+        CreateStandardESP(player)
+        if settings.PartsEnabled then setupPlayerParts(player) end
+        if settings.BoxESPEnabled then createESP(player) end
+    end
+end
+
+--[[
+  Горячие клавиши
+]]
+
+-- Переключение GUI по клавише K
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.K then
+        frame.Visible = not frame.Visible
+    end
+end)
+
+--[[
+  Уведомление
+]]
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "ESP Loaded",
+    Text = "Press K to toggle menu",
+    Duration = 5
+})
