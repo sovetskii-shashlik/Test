@@ -1,0 +1,307 @@
+--// Fly Gui V5.0
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+
+local localPlayer = Players.LocalPlayer
+local flyActive = false
+local connection = nil
+local processedPlayers = {}
+local currentInput = ""
+local isOnMobile = UserInputService.TouchEnabled
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlyGUI"
+screenGui.Parent = game:GetService("CoreGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 150)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundTransparency = 0.3
+frame.Parent = screenGui
+local dragDetector = Instance.new("UIDragDetector", frame)
+frame.Active = true
+frame.Draggable = true
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Fly GUI"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.Parent = frame
+
+local inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.new(0.9, 0, 0, 30)
+inputBox.Position = UDim2.new(0.05, 0, 0, 40)
+inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+inputBox.Text = ""
+inputBox.PlaceholderText = "enter a speed"
+inputBox.TextColor3 = Color3.new(1, 1, 1)
+inputBox.ClearTextOnFocus = false
+inputBox.Parent = frame
+
+inputBox.TextScaled = false
+inputBox.TextSize = 14
+inputBox.Font = Enum.Font.Code
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 6)
+inputCorner.Parent = inputBox
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+toggleBtn.Position = UDim2.new(0.05, 0, 0, 80)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleBtn.Text = "Fly: OFF"
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleBtn
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.Position = UDim2.new(0, 0, 0, 125)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Waiting..."
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 14
+statusLabel.Parent = frame
+
+local textGradient = Instance.new("UIGradient", title)
+textGradient.Rotation = 90
+
+local function lerpColor(color1, color2, alpha)
+    return Color3.new(
+        color1.R + (color2.R - color1.R) * alpha,
+        color1.G + (color2.G - color1.G) * alpha,
+        color1.B + (color2.B - color1.B) * alpha
+    )
+end
+
+local function animateTextGradient()
+    local duration = 2
+    local steps = 60
+    local stepTime = duration / steps
+    local color1 = Color3.fromRGB(255, 255, 255)
+    local color2 = Color3.fromRGB(0, 0, 0)
+
+    while true do
+        for i = 0, steps do
+            local alpha = i / steps
+            textGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, lerpColor(color1, color2, alpha)),
+                ColorSequenceKeypoint.new(1, lerpColor(color2, color1, alpha))
+            })
+            task.wait(stepTime)
+        end
+
+        for i = 0, steps do
+            local alpha = i / steps
+            textGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, lerpColor(color2, color1, alpha)),
+                ColorSequenceKeypoint.new(1, lerpColor(color1, color2, alpha))
+            })
+            task.wait(stepTime)
+        end
+    end
+end
+
+task.spawn(animateTextGradient)
+
+local borderFrame = Instance.new("Frame")
+borderFrame.Size = frame.Size
+borderFrame.Position = frame.Position
+borderFrame.BackgroundTransparency = 1
+borderFrame.AnchorPoint = frame.AnchorPoint
+borderFrame.ZIndex = frame.ZIndex - 1
+borderFrame.Parent = screenGui
+
+local borderCorner = frame.UICorner:Clone()
+borderCorner.Parent = borderFrame
+
+local borderStroke = Instance.new("UIStroke")
+borderStroke.Thickness = 3
+borderStroke.LineJoinMode = Enum.LineJoinMode.Round
+borderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+borderStroke.Parent = borderFrame
+
+frame:GetPropertyChangedSignal("Position"):Connect(function()
+    borderFrame.Position = frame.Position
+end)
+
+frame:GetPropertyChangedSignal("Size"):Connect(function()
+    borderFrame.Size = frame.Size
+end)
+
+frame.UICorner:GetPropertyChangedSignal("CornerRadius"):Connect(function()
+    borderCorner.CornerRadius = frame.UICorner.CornerRadius
+end)
+
+local BodyGyro = Instance.new("BodyGyro")
+BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 10 ^ 6
+BodyGyro.P = 10 ^ 6
+
+local BodyVelocity = Instance.new("BodyVelocity")
+BodyVelocity.maxForce = Vector3.new(1, 1, 1) * 10 ^ 6
+BodyVelocity.P = 10 ^ 4
+
+local isFlying = false
+local Movement = {forward = 0, backward = 0, right = 0, left = 0}
+local Speed = 1
+local flyConnection
+
+local function setupMobileControls()
+    if not isOnMobile then return end
+    
+    local controlModule = require(localPlayer.PlayerScripts:WaitForChild("PlayerModule"):WaitForChild("ControlModule"))
+    
+    flyConnection = RunService.Heartbeat:Connect(function()
+        if not isFlying or not localPlayer.Character then return end
+        
+        local root = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        
+        local moveVector = controlModule:GetMoveVector()
+        Movement.right = moveVector.X
+        Movement.left = -moveVector.X
+        Movement.forward = -moveVector.Z
+        Movement.backward = moveVector.Z
+    end)
+end
+
+local function SetFlying(flying)
+    isFlying = flying
+    
+    if isFlying then
+        if isOnMobile then
+            setupMobileControls()
+        end
+        
+        if localPlayer.Character then
+            local root = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                BodyGyro.Parent = root
+                BodyVelocity.Parent = root
+                BodyGyro.CFrame = root.CFrame
+                BodyVelocity.Velocity = Vector3.new()
+                
+                if localPlayer.Character:FindFirstChild("Animate") then
+                    localPlayer.Character.Animate.Disabled = true
+                end
+            end
+        end
+    else
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        
+        BodyGyro.Parent = nil
+        BodyVelocity.Parent = nil
+        
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("Animate") then
+            localPlayer.Character.Animate.Disabled = false
+        end
+    end
+end
+
+local function onUpdate(dt)
+    if not isFlying or not localPlayer.Character then return end
+    
+    local root = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local cf = workspace.CurrentCamera.CFrame
+    local direction = cf.rightVector * (Movement.right - Movement.left) + cf.lookVector * (Movement.forward - Movement.backward)
+    
+    if direction:Dot(direction) > 0 then
+        direction = direction.unit
+    end
+    
+    BodyGyro.CFrame = cf
+    BodyVelocity.Velocity = direction * Speed * 50
+end
+
+local function ModifyMovement(newMovement)
+    Movement = newMovement or Movement
+end
+
+local function MovementBind(actionName, InputState, inputObject)
+    if InputState == Enum.UserInputState.Begin then
+        Movement[actionName] = 1
+        ModifyMovement()
+    elseif InputState == Enum.UserInputState.End then
+        Movement[actionName] = 0
+        ModifyMovement()
+    end
+    return Enum.ContextActionResult.Pass
+end
+
+local function SetupControls()
+    if isOnMobile then return end
+    
+    local CAS = game:GetService("ContextActionService")
+    CAS:BindAction("forward", MovementBind, false, Enum.PlayerActions.CharacterForward)
+    CAS:BindAction("backward", MovementBind, false, Enum.PlayerActions.CharacterBackward)
+    CAS:BindAction("left", MovementBind, false, Enum.PlayerActions.CharacterLeft)
+    CAS:BindAction("right", MovementBind, false, Enum.PlayerActions.CharacterRight)
+end
+
+local function toggleFly()
+    flyActive = not flyActive
+    
+    if flyActive then
+        Speed = tonumber(inputBox.Text) or 1
+        SetFlying(true)
+        toggleBtn.Text = "Fly: ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+        statusLabel.Text = "Status: Flying (Speed: "..Speed..")"
+    else
+        SetFlying(false)
+        toggleBtn.Text = "Fly: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        statusLabel.Text = "Status: Stopped"
+    end
+end
+
+inputBox:GetPropertyChangedSignal("Text"):Connect(function()
+    if flyActive then
+        Speed = tonumber(inputBox.Text) or 3
+        statusLabel.Text = "Status: Flying (Speed: "..Speed..")"
+    end
+end)
+
+localPlayer.CharacterAdded:Connect(function(character)
+    if flyActive then
+        task.wait(1)
+        SetFlying(true)
+    end
+end)
+
+toggleBtn.MouseButton1Click:Connect(toggleFly)
+RunService.Heartbeat:Connect(onUpdate)
+SetupControls()
+
+local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Fly GUI",
+    Text = "version V5.0",
+    Icon = content,
+    Duration = 7
+})
