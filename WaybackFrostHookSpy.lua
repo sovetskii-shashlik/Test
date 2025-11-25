@@ -2159,4 +2159,4 @@ do -- Text Editor
 	setmetatable(FrostHook.TextEditor, metadata);
 end
 
-FrostHook(); -- Initialize FrostHook Spy.
+FrostHook(); -- Initialize FrostHook Spy..
