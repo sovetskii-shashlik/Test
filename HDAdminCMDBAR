@@ -6,6 +6,13 @@ local TweenService = game:GetService("TweenService")
 local localPlayer = Players.LocalPlayer
 local isOnMobile = UserInputService.TouchEnabled
 
+local clients = {
+    "HDAdminClient",
+    "HDAdminHDClient"
+}
+
+local currentClient = clients[1]
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HDAdminCmdBar"
 screenGui.Parent = game:GetService("CoreGui")
@@ -29,7 +36,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 25)
 title.Position = UDim2.new(0, 0, 0, 2)
 title.BackgroundTransparency = 1
-title.Text = "HD Admin Command bar"
+title.Text = "HD Admin Commander"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
@@ -102,6 +109,20 @@ local prefixCorner = Instance.new("UICorner")
 prefixCorner.CornerRadius = UDim.new(0, 4)
 prefixCorner.Parent = prefixBox
 
+local clientButton = Instance.new("TextButton")
+clientButton.Size = UDim2.new(0, 80, 0, 20)
+clientButton.Position = UDim2.new(0.55, 0, 0, 30)
+clientButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+clientButton.Text = "Client: " .. currentClient
+clientButton.TextColor3 = Color3.new(1, 1, 1)
+clientButton.Font = Enum.Font.Gotham
+clientButton.TextSize = 10
+clientButton.Parent = frame
+
+local clientCorner = Instance.new("UICorner")
+clientCorner.CornerRadius = UDim.new(0, 4)
+clientCorner.Parent = clientButton
+
 local commandLabel = Instance.new("TextLabel")
 commandLabel.Size = UDim2.new(0, 65, 0, 18)
 commandLabel.Position = UDim2.new(0.05, 0, 0, 55)
@@ -118,7 +139,7 @@ commandBox.Size = UDim2.new(0.9, 0, 0, 25)
 commandBox.Position = UDim2.new(0.05, 0, 0, 75)
 commandBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 commandBox.Text = ""
-commandBox.PlaceholderText = "enter prefix and command"
+commandBox.PlaceholderText = "explode player1 ;kill player2"
 commandBox.TextColor3 = Color3.new(1, 1, 1)
 commandBox.ClearTextOnFocus = false
 commandBox.TextSize = 12
@@ -187,6 +208,61 @@ frame:GetPropertyChangedSignal("Size"):Connect(function()
     borderFrame.Size = frame.Size
 end)
 
+local clientSelectionFrame = Instance.new("Frame")
+clientSelectionFrame.Size = UDim2.new(0, 120, 0, 0)
+clientSelectionFrame.Position = UDim2.new(0, clientButton.AbsolutePosition.X, 0, clientButton.AbsolutePosition.Y + 25)
+clientSelectionFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+clientSelectionFrame.BorderSizePixel = 0
+clientSelectionFrame.Visible = false
+clientSelectionFrame.Parent = screenGui
+
+local clientSelectionCorner = Instance.new("UICorner")
+clientSelectionCorner.CornerRadius = UDim.new(0, 4)
+clientSelectionCorner.Parent = clientSelectionFrame
+
+local clientSelectionLayout = Instance.new("UIListLayout")
+clientSelectionLayout.Parent = clientSelectionFrame
+
+local function updateClientSelectionSize()
+    clientSelectionFrame.Size = UDim2.new(0, 120, 0, #clients * 25)
+end
+
+local function createClientOption(clientName)
+    local optionButton = Instance.new("TextButton")
+    optionButton.Size = UDim2.new(1, 0, 0, 25)
+    optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    optionButton.Text = clientName
+    optionButton.TextColor3 = Color3.new(1, 1, 1)
+    optionButton.Font = Enum.Font.Gotham
+    optionButton.TextSize = 11
+    optionButton.Parent = clientSelectionFrame
+    
+    optionButton.MouseButton1Click:Connect(function()
+        currentClient = clientName
+        clientButton.Text = currentClient
+        clientSelectionFrame.Visible = false
+    end)
+    
+    optionButton.MouseEnter:Connect(function()
+        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 100)}):Play()
+    end)
+    
+    optionButton.MouseLeave:Connect(function()
+        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}):Play()
+    end)
+end
+
+for _, clientName in ipairs(clients) do
+    createClientOption(clientName)
+end
+
+updateClientSelectionSize()
+
+clientButton.MouseButton1Click:Connect(function()
+    clientSelectionFrame.Visible = not clientSelectionFrame.Visible
+    clientSelectionFrame.Position = UDim2.new(0, clientButton.AbsolutePosition.X, 0, clientButton.AbsolutePosition.Y + 25)
+end)
+
 local function executeCommand()
     local prefix = prefixBox.Text:gsub("%s+", "")
     local commandText = commandBox.Text:gsub("^%s*(.-)%s*$", "%1")
@@ -219,13 +295,13 @@ local function executeCommand()
     
     task.spawn(function()
         pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("HDAdminClient"):WaitForChild("Signals"):WaitForChild("ChangeSetting"):InvokeServer(unpack(setPrefixArgs))
+            game:GetService("ReplicatedStorage"):WaitForChild(currentClient):WaitForChild("Signals"):WaitForChild("ChangeSetting"):InvokeServer(unpack(setPrefixArgs))
         end)
         
         task.wait(0.1)
         
         local success, result = pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("HDAdminClient"):WaitForChild("Signals"):WaitForChild("RequestCommand"):InvokeServer(unpack(commandArgs))
+            game:GetService("ReplicatedStorage"):WaitForChild(currentClient):WaitForChild("Signals"):WaitForChild("RequestCommand"):InvokeServer(unpack(commandArgs))
         end)
         
         if success then
@@ -265,6 +341,14 @@ executeBtn.MouseLeave:Connect(function()
     TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 120, 60)}):Play()
 end)
 
+clientButton.MouseEnter:Connect(function()
+    TweenService:Create(clientButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 140)}):Play()
+end)
+
+clientButton.MouseLeave:Connect(function()
+    TweenService:Create(clientButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 120)}):Play()
+end)
+
 task.spawn(function()
     local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
     local thumbType = Enum.ThumbnailType.HeadShot
@@ -273,7 +357,7 @@ task.spawn(function()
     
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "HD Admin Commander",
-        Text = "Protected command bar loaded!",
+        Text = "Multi-client support loaded!",
         Icon = content,
         Duration = 5
     })
