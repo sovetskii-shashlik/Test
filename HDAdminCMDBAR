@@ -110,7 +110,7 @@ prefixCorner.CornerRadius = UDim.new(0, 4)
 prefixCorner.Parent = prefixBox
 
 local clientButton = Instance.new("TextButton")
-clientButton.Size = UDim2.new(0, 80, 0, 20)
+clientButton.Size = UDim2.new(0, 100, 0, 20)
 clientButton.Position = UDim2.new(0.55, 0, 0, 30)
 clientButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
 clientButton.Text = currentClient
@@ -236,17 +236,17 @@ local function createClientOption(clientName)
     optionButton.Font = Enum.Font.Gotham
     optionButton.TextSize = 11
     optionButton.Parent = clientSelectionFrame
-    
+
     optionButton.MouseButton1Click:Connect(function()
         currentClient = clientName
         clientButton.Text = currentClient
         clientSelectionFrame.Visible = false
     end)
-    
+
     optionButton.MouseEnter:Connect(function()
         TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 100)}):Play()
     end)
-    
+
     optionButton.MouseLeave:Connect(function()
         TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}):Play()
     end)
@@ -266,48 +266,48 @@ end)
 local function executeCommand()
     local prefix = prefixBox.Text:gsub("%s+", "")
     local commandText = commandBox.Text:gsub("^%s*(.-)%s*$", "%1")
-    
+
     if commandText == "" then
         statusLabel.Text = "Status: Error - No command"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         return
     end
-    
+
     if prefix == "" then
         statusLabel.Text = "Status: Error - No prefix"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         return
     end
-    
+
     local setPrefixArgs = {
         [1] = {
             [1] = "Prefix",
             [2] = prefix
         }
     }
-    
+
     local commandArgs = {
         [1] = commandText
     }
-    
+
     statusLabel.Text = "Status: Executing..."
     statusLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
-    
+
     task.spawn(function()
         pcall(function()
             game:GetService("ReplicatedStorage"):WaitForChild(currentClient):WaitForChild("Signals"):WaitForChild("ChangeSetting"):InvokeServer(unpack(setPrefixArgs))
         end)
-        
+
         task.wait(0.1)
-        
+
         local success, result = pcall(function()
             game:GetService("ReplicatedStorage"):WaitForChild(currentClient):WaitForChild("Signals"):WaitForChild("RequestCommand"):InvokeServer(unpack(commandArgs))
         end)
-        
+
         if success then
             statusLabel.Text = "Status: Success!"
             statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-            
+
             task.delay(2, function()
                 statusLabel.Text = "Status: Ready"
                 statusLabel.TextColor3 = Color3.new(1, 1, 1)
@@ -354,7 +354,7 @@ task.spawn(function()
     local thumbType = Enum.ThumbnailType.HeadShot
     local thumbSize = Enum.ThumbnailSize.Size420x420
     local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
-    
+
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "HD Admin Commander",
         Text = "Multi-client support loaded!",
@@ -366,7 +366,7 @@ end)
 task.spawn(function()
     while true do
         task.wait(5)
-        
+
         if not screenGui or not screenGui.Parent then
             local newGui = script.Parent:FindFirstChild("HDAdminCmdBar") or screenGui:Clone()
             newGui.Parent = game:GetService("CoreGui")
