@@ -1,0 +1,292 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local localPlayer = Players.LocalPlayer
+local isOnMobile = UserInputService.TouchEnabled
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HDAdminCmdBar"
+screenGui.Parent = game:GetService("CoreGui")
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 150)
+frame.Position = UDim2.new(0.5, -150, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundTransparency = 0.2
+frame.Parent = screenGui
+
+frame.Active = true
+frame.Draggable = true
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Position = UDim2.new(0, 0, 0, 2)
+title.BackgroundTransparency = 1
+title.Text = "HD Admin Command bar"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = frame
+
+local textGradient = Instance.new("UIGradient", title)
+textGradient.Rotation = 90
+
+local function lerpColor(color1, color2, alpha)
+    return Color3.new(
+        color1.R + (color2.R - color1.R) * alpha,
+        color1.G + (color2.G - color1.G) * alpha,
+        color1.B + (color2.B - color1.B) * alpha
+    )
+end
+
+local function animateTextGradient()
+    local duration = 2
+    local steps = 60
+    local stepTime = duration / steps
+    local color1 = Color3.fromRGB(255, 100, 100)
+    local color2 = Color3.fromRGB(100, 100, 255)
+
+    while true do
+        for i = 0, steps do
+            local alpha = i / steps
+            textGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, lerpColor(color1, color2, alpha)),
+                ColorSequenceKeypoint.new(1, lerpColor(color2, color1, alpha))
+            })
+            task.wait(stepTime)
+        end
+
+        for i = 0, steps do
+            local alpha = i / steps
+            textGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, lerpColor(color2, color1, alpha)),
+                ColorSequenceKeypoint.new(1, lerpColor(color1, color2, alpha))
+            })
+            task.wait(stepTime)
+        end
+    end
+end
+
+task.spawn(animateTextGradient)
+
+local prefixLabel = Instance.new("TextLabel")
+prefixLabel.Size = UDim2.new(0, 40, 0, 18)
+prefixLabel.Position = UDim2.new(0.05, 0, 0, 30)
+prefixLabel.BackgroundTransparency = 1
+prefixLabel.Text = "Prefix:"
+prefixLabel.TextColor3 = Color3.new(1, 1, 1)
+prefixLabel.Font = Enum.Font.Gotham
+prefixLabel.TextSize = 12
+prefixLabel.TextXAlignment = Enum.TextXAlignment.Left
+prefixLabel.Parent = frame
+
+local prefixBox = Instance.new("TextBox")
+prefixBox.Size = UDim2.new(0, 30, 0, 20)
+prefixBox.Position = UDim2.new(0.05, 45, 0, 30)
+prefixBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+prefixBox.Text = ";"
+prefixBox.PlaceholderText = ""
+prefixBox.TextColor3 = Color3.new(1, 1, 1)
+prefixBox.ClearTextOnFocus = false
+prefixBox.TextSize = 12
+prefixBox.Parent = frame
+
+local prefixCorner = Instance.new("UICorner")
+prefixCorner.CornerRadius = UDim.new(0, 4)
+prefixCorner.Parent = prefixBox
+
+local commandLabel = Instance.new("TextLabel")
+commandLabel.Size = UDim2.new(0, 65, 0, 18)
+commandLabel.Position = UDim2.new(0.05, 0, 0, 55)
+commandLabel.BackgroundTransparency = 1
+commandLabel.Text = "Command:"
+commandLabel.TextColor3 = Color3.new(1, 1, 1)
+commandLabel.Font = Enum.Font.Gotham
+commandLabel.TextSize = 12
+commandLabel.TextXAlignment = Enum.TextXAlignment.Left
+commandLabel.Parent = frame
+
+local commandBox = Instance.new("TextBox")
+commandBox.Size = UDim2.new(0.9, 0, 0, 25)
+commandBox.Position = UDim2.new(0.05, 0, 0, 75)
+commandBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+commandBox.Text = ""
+commandBox.PlaceholderText = "enter prefix and command"
+commandBox.TextColor3 = Color3.new(1, 1, 1)
+commandBox.ClearTextOnFocus = false
+commandBox.TextSize = 12
+commandBox.Font = Enum.Font.Code
+commandBox.TextXAlignment = Enum.TextXAlignment.Left
+commandBox.TextWrapped = false
+commandBox.ClipsDescendants = true
+commandBox.Parent = frame
+
+local padding = Instance.new("UIPadding")
+padding.PaddingLeft = UDim.new(0, 5)
+padding.PaddingRight = UDim.new(0, 5)
+padding.Parent = commandBox
+
+local commandCorner = Instance.new("UICorner")
+commandCorner.CornerRadius = UDim.new(0, 6)
+commandCorner.Parent = commandBox
+
+local executeBtn = Instance.new("TextButton")
+executeBtn.Size = UDim2.new(0.9, 0, 0, 28)
+executeBtn.Position = UDim2.new(0.05, 0, 0, 105)
+executeBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+executeBtn.Text = "EXECUTE"
+executeBtn.TextColor3 = Color3.new(1, 1, 1)
+executeBtn.Font = Enum.Font.GothamBold
+executeBtn.TextSize = 14
+executeBtn.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = executeBtn
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 15)
+statusLabel.Position = UDim2.new(0, 0, 0, 135)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Ready"
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 10
+statusLabel.Parent = frame
+
+local borderFrame = Instance.new("Frame")
+borderFrame.Size = frame.Size
+borderFrame.Position = frame.Position
+borderFrame.BackgroundTransparency = 1
+borderFrame.AnchorPoint = frame.AnchorPoint
+borderFrame.ZIndex = frame.ZIndex - 1
+borderFrame.Parent = screenGui
+
+local borderCorner = frame.UICorner:Clone()
+borderCorner.Parent = borderFrame
+
+local borderStroke = Instance.new("UIStroke")
+borderStroke.Thickness = 2
+borderStroke.Color = Color3.fromRGB(100, 100, 255)
+borderStroke.LineJoinMode = Enum.LineJoinMode.Round
+borderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+borderStroke.Parent = borderFrame
+
+frame:GetPropertyChangedSignal("Position"):Connect(function()
+    borderFrame.Position = frame.Position
+end)
+
+frame:GetPropertyChangedSignal("Size"):Connect(function()
+    borderFrame.Size = frame.Size
+end)
+
+local function executeCommand()
+    local prefix = prefixBox.Text:gsub("%s+", "")
+    local commandText = commandBox.Text:gsub("^%s*(.-)%s*$", "%1")
+    
+    if commandText == "" then
+        statusLabel.Text = "Status: Error - No command"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+    
+    if prefix == "" then
+        statusLabel.Text = "Status: Error - No prefix"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+    
+    local setPrefixArgs = {
+        [1] = {
+            [1] = "Prefix",
+            [2] = prefix
+        }
+    }
+    
+    local commandArgs = {
+        [1] = commandText
+    }
+    
+    statusLabel.Text = "Status: Executing..."
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
+    
+    task.spawn(function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("HDAdminClient"):WaitForChild("Signals"):WaitForChild("ChangeSetting"):InvokeServer(unpack(setPrefixArgs))
+        end)
+        
+        task.wait(0.1)
+        
+        local success, result = pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("HDAdminClient"):WaitForChild("Signals"):WaitForChild("RequestCommand"):InvokeServer(unpack(commandArgs))
+        end)
+        
+        if success then
+            statusLabel.Text = "Status: Success!"
+            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            task.delay(2, function()
+                statusLabel.Text = "Status: Ready"
+                statusLabel.TextColor3 = Color3.new(1, 1, 1)
+            end)
+        else
+            statusLabel.Text = "Status: Error - Failed"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
+end
+
+executeBtn.MouseButton1Click:Connect(executeCommand)
+
+commandBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        executeCommand()
+    end
+end)
+
+prefixBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        commandBox:CaptureFocus()
+    end
+end)
+
+executeBtn.MouseEnter:Connect(function()
+    TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 160, 80)}):Play()
+end)
+
+executeBtn.MouseLeave:Connect(function()
+    TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 120, 60)}):Play()
+end)
+
+task.spawn(function()
+    local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+    local thumbType = Enum.ThumbnailType.HeadShot
+    local thumbSize = Enum.ThumbnailSize.Size420x420
+    local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "HD Admin Commander",
+        Text = "Protected command bar loaded!",
+        Icon = content,
+        Duration = 5
+    })
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(5)
+        
+        if not screenGui or not screenGui.Parent then
+            local newGui = script.Parent:FindFirstChild("HDAdminCmdBar") or screenGui:Clone()
+            newGui.Parent = game:GetService("CoreGui")
+            screenGui = newGui
+        end
+    end
+end)
