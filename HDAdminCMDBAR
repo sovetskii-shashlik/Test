@@ -19,8 +19,9 @@ local protections = {
     title = {enabled = false, check = function()
     if not localPlayer.Character then return false end
     local head = localPlayer.Character:FindFirstChild("Head")
-    return head and head:FindFirstChild("HDAdminTitle")
-end, command = "untitle", active = false}
+        return head and head:FindFirstChild("HDAdminTitle")
+    end, command = "untitle", active = false},
+ 
     blur = {enabled = false, check = function()
         return workspace.Camera:FindFirstChild("Blur")
     end, command = "unblur", active = false},
