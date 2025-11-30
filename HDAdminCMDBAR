@@ -16,15 +16,15 @@ local currentClient = clients[1]
 local protections = {
     blur = {enabled = false, check = function()
         return workspace.Camera:FindFirstChild("Blur")
-    end, command = "unblur"},
+    end, command = "unblur", active = false},
     
     jail = {enabled = false, check = function()
         return workspace:FindFirstChild(localPlayer.Name .. "'s JailCell")
-    end, command = "unjail"},
+    end, command = "unjail", active = false},
     
     ice = {enabled = false, check = function()
         return workspace:FindFirstChild(localPlayer.Name .. "'s FreezeBlock")
-    end, command = "unice"},
+    end, command = "unice", active = false},
     
     freeze = {enabled = false, check = function()
         if not localPlayer.Character then return false end
@@ -34,17 +34,19 @@ local protections = {
             end
         end
         return false
-    end, command = "unice"},
+    end, command = "unice", active = false},
+    
+    mute = {enabled = false, check = function()
+        return not localPlayer:FindFirstChild("PlayerGui") or not localPlayer.PlayerGui:FindFirstChild("Chat")
+    end, command = "unmute", active = false},
     
     ff = {enabled = false, check = function()
         if not localPlayer.Character then return false end
         return not localPlayer.Character:FindFirstChild("HDAdminForceField")
-    end, command = "ff me"},
-    
-    mute = {enabled = false, check = function()
-        return not localPlayer:FindFirstChild("PlayerGui") or not localPlayer.PlayerGui:FindFirstChild("Chat")
-    end, command = "unmute"}
+    end, command = "ff me", active = false}
 }
+
+local protectionOrder = {"blur", "jail", "ice", "freeze", "mute", "ff"}
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HDAdminCmdBar"
@@ -321,10 +323,11 @@ local protectionsLayout = Instance.new("UIListLayout")
 protectionsLayout.Parent = protectionsFrame
 
 local function updateProtectionsSize()
-    protectionsFrame.Size = UDim2.new(0, 120, 0, #protections * 25)
+    protectionsFrame.Size = UDim2.new(0, 120, 0, #protectionOrder * 25)
 end
 
-local function createProtectionOption(protectionName, protectionData)
+local function createProtectionOption(protectionName)
+    local protectionData = protections[protectionName]
     local optionButton = Instance.new("TextButton")
     optionButton.Size = UDim2.new(1, 0, 0, 25)
     optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
@@ -340,8 +343,8 @@ local function createProtectionOption(protectionName, protectionData)
         optionButton.BackgroundColor3 = protectionData.enabled and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(60, 60, 80)
         
         local enabledCount = 0
-        for _, prot in pairs(protections) do
-            if prot.enabled then
+        for _, protName in ipairs(protectionOrder) do
+            if protections[protName].enabled then
                 enabledCount = enabledCount + 1
             end
         end
@@ -359,8 +362,8 @@ local function createProtectionOption(protectionName, protectionData)
     end)
 end
 
-for protectionName, protectionData in pairs(protections) do
-    createProtectionOption(protectionName, protectionData)
+for _, protectionName in ipairs(protectionOrder) do
+    createProtectionOption(protectionName)
 end
 
 updateProtectionsSize()
@@ -450,21 +453,31 @@ local function sendProtectionCommand(cmd)
     end)
 end
 
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        
-        for protectionName, protectionData in pairs(protections) do
-            if protectionData.enabled then
-                local success, condition = pcall(protectionData.check)
-                if success and condition then
+local protectionConnections = {}
+
+local function setupProtection(protectionName, protectionData)
+    if protectionConnections[protectionName] then
+        protectionConnections[protectionName]:Disconnect()
+    end
+    
+    protectionConnections[protectionName] = RunService.Heartbeat:Connect(function()
+        if protectionData.enabled then
+            local success, condition = pcall(protectionData.check)
+            if success and condition then
+                if not protectionData.active then
+                    protectionData.active = true
                     sendProtectionCommand(protectionData.command)
-                    task.wait(1.5)
                 end
+            else
+                protectionData.active = false
             end
         end
-    end
-end)
+    end)
+end
+
+for protectionName, protectionData in pairs(protections) do
+    setupProtection(protectionName, protectionData)
+end
 
 executeBtn.MouseButton1Click:Connect(executeCommand)
 
