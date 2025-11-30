@@ -39,7 +39,11 @@ local protections = {
     ff = {enabled = false, check = function()
         if not localPlayer.Character then return false end
         return not localPlayer.Character:FindFirstChild("HDAdminForceField")
-    end, command = "ff me"}
+    end, command = "ff me"},
+    
+    mute = {enabled = false, check = function()
+        return not localPlayer:FindFirstChild("PlayerGui") or not localPlayer.PlayerGui:FindFirstChild("Chat")
+    end, command = "unmute"}
 }
 
 local screenGui = Instance.new("ScreenGui")
