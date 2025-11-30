@@ -1,3 +1,5 @@
+--// HD Admin Command Bar V5.0
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -54,7 +56,7 @@ screenGui.Parent = game:GetService("CoreGui")
 screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 180)
+frame.Size = UDim2.new(0, 300, 0, 195)
 frame.Position = UDim2.new(0.5, -150, 0.1, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.2
@@ -137,12 +139,52 @@ prefixBox.Text = ";"
 prefixBox.PlaceholderText = ""
 prefixBox.TextColor3 = Color3.new(1, 1, 1)
 prefixBox.ClearTextOnFocus = false
-prefixBox.TextSize = 12
+prefixBox.TextSize = 10
 prefixBox.Parent = frame
 
 local prefixCorner = Instance.new("UICorner")
 prefixCorner.CornerRadius = UDim.new(0, 4)
 prefixCorner.Parent = prefixBox
+
+local loopLabel = Instance.new("TextLabel")
+loopLabel.Size = UDim2.new(0, 40, 0, 18)
+loopLabel.Position = UDim2.new(0.05, 0, 0, 55)
+loopLabel.BackgroundTransparency = 1
+loopLabel.Text = "Loop:"
+loopLabel.TextColor3 = Color3.new(1, 1, 1)
+loopLabel.Font = Enum.Font.Gotham
+loopLabel.TextSize = 12
+loopLabel.TextXAlignment = Enum.TextXAlignment.Left
+loopLabel.Parent = frame
+
+local loopBox = Instance.new("TextBox")
+loopBox.Size = UDim2.new(0, 30, 0, 20)
+loopBox.Position = UDim2.new(0.05, 45, 0, 55)
+loopBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+loopBox.Text = "1"
+loopBox.PlaceholderText = "sec"
+loopBox.TextColor3 = Color3.new(1, 1, 1)
+loopBox.ClearTextOnFocus = false
+loopBox.TextSize = 10
+loopBox.Parent = frame
+
+local loopCorner = Instance.new("UICorner")
+loopCorner.CornerRadius = UDim.new(0, 4)
+loopCorner.Parent = loopBox
+
+local loopButton = Instance.new("TextButton")
+loopButton.Size = UDim2.new(0, 30, 0, 20)
+loopButton.Position = UDim2.new(0.05, 80, 0, 55)
+loopButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+loopButton.Text = "OFF"
+loopButton.TextColor3 = Color3.new(1, 1, 1)
+loopButton.Font = Enum.Font.Gotham
+loopButton.TextSize = 10
+loopButton.Parent = frame
+
+local loopBtnCorner = Instance.new("UICorner")
+loopBtnCorner.CornerRadius = UDim.new(0, 4)
+loopBtnCorner.Parent = loopButton
 
 local clientButton = Instance.new("TextButton")
 clientButton.Size = UDim2.new(0, 100, 0, 20)
@@ -230,6 +272,16 @@ statusLabel.TextColor3 = Color3.new(1, 1, 1)
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 10
 statusLabel.Parent = frame
+
+local loopStatusLabel = Instance.new("TextLabel")
+loopStatusLabel.Size = UDim2.new(1, 0, 0, 15)
+loopStatusLabel.Position = UDim2.new(0, 0, 0, 175)
+loopStatusLabel.BackgroundTransparency = 1
+loopStatusLabel.Text = "Loop: Inactive"
+loopStatusLabel.TextColor3 = Color3.new(1, 1, 1)
+loopStatusLabel.Font = Enum.Font.Gotham
+loopStatusLabel.TextSize = 10
+loopStatusLabel.Parent = frame
 
 local borderFrame = Instance.new("Frame")
 borderFrame.Size = frame.Size
@@ -380,6 +432,9 @@ protectionsButton.MouseButton1Click:Connect(function()
     clientSelectionFrame.Visible = false
 end)
 
+local loopActive = false
+local loopThread = nil
+
 local function executeCommand()
     local prefix = prefixBox.Text:gsub("%s+", "")
     local commandText = commandBox.Text:gsub("^%s*(.-)%s*$", "%1")
@@ -429,15 +484,52 @@ local function executeCommand()
             statusLabel.Text = "Status: Success!"
             statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
 
-            task.delay(2, function()
-                statusLabel.Text = "Status: Ready"
-                statusLabel.TextColor3 = Color3.new(1, 1, 1)
-            end)
+            if not loopActive then
+                task.delay(2, function()
+                    statusLabel.Text = "Status: Ready"
+                    statusLabel.TextColor3 = Color3.new(1, 1, 1)
+                end)
+            end
         else
             statusLabel.Text = "Status: Error - Failed"
             statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         end
     end)
+end
+
+local function toggleLoop()
+    loopActive = not loopActive
+    
+    if loopActive then
+        loopButton.Text = "ON"
+        loopButton.BackgroundColor3 = Color3.fromRGB(80, 120, 80)
+        loopStatusLabel.Text = "Loop: Active"
+        loopStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        if loopThread then
+            task.cancel(loopThread)
+        end
+        
+        loopThread = task.spawn(function()
+            while loopActive do
+                local interval = tonumber(loopBox.Text) or 1
+                if interval < 0.1 then interval = 0.1 end
+                
+                executeCommand()
+                task.wait(interval)
+            end
+        end)
+    else
+        loopButton.Text = "OFF"
+        loopButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+        loopStatusLabel.Text = "Loop: Inactive"
+        loopStatusLabel.TextColor3 = Color3.new(1, 1, 1)
+        
+        if loopThread then
+            task.cancel(loopThread)
+            loopThread = nil
+        end
+    end
 end
 
 local function sendProtectionCommand(cmd)
@@ -481,6 +573,8 @@ end
 
 executeBtn.MouseButton1Click:Connect(executeCommand)
 
+loopButton.MouseButton1Click:Connect(toggleLoop)
+
 commandBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         executeCommand()
@@ -494,11 +588,23 @@ prefixBox.FocusLost:Connect(function(enterPressed)
 end)
 
 executeBtn.MouseEnter:Connect(function()
-    TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 160, 80)}):Play()
+    if not loopActive then
+        TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 160, 80)}):Play()
+    end
 end)
 
 executeBtn.MouseLeave:Connect(function()
-    TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 120, 60)}):Play()
+    if not loopActive then
+        TweenService:Create(executeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 120, 60)}):Play()
+    end
+end)
+
+loopButton.MouseEnter:Connect(function()
+    TweenService:Create(loopButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 140)}):Play()
+end)
+
+loopButton.MouseLeave:Connect(function()
+    TweenService:Create(loopButton, TweenInfo.new(0.2), {BackgroundColor3 = loopActive and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(60, 60, 120)}):Play()
 end)
 
 clientButton.MouseEnter:Connect(function()
@@ -524,8 +630,8 @@ task.spawn(function()
     local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
 
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "HD Admin Commander",
-        Text = "Protection system loaded!",
+        Title = "HD Admin Command Bar",
+        Text = "Version V.5.0",
         Icon = content,
         Duration = 5
     })
