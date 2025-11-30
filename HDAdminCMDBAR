@@ -50,6 +50,21 @@ local protections = {
 
 local protectionOrder = {"blur", "jail", "ice", "freeze", "mute", "ff"}
 
+local function antiwarp()
+  local speaker = game:GetService("Players").LocalPlayer
+  local workspace = game:GetService("Workspace")
+  workspace.CurrentCamera:remove()
+    task.wait(.1)
+    repeat task.wait() until speaker.Character ~= nil
+    workspace.CurrentCamera.CameraSubject = speaker.Character:FindFirstChildWhichIsA('Humanoid')
+    workspace.CurrentCamera.CameraType = "Custom"
+    speaker.CameraMinZoomDistance = 0.11
+    speaker.CameraMaxZoomDistance = 400
+    speaker.CameraMode = "Classic"
+    speaker.Character.Head.Anchored = false
+end
+antiwarp()
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HDAdminCmdBar"
 screenGui.Parent = game:GetService("CoreGui")
