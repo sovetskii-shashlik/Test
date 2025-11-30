@@ -13,13 +13,42 @@ local clients = {
 
 local currentClient = clients[1]
 
+local protections = {
+    blur = {enabled = false, check = function()
+        return workspace.Camera:FindFirstChild("Blur")
+    end, command = "unblur"},
+    
+    jail = {enabled = false, check = function()
+        return workspace:FindFirstChild(localPlayer.Name .. "'s JailCell")
+    end, command = "unjail"},
+    
+    ice = {enabled = false, check = function()
+        return workspace:FindFirstChild(localPlayer.Name .. "'s FreezeBlock")
+    end, command = "unice"},
+    
+    freeze = {enabled = false, check = function()
+        if not localPlayer.Character then return false end
+        for _, part in ipairs(localPlayer.Character:GetChildren()) do
+            if part:IsA("BasePart") and part.Anchored then
+                return true
+            end
+        end
+        return false
+    end, command = "unice"},
+    
+    ff = {enabled = false, check = function()
+        if not localPlayer.Character then return false end
+        return not localPlayer.Character:FindFirstChild("HDAdminForceField")
+    end, command = "ff me"}
+}
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HDAdminCmdBar"
 screenGui.Parent = game:GetService("CoreGui")
 screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 150)
+frame.Size = UDim2.new(0, 300, 0, 180)
 frame.Position = UDim2.new(0.5, -150, 0.1, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.2
@@ -123,9 +152,23 @@ local clientCorner = Instance.new("UICorner")
 clientCorner.CornerRadius = UDim.new(0, 4)
 clientCorner.Parent = clientButton
 
+local protectionsButton = Instance.new("TextButton")
+protectionsButton.Size = UDim2.new(0, 100, 0, 20)
+protectionsButton.Position = UDim2.new(0.55, 0, 0, 55)
+protectionsButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+protectionsButton.Text = "Protections: OFF"
+protectionsButton.TextColor3 = Color3.new(1, 1, 1)
+protectionsButton.Font = Enum.Font.Gotham
+protectionsButton.TextSize = 10
+protectionsButton.Parent = frame
+
+local protectionsCorner = Instance.new("UICorner")
+protectionsCorner.CornerRadius = UDim.new(0, 4)
+protectionsCorner.Parent = protectionsButton
+
 local commandLabel = Instance.new("TextLabel")
 commandLabel.Size = UDim2.new(0, 65, 0, 18)
-commandLabel.Position = UDim2.new(0.05, 0, 0, 55)
+commandLabel.Position = UDim2.new(0.05, 0, 0, 80)
 commandLabel.BackgroundTransparency = 1
 commandLabel.Text = "Command:"
 commandLabel.TextColor3 = Color3.new(1, 1, 1)
@@ -136,7 +179,7 @@ commandLabel.Parent = frame
 
 local commandBox = Instance.new("TextBox")
 commandBox.Size = UDim2.new(0.9, 0, 0, 25)
-commandBox.Position = UDim2.new(0.05, 0, 0, 75)
+commandBox.Position = UDim2.new(0.05, 0, 0, 100)
 commandBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 commandBox.Text = ""
 commandBox.PlaceholderText = "explode player1 ;kill player2"
@@ -160,7 +203,7 @@ commandCorner.Parent = commandBox
 
 local executeBtn = Instance.new("TextButton")
 executeBtn.Size = UDim2.new(0.9, 0, 0, 28)
-executeBtn.Position = UDim2.new(0.05, 0, 0, 105)
+executeBtn.Position = UDim2.new(0.05, 0, 0, 130)
 executeBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
 executeBtn.Text = "EXECUTE"
 executeBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -174,7 +217,7 @@ btnCorner.Parent = executeBtn
 
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, 0, 0, 15)
-statusLabel.Position = UDim2.new(0, 0, 0, 135)
+statusLabel.Position = UDim2.new(0, 0, 0, 160)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text = "Status: Ready"
 statusLabel.TextColor3 = Color3.new(1, 1, 1)
@@ -258,9 +301,76 @@ end
 
 updateClientSelectionSize()
 
+local protectionsFrame = Instance.new("Frame")
+protectionsFrame.Size = UDim2.new(0, 120, 0, 0)
+protectionsFrame.Position = UDim2.new(0, protectionsButton.AbsolutePosition.X, 0, protectionsButton.AbsolutePosition.Y + 25)
+protectionsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+protectionsFrame.BorderSizePixel = 0
+protectionsFrame.Visible = false
+protectionsFrame.Parent = screenGui
+
+local protectionsCornerUI = Instance.new("UICorner")
+protectionsCornerUI.CornerRadius = UDim.new(0, 4)
+protectionsCornerUI.Parent = protectionsFrame
+
+local protectionsLayout = Instance.new("UIListLayout")
+protectionsLayout.Parent = protectionsFrame
+
+local function updateProtectionsSize()
+    protectionsFrame.Size = UDim2.new(0, 120, 0, #protections * 25)
+end
+
+local function createProtectionOption(protectionName, protectionData)
+    local optionButton = Instance.new("TextButton")
+    optionButton.Size = UDim2.new(1, 0, 0, 25)
+    optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    optionButton.Text = protectionName .. ": OFF"
+    optionButton.TextColor3 = Color3.new(1, 1, 1)
+    optionButton.Font = Enum.Font.Gotham
+    optionButton.TextSize = 11
+    optionButton.Parent = protectionsFrame
+
+    optionButton.MouseButton1Click:Connect(function()
+        protectionData.enabled = not protectionData.enabled
+        optionButton.Text = protectionName .. ": " .. (protectionData.enabled and "ON" or "OFF")
+        optionButton.BackgroundColor3 = protectionData.enabled and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(60, 60, 80)
+        
+        local enabledCount = 0
+        for _, prot in pairs(protections) do
+            if prot.enabled then
+                enabledCount = enabledCount + 1
+            end
+        end
+        protectionsButton.Text = "Protections: " .. (enabledCount > 0 and "ON" or "OFF")
+    end)
+
+    optionButton.MouseEnter:Connect(function()
+        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 100)}):Play()
+    end)
+
+    optionButton.MouseLeave:Connect(function()
+        if not protectionData.enabled then
+            TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}):Play()
+        end
+    end)
+end
+
+for protectionName, protectionData in pairs(protections) do
+    createProtectionOption(protectionName, protectionData)
+end
+
+updateProtectionsSize()
+
 clientButton.MouseButton1Click:Connect(function()
     clientSelectionFrame.Visible = not clientSelectionFrame.Visible
     clientSelectionFrame.Position = UDim2.new(0, clientButton.AbsolutePosition.X, 0, clientButton.AbsolutePosition.Y + 25)
+    protectionsFrame.Visible = false
+end)
+
+protectionsButton.MouseButton1Click:Connect(function()
+    protectionsFrame.Visible = not protectionsFrame.Visible
+    protectionsFrame.Position = UDim2.new(0, protectionsButton.AbsolutePosition.X, 0, protectionsButton.AbsolutePosition.Y + 25)
+    clientSelectionFrame.Visible = false
 end)
 
 local function executeCommand()
@@ -277,6 +387,10 @@ local function executeCommand()
         statusLabel.Text = "Status: Error - No prefix"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         return
+    end
+
+    if commandText:sub(1, 1) ~= prefix then
+        commandText = prefix .. commandText
     end
 
     local setPrefixArgs = {
@@ -319,6 +433,35 @@ local function executeCommand()
     end)
 end
 
+local function sendProtectionCommand(cmd)
+    local prefix = prefixBox.Text:gsub("%s+", "")
+    if prefix ~= "" then
+        cmd = prefix .. cmd
+    end
+    
+    local commandArgs = {[1] = cmd}
+    
+    pcall(function()
+        game:GetService("ReplicatedStorage"):WaitForChild(currentClient):WaitForChild("Signals"):WaitForChild("RequestCommand"):InvokeServer(unpack(commandArgs))
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        
+        for protectionName, protectionData in pairs(protections) do
+            if protectionData.enabled then
+                local success, condition = pcall(protectionData.check)
+                if success and condition then
+                    sendProtectionCommand(protectionData.command)
+                    task.wait(1.5)
+                end
+            end
+        end
+    end
+end)
+
 executeBtn.MouseButton1Click:Connect(executeCommand)
 
 commandBox.FocusLost:Connect(function(enterPressed)
@@ -349,6 +492,14 @@ clientButton.MouseLeave:Connect(function()
     TweenService:Create(clientButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 120)}):Play()
 end)
 
+protectionsButton.MouseEnter:Connect(function()
+    TweenService:Create(protectionsButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 140)}):Play()
+end)
+
+protectionsButton.MouseLeave:Connect(function()
+    TweenService:Create(protectionsButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 120)}):Play()
+end)
+
 task.spawn(function()
     local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
     local thumbType = Enum.ThumbnailType.HeadShot
@@ -357,7 +508,7 @@ task.spawn(function()
 
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "HD Admin Commander",
-        Text = "Multi-client support loaded!",
+        Text = "Protection system loaded!",
         Icon = content,
         Duration = 5
     })
