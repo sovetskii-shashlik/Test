@@ -16,6 +16,11 @@ local clients = {
 local currentClient = clients[1]
 
 local protections = {
+title = {enabled = false, check = function()
+    if not localPlayer.Character then return false end
+    local head = localPlayer.Character:FindFirstChild("Head")
+    return head and head:FindFirstChild("HDAdminTitle")
+end, command = "untitle", active = false}
     blur = {enabled = false, check = function()
         return workspace.Camera:FindFirstChild("Blur")
     end, command = "unblur", active = false},
@@ -48,7 +53,7 @@ local protections = {
     end, command = "ff me", active = false}
 }
 
-local protectionOrder = {"blur", "jail", "ice", "freeze", "mute", "ff"}
+local protectionOrder = {"blur", "mute", "jail", "ice", "freeze", "title", "ff"}
 
 local function antiwarp()
   local speaker = game:GetService("Players").LocalPlayer
