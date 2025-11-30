@@ -16,7 +16,7 @@ local clients = {
 local currentClient = clients[1]
 
 local protections = {
-title = {enabled = false, check = function()
+    title = {enabled = false, check = function()
     if not localPlayer.Character then return false end
     local head = localPlayer.Character:FindFirstChild("Head")
     return head and head:FindFirstChild("HDAdminTitle")
@@ -24,15 +24,15 @@ end, command = "untitle", active = false}
     blur = {enabled = false, check = function()
         return workspace.Camera:FindFirstChild("Blur")
     end, command = "unblur", active = false},
-    
+
     jail = {enabled = false, check = function()
         return workspace:FindFirstChild(localPlayer.Name .. "'s JailCell")
     end, command = "unjail", active = false},
-    
+
     ice = {enabled = false, check = function()
         return workspace:FindFirstChild(localPlayer.Name .. "'s FreezeBlock")
     end, command = "unice", active = false},
-    
+
     freeze = {enabled = false, check = function()
         if not localPlayer.Character then return false end
         for _, part in ipairs(localPlayer.Character:GetChildren()) do
@@ -42,11 +42,11 @@ end, command = "untitle", active = false}
         end
         return false
     end, command = "unice", active = false},
-    
+
     mute = {enabled = false, check = function()
         return not localPlayer:FindFirstChild("PlayerGui") or not localPlayer.PlayerGui:FindFirstChild("Chat")
     end, command = "unmute", active = false},
-    
+
     ff = {enabled = false, check = function()
         if not localPlayer.Character then return false end
         return not localPlayer.Character:FindFirstChild("HDAdminForceField")
@@ -413,7 +413,7 @@ local function createProtectionOption(protectionName)
         protectionData.enabled = not protectionData.enabled
         optionButton.Text = protectionName .. ": " .. (protectionData.enabled and "ON" or "OFF")
         optionButton.BackgroundColor3 = protectionData.enabled and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(60, 60, 80)
-        
+
         local enabledCount = 0
         for _, protName in ipairs(protectionOrder) do
             if protections[protName].enabled then
@@ -519,22 +519,22 @@ end
 
 local function toggleLoop()
     loopActive = not loopActive
-    
+
     if loopActive then
         loopButton.Text = "ON"
         loopButton.BackgroundColor3 = Color3.fromRGB(80, 120, 80)
         loopStatusLabel.Text = "Loop: Active"
         loopStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-        
+
         if loopThread then
             task.cancel(loopThread)
         end
-        
+
         loopThread = task.spawn(function()
             while loopActive do
                 local interval = tonumber(loopBox.Text) or 1
                 if interval < 0.1 then interval = 0.1 end
-                
+
                 executeCommand()
                 task.wait(interval)
             end
@@ -544,7 +544,7 @@ local function toggleLoop()
         loopButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
         loopStatusLabel.Text = "Loop: Inactive"
         loopStatusLabel.TextColor3 = Color3.new(1, 1, 1)
-        
+
         if loopThread then
             task.cancel(loopThread)
             loopThread = nil
@@ -557,9 +557,9 @@ local function sendProtectionCommand(cmd)
     if prefix ~= "" then
         cmd = prefix .. cmd
     end
-    
+
     local commandArgs = {[1] = cmd}
-    
+
     pcall(function()
         game:GetService("ReplicatedStorage"):WaitForChild(currentClient):WaitForChild("Signals"):WaitForChild("RequestCommand"):InvokeServer(unpack(commandArgs))
     end)
@@ -571,7 +571,7 @@ local function setupProtection(protectionName, protectionData)
     if protectionConnections[protectionName] then
         protectionConnections[protectionName]:Disconnect()
     end
-    
+
     protectionConnections[protectionName] = RunService.Heartbeat:Connect(function()
         if protectionData.enabled then
             local success, condition = pcall(protectionData.check)
