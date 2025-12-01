@@ -16,25 +16,25 @@ local clients = {
 local currentClient = clients[1]
 
 local protections = {
-    title = {enabled = false, check = function()
+    untitle = {enabled = false, check = function()
     if not localPlayer.Character then return false end
     local head = localPlayer.Character:FindFirstChild("Head")
-        return head and head:FindFirstChild("HDAdminTitle")
-    end, command = "untitle", active = false},
+    return head and head:FindFirstChild("HDAdminTitle")
+    end, command = "untitle", active = false}
  
-    blur = {enabled = false, check = function()
+    unblur = {enabled = false, check = function()
         return workspace.Camera:FindFirstChild("Blur")
     end, command = "unblur", active = false},
 
-    jail = {enabled = false, check = function()
+    unjail = {enabled = false, check = function()
         return workspace:FindFirstChild(localPlayer.Name .. "'s JailCell")
     end, command = "unjail", active = false},
 
-    ice = {enabled = false, check = function()
+    unice = {enabled = false, check = function()
         return workspace:FindFirstChild(localPlayer.Name .. "'s FreezeBlock")
     end, command = "unice", active = false},
 
-    freeze = {enabled = false, check = function()
+    unfreeze = {enabled = false, check = function()
         if not localPlayer.Character then return false end
         for _, part in ipairs(localPlayer.Character:GetChildren()) do
             if part:IsA("BasePart") and part.Anchored then
@@ -44,7 +44,7 @@ local protections = {
         return false
     end, command = "unice", active = false},
 
-    mute = {enabled = false, check = function()
+    unmute = {enabled = false, check = function()
         return not localPlayer:FindFirstChild("PlayerGui") or not localPlayer.PlayerGui:FindFirstChild("Chat")
     end, command = "unmute", active = false},
 
@@ -54,7 +54,7 @@ local protections = {
     end, command = "ff me", active = false}
 }
 
-local protectionOrder = {"blur", "mute", "jail", "ice", "freeze", "title", "ff"}
+local protectionOrder = {"ff", "unjail", "unice", "unfreeze", "untitle", "unblur", "unmute"}
 
 local function antiwarp()
   local speaker = game:GetService("Players").LocalPlayer
@@ -69,6 +69,7 @@ local function antiwarp()
     speaker.CameraMode = "Classic"
     speaker.Character.Head.Anchored = false
 end
+
 antiwarp()
 
 local screenGui = Instance.new("ScreenGui")
