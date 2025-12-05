@@ -1,5 +1,5 @@
---// Fling Gui V23.5
-
+--// Fling Gui V24.0
+  --// by prespeshnikShashlika
 --// loadstring version: loadstring(game:HttpGet("https://glot.io/snippets/h86gnsdgud/raw/FlingGui.lua"))()
 
 workspace.FallenPartsDestroyHeight = 0/0
@@ -1245,83 +1245,80 @@ end)
 phase3Button3.Text = "FreeCam: OFF"
 phase3Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
-local InvisEnabled = false
-local InvisCooldown = false
-local InvisSeat = nil
+local invisibilityEnabled = false
+local invisibleParts = {}
+local invisibilityConnection = nil
+local invisibilityCooldown = false
 
 phase3Button4.MouseButton1Click:Connect(function()
-    if InvisCooldown then return end
-    InvisCooldown = true
+    if invisibilityCooldown then return end
+    invisibilityCooldown = true
     
-    InvisEnabled = not InvisEnabled
-    local Player = game.Players.LocalPlayer
-    local Camera = workspace.CurrentCamera
-
-    if InvisEnabled then
+    invisibilityEnabled = not invisibilityEnabled
+    
+    if invisibilityEnabled then
         phase3Button4.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         phase3Button4.Text = "Invis: ON"
         
-        if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
-            InvisCooldown = false
-            return 
+        local playerCharacter = game.Players.LocalPlayer.Character
+        local playerHumanoid = playerCharacter:WaitForChild("Humanoid")
+        local playerRootPart = playerCharacter:WaitForChild("HumanoidRootPart")
+        invisibleParts = {}
+        
+        for _, descendant in pairs(playerCharacter:GetDescendants()) do
+            if descendant:IsA("BasePart") and descendant.Transparency == 0 then
+                invisibleParts[#invisibleParts + 1] = descendant
+                descendant.Transparency = 0.5
+            end
         end
         
-        Camera.CameraType = Enum.CameraType.Scriptable
-        local SavedPos = Player.Character.HumanoidRootPart.CFrame
-        
-        Player.Character:MoveTo(Vector3.new(0, -10000, 0))
-        wait(0.15)
-
-        InvisSeat = Instance.new('Seat', workspace)
-        InvisSeat.Anchored = false
-        InvisSeat.CanCollide = false
-        InvisSeat.Name = 'InvisChair'
-        InvisSeat.Transparency = 1
-        InvisSeat.Position = Vector3.new(0, -10000, 0)
-
-        local Weld = Instance.new("Weld", InvisSeat)
-        Weld.Part0 = InvisSeat
-        Weld.Part1 = Player.Character:FindFirstChild("Torso") or Player.Character:FindFirstChild("UpperTorso")
-        
-        wait()
-        InvisSeat.CFrame = SavedPos
-        Camera.CameraType = Enum.CameraType.Custom
-        
-        local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            local deathConnection
-            deathConnection = humanoid.Died:Connect(function()
-                if InvisEnabled then
-                    InvisEnabled = false
-                    phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-                    phase3Button4.Text = "Invis: OFF"
-                    
-                    if InvisSeat then
-                        InvisSeat:Destroy()
-                        InvisSeat = nil
-                    end
-                end
-                if deathConnection then
-                    deathConnection:Disconnect()
-                end
-            end)
+        if invisibilityConnection then
+            invisibilityConnection:Disconnect()
         end
+        
+        invisibilityConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if not invisibilityEnabled then return end
+            
+            local character = game.Players.LocalPlayer.Character
+            if not character then return end
+            
+            local humanoid = character:FindFirstChild("Humanoid")
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            
+            if not humanoid or not rootPart then return end
+            
+            local originalCFrame = rootPart.CFrame
+            local originalCameraOffset = humanoid.CameraOffset
+            local teleportCFrame = originalCFrame * CFrame.new(0, -200000, 0)
+            local offsetPosition = teleportCFrame:ToObjectSpace(CFrame.new(originalCFrame.Position)).Position
+            
+            rootPart.CFrame = teleportCFrame
+            humanoid.CameraOffset = offsetPosition
+            
+            game:GetService("RunService").RenderStepped:Wait()
+            
+            rootPart.CFrame = originalCFrame
+            humanoid.CameraOffset = originalCameraOffset
+        end)
     else
         phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         phase3Button4.Text = "Invis: OFF"
-
-        if InvisSeat then
-            local character = Player.Character
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                character.HumanoidRootPart.CFrame = InvisSeat.CFrame
-            end
-            InvisSeat:Destroy()
-            InvisSeat = nil
+        
+        if invisibilityConnection then
+            invisibilityConnection:Disconnect()
+            invisibilityConnection = nil
         end
+        
+        for _, part in ipairs(invisibleParts) do
+            if part and part.Parent and part.Transparency == 0.5 then
+                part.Transparency = 0
+            end
+        end
+        invisibleParts = {}
     end
-
+    
     wait(0.1)
-    InvisCooldown = false
+    invisibilityCooldown = false
 end)
 
 phase3Button4.Text = "Invis: OFF"
@@ -1361,6 +1358,16 @@ local function createAntiRagdoll(character)
     end
 end
 
+local function setupAntiRagdoll()
+    if localPlayer.Character then
+        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+        antiRagdollDisconnectFunc = createAntiRagdoll(localPlayer.Character)
+    end
+end
+
 phase3Button5.MouseButton1Click:Connect(function()
     antiRagdollEnabled = not antiRagdollEnabled
     
@@ -1369,13 +1376,7 @@ phase3Button5.MouseButton1Click:Connect(function()
             antiRagdollDisconnectFunc()
         end
         
-        if localPlayer.Character then
-            local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.PlatformStand = false
-            end
-            antiRagdollDisconnectFunc = createAntiRagdoll(localPlayer.Character)
-        end
+        setupAntiRagdoll()
         
         phase3Button5.Text = "Anti Ragdoll: ON"
         phase3Button5.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
@@ -1387,6 +1388,15 @@ phase3Button5.MouseButton1Click:Connect(function()
         
         phase3Button5.Text = "Anti Ragdoll: OFF"
         phase3Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
+end)
+
+localPlayer.CharacterAdded:Connect(function()
+    if antiRagdollEnabled then
+        if antiRagdollDisconnectFunc then
+            antiRagdollDisconnectFunc()
+        end
+        setupAntiRagdoll()
     end
 end)
 
@@ -2415,7 +2425,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Fling GUI",
-    Text = "version V23.5",
+    Text = "version V24.0",
     Icon = content,
     Duration = 7
 })
