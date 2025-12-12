@@ -318,7 +318,7 @@ local phase3Button2 = Instance.new("TextButton")
 phase3Button2.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button2.Position = UDim2.new(0.05, 0, 0, 80)
 phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button2.Text = "Kill NPC Gui"
+phase3Button2.Text = "Fire Parts Tool"
 phase3Button2.TextColor3 = Color3.new(1, 1, 1)
 phase3Button2.Visible = false
 phase3Button2.Parent = frame
@@ -1006,7 +1006,7 @@ localPlayer.CharacterAdded:Connect(function(character)
 end)
 
 phase3Button2.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://paste.myconan.net/611639.txt"))()
+    loadstring(game:HttpGet("https://glot.io/snippets/h9wgykubaz/raw/FireParts.lua"))()
 end)
 
 local freeCamEnabled = false
