@@ -1,4 +1,4 @@
--- Raw Links Hook Logger V2.0
+-- Raw Links Hook Logger V2.0 
 
 -- Settings
 local SafeToFile = true
