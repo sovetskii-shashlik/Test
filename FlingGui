@@ -1007,6 +1007,7 @@ end)
 
 local antiConveyorEnabled = false
 local antiConveyorConnection = nil
+local blockedParts = {}
 
 phase3Button2.MouseButton1Click:Connect(function()
     antiConveyorEnabled = not antiConveyorEnabled
@@ -1015,7 +1016,10 @@ phase3Button2.MouseButton1Click:Connect(function()
         antiConveyorConnection = RunService.Heartbeat:Connect(function()
             pcall(function()
                 local character = localPlayer.Character
-                if not character then return end
+                if not character then
+                    blockedParts = {}
+                    return
+                end
                 
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
@@ -1025,9 +1029,18 @@ phase3Button2.MouseButton1Click:Connect(function()
                 for _, part in pairs(parts) do
                     if part:IsA("BasePart") and part ~= rootPart then
                         if part.AssemblyAngularVelocity ~= Vector3.zero or part.AssemblyLinearVelocity ~= Vector3.zero then
-                            part.AssemblyAngularVelocity = Vector3.zero
+                            if not blockedParts[part] then
+                                blockedParts[part] = true
+                            end
                             part.AssemblyLinearVelocity = Vector3.zero
+                            part.AssemblyAngularVelocity = Vector3.zero
                         end
+                    end
+                end
+                
+                for part, _ in pairs(blockedParts) do
+                    if not part.Parent then
+                        blockedParts[part] = nil
                     end
                 end
             end)
@@ -1040,6 +1053,8 @@ phase3Button2.MouseButton1Click:Connect(function()
             antiConveyorConnection:Disconnect()
             antiConveyorConnection = nil
         end
+        
+        blockedParts = {}
         
         phase3Button2.Text = "Anti Conveyor: OFF"
         phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
