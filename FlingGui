@@ -1,4 +1,4 @@
---// Fling Gui V24.0
+--// Fling Gui V24.5
   --// by prespeshnikShashlika
 --// loadstring version: loadstring(game:HttpGet("https://glot.io/snippets/h86gnsdgud/raw/FlingGui.lua"))()
 
@@ -318,7 +318,7 @@ local phase3Button2 = Instance.new("TextButton")
 phase3Button2.Size = UDim2.new(0.9, 0, 0, 30)
 phase3Button2.Position = UDim2.new(0.05, 0, 0, 80)
 phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase3Button2.Text = "Fire Parts Tool"
+phase3Button2.Text = "Anti Conveyor: OFF"
 phase3Button2.TextColor3 = Color3.new(1, 1, 1)
 phase3Button2.Visible = false
 phase3Button2.Parent = frame
@@ -441,7 +441,7 @@ togglePhaseBtn.MouseButton1Click:Connect(togglePhase)
 
 local function toggleMinimize()
     isMinimized = not isMinimized
-    
+
     local elementsToHide = {
         inputBox, toggleBtnContainer, touchFlingBtn, 
         antiFlingBtn, antiKillBtn, loadBtn,
@@ -457,7 +457,7 @@ local function toggleMinimize()
         title.TextSize = 18
         title.Size = UDim2.new(1, 0, 1, 0)
         title.Position = UDim2.new(0, 0, 0, 0)
-        
+
         for _, element in ipairs(elementsToHide) do
             if element then
                 element.Visible = false
@@ -466,7 +466,7 @@ local function toggleMinimize()
 
         local startSize = frame.Size
         local targetSize = UDim2.new(0, 60, 0, 30)
-        
+
         for i = 0, 1, 0.075 do
             local newHeight = math.floor(startSize.Y.Offset + (30 - startSize.Y.Offset) * i)
             frame.Size = UDim2.new(
@@ -478,7 +478,7 @@ local function toggleMinimize()
         end
 
         frame.Size = UDim2.new(0, 60, 0, 30)
-        
+
         invisibleExpandBtn.Size = UDim2.new(1, 0, 1, 0)
         invisibleExpandBtn.Position = UDim2.new(0, 0, 0, 0)
         invisibleExpandBtn.Visible = true
@@ -489,7 +489,7 @@ local function toggleMinimize()
     else
         toggleMinimizeBtn.Visible = true
         togglePhaseBtn.Visible = true
-        
+
         local startSize = frame.Size
         for i = 0, 1, 0.075 do
             frame.Size = UDim2.new(
@@ -539,21 +539,21 @@ local originalProperties = {}
 
 local function manageStrength(character, enable)
     if not character or not character:IsA("Model") then return end
-    
+
     for _, conn in pairs(connections) do
         conn:Disconnect()
     end
     connections = {}
-    
+
     if enable then
         for _, part in pairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 if not originalProperties[part] then
                     originalProperties[part] = part.CustomPhysicalProperties or PhysicalProperties.new(0.7, 0.3, 0.5)
                 end
-                
+
                 part.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
-                
+
                 table.insert(connections, part:GetPropertyChangedSignal("CustomPhysicalProperties"):Connect(function()
                     if isStrengthened then
                         local current = part.CustomPhysicalProperties
@@ -577,22 +577,22 @@ end
 phase2Button1.MouseButton1Click:Connect(function()
     local player = game:GetService("Players").LocalPlayer
     local character = player.Character
-    
+
     isStrengthened = not isStrengthened
-    
+
     if character then
         manageStrength(character, isStrengthened)
     end
-    
+
     player.CharacterAdded:Connect(function(newChar)
         if isStrengthened then
             manageStrength(newChar, true)
         end
     end)
-    
+
     phase2Button1.Text = isStrengthened and "Strength: ON" or "Strength: OFF"
     phase2Button1.BackgroundColor3 = isStrengthened and Color3.fromRGB(80, 20, 20) or Color3.fromRGB(60, 60, 60)
-    
+
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Character Strength",
         Text = isStrengthened and "Enabled (Density: 100)" or "Disabled (Default Density restored)",
@@ -611,12 +611,12 @@ local respawnConnection = nil
 local function setupSpawnpoint()
     localPlayer.CharacterAdded:Connect(function(character)
         if not spawnpointActive then return end
-        
+
         local rootPart = character:WaitForChild("HumanoidRootPart", 1)
         if not rootPart then return end
-        
+
         task.wait(0.01)
-        
+
         if savedPosition then
             rootPart.CFrame = savedPosition
             needsRespawn = false
@@ -626,10 +626,10 @@ local function setupSpawnpoint()
     RunService.Stepped:Connect(function()
         local character = localPlayer.Character
         if not character then return end
-        
+
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         local rootPart = character:FindFirstChild("HumanoidRootPart")
-        
+
         if spawnpointActive and humanoid and humanoid.Health <= 0 then
             if rootPart then
                 savedPosition = rootPart.CFrame
@@ -641,24 +641,24 @@ end
 
 phase2Button2.MouseButton1Click:Connect(function()
     spawnpointActive = not spawnpointActive
-    
+
     if spawnpointActive then
         phase2Button2.Text = "Spawnpoint: ON"
         phase2Button2.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         local character = localPlayer.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
             savedPosition = character.HumanoidRootPart.CFrame
         end
-        
+
         setupSpawnpoint()
     else
         phase2Button2.Text = "Spawnpoint: OFF"
         phase2Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
+
         savedPosition = nil
         needsRespawn = false
-        
+
         if respawnConnection then
             respawnConnection:Disconnect()
             respawnConnection = nil
@@ -709,11 +709,11 @@ end
 
 phase2Button3.MouseButton1Click:Connect(function()
     as = not as
-    
+
     if as then
         phase2Button3.Text = "Anti Slap: ON"
         phase2Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         if localPlayer.Character then
             dc(localPlayer.Character)
         end
@@ -733,16 +733,16 @@ local XenoAntiFlingConnection = nil
 
 local function toggleXenoAntiFling()
     XenoAntiFlingEnabled = not XenoAntiFlingEnabled
-    
+
     if XenoAntiFlingEnabled then
         phase2Button4.Text = "Xeno AntiFling: ON"
         phase2Button4.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         XenoAntiFlingConnection = game:GetService("RunService").Stepped:Connect(function()
             pcall(function()
                 local players = game:GetService("Players"):GetPlayers()
                 local plr = game:GetService("Players").LocalPlayer
-                
+
                 for _, p in pairs(players) do
                     if p ~= plr and p.Character then
                         for _, v in pairs(p.Character:GetChildren()) do
@@ -769,7 +769,7 @@ local function toggleXenoAntiFling()
     else
         phase2Button4.Text = "Xeno AntiFling: OFF"
         phase2Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
+
         if XenoAntiFlingConnection then
             XenoAntiFlingConnection:Disconnect()
             XenoAntiFlingConnection = nil
@@ -794,7 +794,7 @@ end
 
 local function handleRespawn()
     if not infinitePositionEnabled or not savedInfinitePosition then return end
-    
+
     local rootPart = localPlayer.Character:WaitForChild("HumanoidRootPart", 1)
     if rootPart then
         task.wait(0.0001)
@@ -807,16 +807,16 @@ end
 local function checkPosition()
     if not infinitePositionEnabled or not savedInfinitePosition then return end
     if checkIfFlinging() then return end
-    
+
     local character = localPlayer.Character
     if not character then return end
-    
+
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end
 
     if (rootPart.Position - savedInfinitePosition.Position).Magnitude > positionTolerance then
         task.wait(0.0001)
-        
+
         if infinitePositionEnabled and not checkIfFlinging() and character.Parent and rootPart then
             if (rootPart.Position - savedInfinitePosition.Position).Magnitude > positionTolerance then
                 rootPart.CFrame = savedInfinitePosition
@@ -829,11 +829,11 @@ end
 
 local function setupInfinitePosition()
     localPlayer.CharacterAdded:Connect(handleRespawn)
-    
+
     if infinitePositionConnection then
         infinitePositionConnection:Disconnect()
     end
-    
+
     infinitePositionConnection = RunService.Heartbeat:Connect(function()
         if not infinitePositionEnabled then return end
         checkPosition()
@@ -845,18 +845,18 @@ phase2Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
 phase2Button5.MouseButton1Click:Connect(function()
     infinitePositionEnabled = not infinitePositionEnabled
-    
+
     if infinitePositionEnabled then
         local character = localPlayer.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
             savedInfinitePosition = character.HumanoidRootPart.CFrame
         end
-        
+
         setupInfinitePosition()
-        
+
         phase2Button5.Text = "Infinite Position: ON"
         phase2Button5.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Infinite Position",
             Text = "Enabled (Position locked)",
@@ -864,15 +864,15 @@ phase2Button5.MouseButton1Click:Connect(function()
         })
     else
         savedInfinitePosition = nil
-        
+
         if infinitePositionConnection then
             infinitePositionConnection:Disconnect()
             infinitePositionConnection = nil
         end
-        
+
         phase2Button5.Text = "Infinite Position: OFF"
         phase2Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Infinite Position",
             Text = "Disabled (Position unlocked)",
@@ -885,7 +885,7 @@ local lastFlingState = false
 RunService.Heartbeat:Connect(function()
     if lastFlingState ~= flingActive then
         lastFlingState = flingActive
-        
+
         if not flingActive and infinitePositionEnabled then
             checkPosition()
         end
@@ -897,23 +897,23 @@ local afdConnections = {}
 
 local function toggleAFD()
     afdEnabled = not afdEnabled
-    
+
     if afdEnabled then
         phase2Button6.Text = "NDS Anti Fall Damage: ON"
         phase2Button6.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "AFD: ON",
             Text = "Anti fall damage enabled (touchfling not working)",
             Duration = 2
         })
-        
+
         local function setupAFD(character)
             if not character then return end
-            
+
             local rootPart = character:WaitForChild("HumanoidRootPart", 1)
             if not rootPart then return end
-            
+
             local connection = game:GetService("RunService").Heartbeat:Connect(function()
                 if not rootPart.Parent then
                     connection:Disconnect()
@@ -924,25 +924,25 @@ local function toggleAFD()
                 game:GetService("RunService").RenderStepped:Wait()
                 rootPart.AssemblyLinearVelocity = velocity
             end)
-            
+
             table.insert(afdConnections, connection)
         end
-        
+
         if localPlayer.Character then
             setupAFD(localPlayer.Character)
         end
-        
+
         table.insert(afdConnections, localPlayer.CharacterAdded:Connect(setupAFD))
     else
         phase2Button6.Text = "NDS Anti Fall Damage: OFF"
         phase2Button6.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "AFD: OFF",
             Text = "Anti fall damage disabled (touchfling working)",
             Duration = 2
         })
-        
+
         for _, conn in ipairs(afdConnections) do
             if conn then
                 conn:Disconnect()
@@ -960,7 +960,7 @@ local noSitEnabled = false
 
 local function toggleNoSit()
     noSitEnabled = not noSitEnabled
-    
+
     local character = localPlayer.Character
     if character then
         local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -977,10 +977,10 @@ local function toggleNoSit()
             end
         end
     end
-    
+
     phase3Button1.Text = noSitEnabled and "Anti Sit: ON" or "Anti Sit: OFF"
     phase3Button1.BackgroundColor3 = noSitEnabled and Color3.fromRGB(80, 20, 20) or Color3.fromRGB(60, 60, 60)
-    
+
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Anti Sit",
         Text = noSitEnabled and "Enabled (Can't sit)" or "Disabled (Can sit)",
@@ -997,7 +997,7 @@ localPlayer.CharacterAdded:Connect(function(character)
     if noSitEnabled then
         local humanoid = character:WaitForChildOfClass("Humanoid")
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-        
+
         if humanoid.Sit then
             humanoid.Sit = false
         end
@@ -1005,8 +1005,71 @@ localPlayer.CharacterAdded:Connect(function(character)
     end
 end)
 
+local antiConveyorEnabled = false
+local antiConveyorConnection = nil
+local blockedParts = {}
+
 phase3Button2.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://glot.io/snippets/h9wgykubaz/raw/FireParts.lua"))()
+    antiConveyorEnabled = not antiConveyorEnabled
+    
+    if antiConveyorEnabled then
+        antiConveyorConnection = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                local character = localPlayer.Character
+                if not character then
+                    blockedParts = {}
+                    return
+                end
+                
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if not rootPart then return end
+                
+                local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 50)
+                
+                for _, part in pairs(parts) do
+                    if part:IsA("BasePart") and part ~= rootPart then
+                        if part.AssemblyAngularVelocity ~= Vector3.zero or part.AssemblyLinearVelocity ~= Vector3.zero then
+                            if not blockedParts[part] then
+                                blockedParts[part] = {
+                                    CanTouch = part.CanTouch,
+                                    CanCollide = part.CanCollide
+                                }
+                            end
+                            part.CanTouch = false
+                            part.CanCollide = false
+                        end
+                    end
+                end
+                
+                for part, original in pairs(blockedParts) do
+                    if not part.Parent or (part.AssemblyAngularVelocity == Vector3.zero and part.AssemblyLinearVelocity == Vector3.zero) then
+                        part.CanTouch = original.CanTouch
+                        part.CanCollide = original.CanCollide
+                        blockedParts[part] = nil
+                    end
+                end
+            end)
+        end)
+        
+        phase3Button2.Text = "Anti Conveyor: ON"
+        phase3Button2.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+    else
+        if antiConveyorConnection then
+            antiConveyorConnection:Disconnect()
+            antiConveyorConnection = nil
+        end
+        
+        for part, original in pairs(blockedParts) do
+            if part and part.Parent then
+                part.CanTouch = original.CanTouch
+                part.CanCollide = original.CanCollide
+            end
+        end
+        blockedParts = {}
+        
+        phase3Button2.Text = "Anti Conveyor: OFF"
+        phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
 end)
 
 local freeCamEnabled = false
@@ -1032,7 +1095,7 @@ _G.JoystickData = {
 
 local function createJoystick()
     if joystickGui then joystickGui:Destroy() end
-    
+
     joystickGui = Instance.new("ScreenGui")
     joystickGui.Parent = game.CoreGui
     joystickGui.Name = "JoystickFreeCam"
@@ -1140,14 +1203,14 @@ end
 
 local function enableFreeCam()
     if freeCamEnabled then return end
-    
+
     createJoystick()
-    
+
     local camera = workspace.CurrentCamera
     local origCFrame = camera.CFrame
     origMinZoom = localPlayer.CameraMinZoomDistance
     origMaxZoom = localPlayer.CameraMaxZoomDistance
-    
+
     movePart = Instance.new("Part")
     movePart.Size = Vector3.new(0, 0, 0)
     movePart.Anchored = true
@@ -1157,16 +1220,16 @@ local function enableFreeCam()
     movePart.Name = "FreeCamPart"
     movePart.CFrame = origCFrame
     currentPos = movePart.Position
-    
+
     camera.CameraSubject = movePart
     camera.CameraType = Enum.CameraType.Custom
     localPlayer.CameraMinZoomDistance = 0
     localPlayer.CameraMaxZoomDistance = 0
-    
+
     phase3Button3.Text = "FreeCam: ON"
     phase3Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
     freeCamEnabled = true
-    
+
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "FreeCam",
         Text = "Активирован (используйте джойстик)",
@@ -1176,23 +1239,23 @@ end
 
 local function disableFreeCam()
     if not freeCamEnabled then return end
-    
+
     local camera = workspace.CurrentCamera
     camera.CameraSubject = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") or nil
     camera.CameraType = Enum.CameraType.Custom
     localPlayer.CameraMinZoomDistance = origMinZoom
     localPlayer.CameraMaxZoomDistance = origMaxZoom
-    
+
     if movePart then
         movePart:Destroy()
         movePart = nil
     end
-    
+
     if joystickGui then
         joystickGui:Destroy()
         joystickGui = nil
     end
-    
+
     phase3Button3.Text = "FreeCam: OFF"
     phase3Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     freeCamEnabled = false
@@ -1200,7 +1263,7 @@ end
 
 local function updateFreeCam(dt)
     if not freeCamEnabled or not movePart then return end
-    
+
     local dir = _G.JoystickData.Direction
     local level = _G.JoystickData.DraggingLevel
 
@@ -1211,7 +1274,7 @@ local function updateFreeCam(dt)
         local right = camCF.RightVector
         local moveDir = (forward * -dir.Z) + (right * dir.X)
         moveDir += Vector3.new(0, dir.Y, 0)
-        
+
         if moveDir.Magnitude > 0 then
             moveDir = moveDir.Unit
             currentPos = currentPos + moveDir * moveSpeed * dt * 60
@@ -1253,62 +1316,62 @@ local invisibilityCooldown = false
 phase3Button4.MouseButton1Click:Connect(function()
     if invisibilityCooldown then return end
     invisibilityCooldown = true
-    
+
     invisibilityEnabled = not invisibilityEnabled
-    
+
     if invisibilityEnabled then
         phase3Button4.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         phase3Button4.Text = "Invis: ON"
-        
+
         local playerCharacter = game.Players.LocalPlayer.Character
         local playerHumanoid = playerCharacter:WaitForChild("Humanoid")
         local playerRootPart = playerCharacter:WaitForChild("HumanoidRootPart")
         invisibleParts = {}
-        
+
         for _, descendant in pairs(playerCharacter:GetDescendants()) do
             if descendant:IsA("BasePart") and descendant.Transparency == 0 then
                 invisibleParts[#invisibleParts + 1] = descendant
                 descendant.Transparency = 0.5
             end
         end
-        
+
         if invisibilityConnection then
             invisibilityConnection:Disconnect()
         end
-        
+
         invisibilityConnection = game:GetService("RunService").Heartbeat:Connect(function()
             if not invisibilityEnabled then return end
-            
+
             local character = game.Players.LocalPlayer.Character
             if not character then return end
-            
+
             local humanoid = character:FindFirstChild("Humanoid")
             local rootPart = character:FindFirstChild("HumanoidRootPart")
-            
+
             if not humanoid or not rootPart then return end
-            
+
             local originalCFrame = rootPart.CFrame
             local originalCameraOffset = humanoid.CameraOffset
             local teleportCFrame = originalCFrame * CFrame.new(0, -200000, 0)
             local offsetPosition = teleportCFrame:ToObjectSpace(CFrame.new(originalCFrame.Position)).Position
-            
+
             rootPart.CFrame = teleportCFrame
             humanoid.CameraOffset = offsetPosition
-            
+
             game:GetService("RunService").RenderStepped:Wait()
-            
+
             rootPart.CFrame = originalCFrame
             humanoid.CameraOffset = originalCameraOffset
         end)
     else
         phase3Button4.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         phase3Button4.Text = "Invis: OFF"
-        
+
         if invisibilityConnection then
             invisibilityConnection:Disconnect()
             invisibilityConnection = nil
         end
-        
+
         for _, part in ipairs(invisibleParts) do
             if part and part.Parent and part.Transparency == 0.5 then
                 part.Transparency = 0
@@ -1316,7 +1379,7 @@ phase3Button4.MouseButton1Click:Connect(function()
         end
         invisibleParts = {}
     end
-    
+
     wait(0.1)
     invisibilityCooldown = false
 end)
@@ -1330,9 +1393,9 @@ local antiRagdollDisconnectFunc = nil
 local function createAntiRagdoll(character)
     local connections = {}
     local humanoid = character:WaitForChild("Humanoid")
-    
+
     humanoid.PlatformStand = false
-    
+
     local function onStateChanged(_, newState)
         if newState == Enum.HumanoidStateType.Physics or 
            newState == Enum.HumanoidStateType.FallingDown or 
@@ -1340,16 +1403,16 @@ local function createAntiRagdoll(character)
             humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
     end
-    
+
     local function onPlatformStandChanged()
         if humanoid.PlatformStand then
             humanoid.PlatformStand = false
         end
     end
-    
+
     table.insert(connections, humanoid.StateChanged:Connect(onStateChanged))
     table.insert(connections, humanoid:GetPropertyChangedSignal("PlatformStand"):Connect(onPlatformStandChanged))
-    
+
     return function()
         for _, connection in ipairs(connections) do
             connection:Disconnect()
@@ -1370,14 +1433,14 @@ end
 
 phase3Button5.MouseButton1Click:Connect(function()
     antiRagdollEnabled = not antiRagdollEnabled
-    
+
     if antiRagdollEnabled then
         if antiRagdollDisconnectFunc then
             antiRagdollDisconnectFunc()
         end
-        
+
         setupAntiRagdoll()
-        
+
         phase3Button5.Text = "Anti Ragdoll: ON"
         phase3Button5.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
     else
@@ -1385,7 +1448,7 @@ phase3Button5.MouseButton1Click:Connect(function()
             antiRagdollDisconnectFunc()
             antiRagdollDisconnectFunc = nil
         end
-        
+
         phase3Button5.Text = "Anti Ragdoll: OFF"
         phase3Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
@@ -1438,7 +1501,7 @@ end
 
 local function toggleNoclip()
     isNoclipEnabled = not isNoclipEnabled
-    
+
     if isNoclipEnabled then
         loadBtn.Text = "Noclip: ON"
         loadBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
@@ -1492,14 +1555,14 @@ end
 
 local function toggleAntiKillParts()
     AntiKillPartsEnabled = not AntiKillPartsEnabled
-    
+
     if AntiKillPartsEnabled then
         antiKillBtn.Text = "Anti Kill Parts: ON"
         antiKillBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
     else
         antiKillBtn.Text = "Anti Kill Parts: OFF"
         antiKillBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
+
         if localPlayer.Character then
             local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
             if humanoidRootPart then
@@ -1541,11 +1604,11 @@ end)
 
 local function toggleAntiFling()
     AntiFlingEnabled = not AntiFlingEnabled
-    
+
     if AntiFlingEnabled then
         antiFlingBtn.Text = "Anti Fling: ON"
         antiFlingBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         for i, v in pairs(Players:GetPlayers()) do
             if v ~= Players.LocalPlayer and v.Character then
                 setCanCollideOfModelDescendants(v.Character, false)
@@ -1554,7 +1617,7 @@ local function toggleAntiFling()
     else
         antiFlingBtn.Text = "Anti Fling: OFF"
         antiFlingBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
+
         for i, v in pairs(Players:GetPlayers()) do
             if v ~= Players.LocalPlayer and v.Character then
                 setCanCollideOfModelDescendants(v.Character, true)
@@ -1606,7 +1669,7 @@ end
 
 local function toggleTouchFling()
     hiddenfling = not hiddenfling
-    
+
     if hiddenfling then
         touchFlingBtn.Text = "Touch Fling: ON"
         touchFlingBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
@@ -1669,14 +1732,14 @@ local function SkidFling(TargetPlayer, duration)
         if not TCharacter:FindFirstChildWhichIsA("BasePart") then
             return
         end
-        
+
         local FPos = function(BasePart, Pos, Ang)
             RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
             RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
             RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
         end
-        
+
         local SFBasePart = function(BasePart)
             local TimeToWait = duration or 2
             local Time = tick()
@@ -1713,7 +1776,7 @@ local function SkidFling(TargetPlayer, duration)
 
                         FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
-                        
+
                         FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
 
@@ -1740,18 +1803,18 @@ local function SkidFling(TargetPlayer, duration)
                 end
             until not flingActive or BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= Players or not TargetPlayer.Character == TCharacter or THumanoid.Sit or tick() > Time + TimeToWait
         end
-        
+
         local previousDestroyHeight = workspace.FallenPartsDestroyHeight
         workspace.FallenPartsDestroyHeight = 0/0
-        
+
         local BV = Instance.new("BodyVelocity")
         BV.Name = "EpixVel"
         BV.Parent = RootPart
         BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
         BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
-        
+
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-        
+
         if TRootPart and THead then
             if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
                 SFBasePart(THead)
@@ -1765,11 +1828,11 @@ local function SkidFling(TargetPlayer, duration)
         elseif not TRootPart and not THead and Accessory and Handle then
             SFBasePart(Handle)
         end
-        
+
         BV:Destroy()
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         workspace.CurrentCamera.CameraSubject = Humanoid
-        
+
         repeat
             if Character and Humanoid and RootPart and getgenv().OldPos then
                 RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
@@ -1812,7 +1875,7 @@ local function shhhlol(TargetPlayer)
         local function wtf(comkid)
             local TimeToWait = 0.134
             local Time = tick()
-            
+
             local Att1 = Instance.new("Attachment", RootPart)
             local Att2 = Instance.new("Attachment", comkid)
 
@@ -1872,7 +1935,7 @@ local function shhhlol(TargetPlayer)
 
         local previousDestroyHeight = workspace.FallenPartsDestroyHeight
         workspace.FallenPartsDestroyHeight = 0/0
-        
+
         local BV = Instance.new("BodyVelocity")
         BV.Parent = RootPart
         BV.Velocity = Vector3.new(-9e99, 9e99, -9e99)
@@ -1905,7 +1968,7 @@ local function shhhlol(TargetPlayer)
         BV:Destroy()
         BodyGyro:Destroy()
         BodyPosition:Destroy()
-        
+
         repeat
             if Character and Humanoid and RootPart and getgenv().OldPos then
                 RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
@@ -1919,7 +1982,7 @@ local function shhhlol(TargetPlayer)
             end
             task.wait()
         until not flingActive or (RootPart and getgenv().OldPos and (RootPart.Position - getgenv().OldPos.p).Magnitude < 25)
-        
+
         workspace.FallenPartsDestroyHeight = previousDestroyHeight
     end
 end
@@ -1994,7 +2057,7 @@ end
 local function getPlayers(input)
     local players = {}
     input = string.lower(input or "")
-    
+
     if input == "all" then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= localPlayer then
@@ -2022,12 +2085,12 @@ local function getPlayers(input)
                 table.insert(searchTerms, term)
             end
         end
-        
+
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= localPlayer then
                 local playerName = string.lower(player.Name)
                 local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
-                
+
                 for _, term in ipairs(searchTerms) do
                     if string.find(playerName, term) or string.find(displayName, term) then
                         table.insert(players, player)
@@ -2037,7 +2100,7 @@ local function getPlayers(input)
             end
         end
     end
-    
+
     return players
 end
 
@@ -2053,10 +2116,10 @@ end
 
 local function addPlayerToProcessed(player)
     if not player or player == localPlayer then return end
-    
+
     local matchesFilter = false
     local input = string.lower(currentInput)
-    
+
     if input == "all" then
         matchesFilter = true
     elseif input == "nonfriends" then
@@ -2072,10 +2135,10 @@ local function addPlayerToProcessed(player)
                 table.insert(searchTerms, term)
             end
         end
-        
+
         local playerName = string.lower(player.Name)
         local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
-        
+
         for _, term in ipairs(searchTerms) do
             if string.find(playerName, term) or string.find(displayName, term) then
                 matchesFilter = true
@@ -2083,7 +2146,7 @@ local function addPlayerToProcessed(player)
             end
         end
     end
-    
+
     if matchesFilter then
         processedPlayers[player] = true
         updateStatus()
@@ -2097,18 +2160,18 @@ local function flingPlayers()
             table.insert(players, player)
         end
     end
-    
+
     if currentInput == "all" or currentInput == "nonfriends" then
         players = sortPlayersAlphabetically(players)
     end
-    
+
     for _, player in ipairs(players) do
         if not flingActive then break end
-        
+
         if player and player.Character and player.Character.Parent ~= nil then
             statusLabel.Text = "Status: Flinging "..player.Name
             local duration = (currentInput == "all" or currentInput == "nonfriends") and 1.5 or nil
-            
+
             if flingMode == 1 then
                 SkidFling(player, duration)
             elseif flingMode == 2 then
@@ -2121,7 +2184,7 @@ local function flingPlayers()
             end
         end
     end
-    
+
     if flingActive then
         updateStatus()
         task.wait()
@@ -2136,25 +2199,25 @@ end
 
 local function toggleFling()
     flingActive = not flingActive
-    
+
     if flingActive then
         currentInput = string.lower(inputBox.Text)
         local players = getPlayers(currentInput)
-        
+
         if #players == 0 then
             statusLabel.Text = "Status: No players found!"
             flingActive = false
             return
         end
-        
+
         processedPlayers = {}
         for _, player in ipairs(players) do
             addPlayerToProcessed(player)
         end
-        
+
         toggleBtnMain.Text = "Fling Players: ON"
         toggleBtnMain.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         coroutine.wrap(flingPlayers)()
     else
         toggleBtnMain.Text = "Fling Players: OFF"
@@ -2215,7 +2278,7 @@ local function lockInterface(lock)
         toggleBtnMain.Text = "[LOCKED]"
         toggleBtnMain.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         toggleBtnMain.AutoButtonColor = false
-        
+
         if flingActive then
             flingActive = false
             toggleBtnMain.Text = "[LOCKED]"
@@ -2225,7 +2288,7 @@ local function lockInterface(lock)
         toggleBtnMain.Text = "Fling Players: OFF"
         toggleBtnMain.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         toggleBtnMain.AutoButtonColor = true
-        
+
         if wasFlingActiveBeforeFPD and not flingActive then
             flingActive = true
             toggleBtnMain.Text = "Fling Players: ON"
@@ -2243,11 +2306,11 @@ local wasFlingActiveBeforeFPD = false
 local function lockInterface(lock)
     if lock then
         wasFlingActiveBeforeFPD = flingActive
-        
+
         toggleBtnMain.Text = "[LOCKED]"
         toggleBtnMain.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         toggleBtnMain.AutoButtonColor = false
-        
+
         if flingActive then
             toggleFling()
         end
@@ -2260,15 +2323,15 @@ end
 
 local function toggleFPDProtection()
     fpdProtectionEnabled = not fpdProtectionEnabled
-    
+
     if fpdProtectionEnabled then
         workspace.FallenPartsDestroyHeight = 0/0
-        
+
         local mt = getrawmetatable(workspace)
         oldNewIndex = mt.__newindex
-        
+
         setreadonly(mt, false)
-        
+
         mt.__newindex = function(t, k, v)
             if k == "FallenPartsDestroyHeight" then
                 rawset(t, k, 0/0)
@@ -2276,20 +2339,20 @@ local function toggleFPDProtection()
             end
             oldNewIndex(t, k, v)
         end
-        
+
         setreadonly(mt, true)
-        
+
         if fpdProtectionLoop then fpdProtectionLoop:Disconnect() end
         fpdProtectionLoop = game:GetService("RunService").Heartbeat:Connect(function()
             if workspace.FallenPartsDestroyHeight == workspace.FallenPartsDestroyHeight then
                 workspace.FallenPartsDestroyHeight = 0/0
             end
         end)
-        
+
         toggleBtnMode.Text = "FPD"
         toggleBtnMode.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         lockInterface(true)
-        
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "FPD Protection",
             Text = "ENABLED (Interface locked)",
@@ -2300,18 +2363,18 @@ local function toggleFPDProtection()
             fpdProtectionLoop:Disconnect()
             fpdProtectionLoop = nil
         end
-        
+
         if oldNewIndex then
             local mt = getrawmetatable(workspace)
             setreadonly(mt, false)
             mt.__newindex = oldNewIndex
             setreadonly(mt, true)
         end
-        
+
         toggleBtnMode.Text = tostring(flingMode)
         toggleBtnMode.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         lockInterface(false)
-        
+
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "FPD Protection",
             Text = "DISABLED (Interface unlocked)",
@@ -2392,14 +2455,14 @@ statusLabel.Position = UDim2.new(0, 0, 0, 280)
 local function updateSpeed()
     while true do
         task.wait()
-        
+
         local character = localPlayer.Character
         if character then
             local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
             if humanoidRootPart then
                 local speed = math.floor(humanoidRootPart.Velocity.Magnitude)
                 speedLabel.Text = "Speed: "..tostring(speed).." studs/s"
-                
+
                 if speed > 1e38 then
                     speedLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                 elseif speed > 100000 then
@@ -2425,7 +2488,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Fling GUI",
-    Text = "version V24.0",
+    Text = "version V24.5",
     Icon = content,
     Duration = 7
 })
@@ -2437,64 +2500,64 @@ local function enableAntiKick()
         warn("Your exploit does not support this anti-kick (missing hookmetamethod)")
         return false
     end
-    
+
     local LocalPlayer = game:GetService("Players").LocalPlayer
     if not LocalPlayer then return false end
-    
+
     local oldhmmi
     local oldhmmnc
     local oldKickFunction
-    
+
     if hookfunction and LocalPlayer.Kick then
         oldKickFunction = hookfunction(LocalPlayer.Kick, function() end)
     end
-    
+
     oldhmmi = hookmetamethod(game, "__index", function(self, method)
         if self == LocalPlayer and method:lower() == "kick" then
             return error("Expected ':' not '.' calling member function Kick", 2)
         end
         return oldhmmi(self, method)
     end)
-    
+
     oldhmmnc = hookmetamethod(game, "__namecall", function(self, ...)
         if self == LocalPlayer and getnamecallmethod():lower() == "kick" then
             return nil
         end
         return oldhmmnc(self, ...)
     end)
-    
+
     return true
 end
 
 enableAntiKick()
 
 local function BypassAdonis()
-	local Query = {
-		--Hash = "605A34235509ABBB6946D10B499B526AC72774E441C3F9BAE4B63D321C6E759347D864CE879B39864743C0EEAC444FFF";
-		Constants = {" - On Xbox", " - On mobile", "_"};
-		IgnoreExecutor = true;
-	}
+        local Query = {
+                --Hash = "605A34235509ABBB6946D10B499B526AC72774E441C3F9BAE4B63D321C6E759347D864CE879B39864743C0EEAC444FFF";
+                Constants = {" - On Xbox", " - On mobile", "_"};
+                IgnoreExecutor = true;
+        }
 
-	local Detected = filtergc("function", Query); Detected = Detected and Detected[1];
-	if not Detected then
-		--Telemetry:Log("BypassAntiCheat.BypassAdonis", LPH_LINE, "Failed to locate \"Detected\" function from Adonis Anti module.")
-		return LocalClient:Kick("Anticheat bypass failed to activate. This can be the result of an anticheat update. Please contact support.")
-	end
+        local Detected = filtergc("function", Query); Detected = Detected and Detected[1];
+        if not Detected then
+                --Telemetry:Log("BypassAntiCheat.BypassAdonis", LPH_LINE, "Failed to locate \"Detected\" function from Adonis Anti module.")
+                return LocalClient:Kick("Anticheat bypass failed to activate. This can be the result of an anticheat update. Please contact support.")
+        end
 
-	local iDetour = Hooks.Create(REnv.debug.info)
-	local dDetour = Hooks.Create(Detected)
+        local iDetour = Hooks.Create(REnv.debug.info)
+        local dDetour = Hooks.Create(Detected)
 
-	local a, b, c, d, e, f = REnv.debug.info(Detected, "slanf")
-	local Jump = function(...)
-		local Args = {...}
-		if Args[1] == Detected and Args[2] == "slanf" then
-			return a, b, c, d, e, f end;
+        local a, b, c, d, e, f = REnv.debug.info(Detected, "slanf")
+        local Jump = function(...)
+                local Args = {...}
+                if Args[1] == Detected and Args[2] == "slanf" then
+                        return a, b, c, d, e, f end;
 
-		return iDetour:Original(...)
-	end
+                return iDetour:Original(...)
+        end
 
-	iDetour:SetDetour(Jump)
-	dDetour:SetDetour(function() return task.wait(9e10) end)
-	iDetour:Enable()
-	dDetour:Enable()
+        iDetour:SetDetour(Jump)
+        dDetour:SetDetour(function() return task.wait(9e10) end)
+        iDetour:Enable()
+        dDetour:Enable()
 end
