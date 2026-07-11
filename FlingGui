@@ -1005,9 +1005,9 @@ localPlayer.CharacterAdded:Connect(function(character)
     end
 end)
 
--- Anti Conveyor
 local antiConveyorEnabled = false
 local antiConveyorConnection = nil
+local blockedParts = {}
 
 phase3Button2.MouseButton1Click:Connect(function()
     antiConveyorEnabled = not antiConveyorEnabled
@@ -1016,7 +1016,10 @@ phase3Button2.MouseButton1Click:Connect(function()
         antiConveyorConnection = RunService.Heartbeat:Connect(function()
             pcall(function()
                 local character = localPlayer.Character
-                if not character then return end
+                if not character then
+                    blockedParts = {}
+                    return
+                end
                 
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
@@ -1024,14 +1027,22 @@ phase3Button2.MouseButton1Click:Connect(function()
                 local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 50)
                 
                 for _, part in pairs(parts) do
-                    if part:IsA("BasePart") and not part:IsDescendantOf(character) then
-                        -- Обнуляем только если это конвейер
-                        if part.AssemblyLinearVelocity ~= Vector3.zero then
-                            part.AssemblyLinearVelocity = Vector3.zero
+                    if part:IsA("BasePart") and part ~= rootPart then
+                        if part.AssemblyAngularVelocity ~= Vector3.zero or part.AssemblyLinearVelocity ~= Vector3.zero then
+                            if not blockedParts[part] then
+                                blockedParts[part] = {
+                                    CanTouch = part.CanTouch
+                                }
+                            end
+                            part.CanTouch = false
                         end
-                        if part.AssemblyAngularVelocity ~= Vector3.zero then
-                            part.AssemblyAngularVelocity = Vector3.zero
-                        end
+                    end
+                end
+                
+                for part, original in pairs(blockedParts) do
+                    if not part.Parent or (part.AssemblyAngularVelocity == Vector3.zero and part.AssemblyLinearVelocity == Vector3.zero) then
+                        part.CanTouch = original.CanTouch
+                        blockedParts[part] = nil
                     end
                 end
             end)
@@ -1044,6 +1055,13 @@ phase3Button2.MouseButton1Click:Connect(function()
             antiConveyorConnection:Disconnect()
             antiConveyorConnection = nil
         end
+        
+        for part, original in pairs(blockedParts) do
+            if part and part.Parent then
+                part.CanTouch = original.CanTouch
+            end
+        end
+        blockedParts = {}
         
         phase3Button2.Text = "Anti Conveyor: OFF"
         phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
