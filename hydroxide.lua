@@ -2,7 +2,7 @@ local owner = "Hosvile"
 local branch = "revision"
 
 local function webImport(file)
-    return loadstring(game:HttpGet(("https://raw.githubusercontent.com/%s/MC-Hydroxide/%s/%s.lua"):format(owner, branch, file)), file .. '.lua')()
+    return loadstring(game.HttpGet((game, "https://raw.githubusercontent.com/%s/MC-Hydroxide/%s/%s.lua"):format(owner, branch, file)), file .. '.lua')()
 end
 
 webImport("init")
