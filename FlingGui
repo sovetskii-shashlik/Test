@@ -36,7 +36,7 @@ frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
 frame.Active = true
 frame.Draggable = true
-local dragDetector = Instance.new("UIDragDetector", frame)
+
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = frame
