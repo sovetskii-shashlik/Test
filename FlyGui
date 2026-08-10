@@ -22,7 +22,6 @@ frame.Position = UDim2.new(0.5, -100, 0.5, -50)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
-
 frame.Active = true
 frame.Draggable = true
 local UICorner = Instance.new("UICorner")
