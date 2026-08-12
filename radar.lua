@@ -34,7 +34,7 @@ local UnibarMenu = UnibarLeftFrame:WaitForChild("UnibarMenu")
 local sausageHolder = UnibarMenu:WaitForChild("2")
 local originalSize = sausageHolder.Size.X.Offset
 local minimizedSize = UDim2.new(0, originalSize + 48, 0, sausageHolder.Size.Y.Offset)
-local expandedSize = UDim2.new(0, originalSize + 270, 0, sausageHolder.Size.Y.Offset)
+local expandedSize = UDim2.new(0, originalSize + 236, 0, sausageHolder.Size.Y.Offset)
 
 local buttonR = Instance.new("TextButton")
 buttonR.Text = "R"
