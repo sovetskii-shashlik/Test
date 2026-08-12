@@ -1,4 +1,4 @@
---// Client Bring v3.3
+--// Client Bring v3.4
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -21,7 +21,8 @@ frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
 
-local dragDetector = Instance.new("UIDragDetector", frame)
+frame.Active = true
+frame.Draggable = true
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
@@ -105,7 +106,7 @@ end
 local function getPlayers(input)
     local players = {}
     input = string.lower(input or "")
-    
+
     if input == "all" then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= localPlayer then
@@ -131,12 +132,12 @@ local function getPlayers(input)
                 table.insert(searchTerms, term)
             end
         end
-        
+
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= localPlayer then
                 local playerName = string.lower(player.Name)
                 local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
-                
+
                 for _, term in ipairs(searchTerms) do
                     if string.find(playerName, term) or string.find(displayName, term) then
                         table.insert(players, player)
@@ -146,7 +147,7 @@ local function getPlayers(input)
             end
         end
     end
-    
+
     return players
 end
 
@@ -162,10 +163,10 @@ end
 
 local function addPlayerToProcessed(player)
     if not player or player == localPlayer then return end
-    
+
     local matchesFilter = false
     local input = string.lower(currentInput)
-    
+
     if input == "all" then
         matchesFilter = true
     elseif input == "nonfriends" then
@@ -181,10 +182,10 @@ local function addPlayerToProcessed(player)
                 table.insert(searchTerms, term)
             end
         end
-        
+
         local playerName = string.lower(player.Name)
         local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
-        
+
         for _, term in ipairs(searchTerms) do
             if string.find(playerName, term) or string.find(displayName, term) then
                 matchesFilter = true
@@ -192,7 +193,7 @@ local function addPlayerToProcessed(player)
             end
         end
     end
-    
+
     if matchesFilter then
         processedPlayers[player] = true
         if player.Character then
@@ -209,26 +210,26 @@ end
 
 local function bringPlayers()
     if not localPlayer or not localPlayer.Character then return end
-    
+
     local localRoot = getRoot(localPlayer.Character)
     if not localRoot then return end
-    
+
     local camera = workspace.CurrentCamera
     local cameraCFrame = camera and camera.CFrame or localRoot.CFrame
-    
+
     for player, _ in pairs(processedPlayers) do
         if player and player.Character and player.Character.Parent ~= nil then
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             local root = getRoot(player.Character)
-            
+
             if humanoid and root then
                 pcall(function()
                     humanoid.Sit = false
                     humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
                 end)
-                
+
                 local targetPos, lookAtPos
-                
+
                 if mode == 1 then
                     local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
                     if tool then
@@ -242,15 +243,15 @@ local function bringPlayers()
                     local offset = mode == 2 and 1.7 or 3
                     local rightOffset = mode == 2 and 1.5 or 0
                     local heightOffset = 2
-                    
+
                     targetPos = localRoot.Position + 
                                 (cameraCFrame.LookVector * offset) + 
                                 (cameraCFrame.RightVector * rightOffset) + 
                                 Vector3.new(0, heightOffset, 0)
-                    
+
                     lookAtPos = targetPos + cameraCFrame.LookVector
                 end
-                
+
                 if targetPos and lookAtPos then
                     pcall(function()
                         root.Velocity = Vector3.new()
@@ -260,13 +261,13 @@ local function bringPlayers()
             end
         end
     end
-    
+
     updateStatus()
 end
 
 local function cycleMode()
     mode = (mode + 1) % 3
-    
+
     if mode == 0 then
         modeBtn.Text = "Mode: Front"
         modeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -281,25 +282,25 @@ end
 
 local function toggleBring()
     bringActive = not bringActive
-    
+
     if bringActive then
         currentInput = string.lower(inputBox.Text)
         local players = getPlayers(currentInput)
-        
+
         if #players == 0 then
             statusLabel.Text = "Status: No players found!"
             bringActive = false
             return
         end
-        
+
         processedPlayers = {}
         for _, player in ipairs(players) do
             addPlayerToProcessed(player)
         end
-        
+
         toggleBtn.Text = "Bring Players: ON"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
+
         connection = RunService.Heartbeat:Connect(function()
             if bringActive then
                 pcall(bringPlayers)
@@ -309,12 +310,12 @@ local function toggleBring()
         toggleBtn.Text = "Bring Players: OFF"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         statusLabel.Text = "Status: Stopped"
-        
+
         if connection then
             connection:Disconnect()
             connection = nil
         end
-        
+
         processedPlayers = {}
     end
 end
