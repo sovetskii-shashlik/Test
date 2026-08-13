@@ -1,0 +1,269 @@
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = CoreGui
+
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0, 175, 0, 150)
+frame.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+frame.BackgroundTransparency = 0.35
+frame.BorderSizePixel = 0
+
+local corner = Instance.new("UICorner")
+corner.Parent = frame
+corner.CornerRadius = UDim.new(0.1, 0)
+
+local shadow = Instance.new("ImageLabel")
+shadow.Parent = frame
+shadow.Size = UDim2.new(1, 20, 1, 20)
+shadow.Position = UDim2.new(0, -10, 0, -10)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageColor3 = Color3.new(0, 0, 0)
+shadow.ImageTransparency = 0.5
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(4, 4, 48, 48)
+
+local screenSize = screenGui.AbsoluteSize
+local frameSize = frame.AbsoluteSize
+frame.Position = UDim2.new(
+    0.35, -frameSize.X / 2,
+    0.65, -frameSize.Y / 2
+)
+
+frame.Active = true
+frame.Draggable = true
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = frame
+titleLabel.Size = UDim2.new(0.9, 0, 0.15, 0)
+titleLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Shashlik Bring Parts"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.Gotham
+titleLabel.TextStrokeTransparency = 0.7
+
+local textBox = Instance.new("TextBox")
+textBox.Parent = frame
+textBox.Size = UDim2.new(0.9, 0, 0.2, 0)
+textBox.Position = UDim2.new(0.05, 0, 0.25, 0)
+textBox.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+textBox.BackgroundTransparency = 0.35
+textBox.Text = ""
+textBox.PlaceholderText = "nickname"
+textBox.TextColor3 = Color3.new(1, 1, 1)
+textBox.TextScaled = true
+textBox.BorderSizePixel = 0
+textBox.Font = Enum.Font.Gotham
+
+local textBoxCorner = Instance.new("UICorner")
+textBoxCorner.Parent = textBox
+textBoxCorner.CornerRadius = UDim.new(0.2, 0)
+
+local button = Instance.new("TextButton")
+button.Parent = frame
+button.Size = UDim2.new(0.9, 0, 0.25, 0)
+button.Position = UDim2.new(0.05, 0, 0.5, 0)
+button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+button.BackgroundTransparency = 0.35
+button.Text = "Bring Parts | Off"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextScaled = true
+button.BorderSizePixel = 0
+button.Font = Enum.Font.Gotham
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.Parent = button
+buttonCorner.CornerRadius = UDim.new(0.2, 0)
+
+local footerLabel = Instance.new("TextLabel")
+footerLabel.Parent = frame
+footerLabel.Size = UDim2.new(0.9, 0, 0.15, 0)
+footerLabel.Position = UDim2.new(0.05, 0, 0.8, 0)
+footerLabel.BackgroundTransparency = 1
+footerLabel.Text = "By PrespeshnikShashlika"
+footerLabel.TextColor3 = Color3.new(1, 1, 1)
+footerLabel.TextScaled = true
+footerLabel.Font = Enum.Font.Gotham
+footerLabel.TextStrokeTransparency = 0.7
+
+local blackHoleActive = false
+local player = nil
+local humanoidRootPart = nil
+local DescendantAddedConnection = nil
+local CharacterAddedConnection = nil
+
+local Folder = Instance.new("Folder", Workspace)
+Folder.Name = "ShashlikBringFolder"
+local Part = Instance.new("Part", Folder)
+Part.Name = "BringAnchor"
+local Attachment1 = Instance.new("Attachment", Part)
+Part.Anchored = true
+Part.CanCollide = false
+Part.Transparency = 1
+Part.Size = Vector3.new(0.1, 0.1, 0.1)
+
+if not getgenv().Network then
+    getgenv().Network = {
+        BaseParts = {},
+        Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
+    }
+
+    getgenv().Network.RetainPart = function(PartToRetain)
+        if PartToRetain:IsA("BasePart") and PartToRetain:IsDescendantOf(Workspace) then
+            table.insert(getgenv().Network.BaseParts, PartToRetain)
+            PartToRetain.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+            PartToRetain.CanCollide = false
+        end
+    end
+
+    local LocalPlayer = Players.LocalPlayer
+    LocalPlayer.ReplicationFocus = Workspace
+    
+    RunService.Heartbeat:Connect(function()
+        sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+        
+        if blackHoleActive then
+            for _, Part in pairs(getgenv().Network.BaseParts) do
+                if Part:IsDescendantOf(Workspace) then
+                    Part.Velocity = getgenv().Network.Velocity
+                end
+            end
+        end
+    end)
+end
+
+local function ForcePart(v)
+    if v:IsA("BasePart") and not v.Anchored 
+       and not v.Parent:FindFirstChildOfClass("Humanoid") 
+       and not v.Parent:FindFirstChild("Head") 
+       and v.Name ~= "Handle" then
+        
+        if v:IsDescendantOf(Players.LocalPlayer.Character) then
+            return
+        end
+        
+        for _, x in ipairs(v:GetChildren()) do
+            if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then
+                x:Destroy()
+            end
+        end
+        
+        if v:FindFirstChild("Attachment") then
+            v:FindFirstChild("Attachment"):Destroy()
+        end
+        if v:FindFirstChild("AlignPosition") then
+            v:FindFirstChild("AlignPosition"):Destroy()
+        end
+        if v:FindFirstChild("Torque") then
+            v:FindFirstChild("Torque"):Destroy()
+        end
+        
+        getgenv().Network.RetainPart(v)
+        
+        local Torque = Instance.new("Torque", v)
+        Torque.Torque = Vector3.new(100000, 100000, 100000)
+        
+        local AlignPosition = Instance.new("AlignPosition", v)
+        local Attachment2 = Instance.new("Attachment", v)
+        
+        Torque.Attachment0 = Attachment2
+        AlignPosition.MaxForce = math.huge
+        AlignPosition.MaxVelocity = math.huge
+        AlignPosition.Responsiveness = 200
+        AlignPosition.Attachment0 = Attachment2
+        AlignPosition.Attachment1 = Attachment1
+    end
+end
+
+local function toggleBlackHole()
+    blackHoleActive = not blackHoleActive
+    
+    if blackHoleActive then
+        button.Text = "Bring Parts | On"
+        button.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+        
+        getgenv().Network.BaseParts = {}
+        
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            ForcePart(v)
+        end
+
+        DescendantAddedConnection = Workspace.DescendantAdded:Connect(function(v)
+            if blackHoleActive then
+                ForcePart(v)
+            end
+        end)
+
+        spawn(function()
+            while blackHoleActive and RunService.RenderStepped:Wait() do
+                if humanoidRootPart then
+                    Attachment1.WorldCFrame = humanoidRootPart.CFrame
+                end
+            end
+        end)
+    else
+        button.Text = "Bring Parts | Off"
+        button.BackgroundColor3 = Color3.fromRGB(0.3, 0.3, 0.3)
+        
+        if DescendantAddedConnection then
+            DescendantAddedConnection:Disconnect()
+            DescendantAddedConnection = nil
+        end
+        
+        getgenv().Network.BaseParts = {}
+    end
+end
+
+local function getPlayer(name)
+    local lowerName = string.lower(name)
+    for _, p in pairs(Players:GetPlayers()) do
+        local lowerPlayer = string.lower(p.Name)
+        if string.find(lowerPlayer, lowerName) then
+            return p
+        elseif string.find(string.lower(p.DisplayName), lowerName) then
+            return p
+        end
+    end
+end
+
+textBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        player = getPlayer(textBox.Text)
+        if player then
+            textBox.Text = player.Name
+            humanoidRootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            
+            if CharacterAddedConnection then
+                CharacterAddedConnection:Disconnect()
+            end
+            
+            CharacterAddedConnection = player.CharacterAdded:Connect(function(character)
+                humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+            end)
+        else
+            textBox.Text = "Player not found!"
+        end
+    end
+end)
+
+button.MouseButton1Click:Connect(function()
+    if player then
+        toggleBlackHole()
+    else
+        textBox.Text = "Enter nickname first!"
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if input.KeyCode == Enum.KeyCode.RightControl and not gameProcessedEvent then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
