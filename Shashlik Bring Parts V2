@@ -1,0 +1,388 @@
+--// Shashlik Bring/Fling parts V6
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = CoreGui
+
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0, 200, 0, 220)
+frame.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+frame.BackgroundTransparency = 0.35
+frame.BorderSizePixel = 0
+
+local corner = Instance.new("UICorner")
+corner.Parent = frame
+corner.CornerRadius = UDim.new(0.1, 0)
+
+local shadow = Instance.new("ImageLabel")
+shadow.Parent = frame
+shadow.Size = UDim2.new(1, 20, 1, 20)
+shadow.Position = UDim2.new(0, -10, 0, -10)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageColor3 = Color3.new(0, 0, 0)
+shadow.ImageTransparency = 0.5
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(4, 4, 48, 48)
+
+local screenSize = screenGui.AbsoluteSize
+local frameSize = frame.AbsoluteSize
+frame.Position = UDim2.new(
+    0.35, -frameSize.X / 2,
+    0.65, -frameSize.Y / 2
+)
+
+frame.Active = true
+frame.Draggable = true
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = frame
+titleLabel.Size = UDim2.new(0.9, 0, 0.1, 0)
+titleLabel.Position = UDim2.new(0.05, 0, 0.02, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Bring/Fling Parts V6"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.Gotham
+titleLabel.TextStrokeTransparency = 0.7
+
+local textBox = Instance.new("TextBox")
+textBox.Parent = frame
+textBox.Size = UDim2.new(0.9, 0, 0.12, 0)
+textBox.Position = UDim2.new(0.05, 0, 0.14, 0)
+textBox.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+textBox.BackgroundTransparency = 0.35
+textBox.Text = ""
+textBox.PlaceholderText = "nickname"
+textBox.TextColor3 = Color3.new(1, 1, 1)
+textBox.TextScaled = true
+textBox.BorderSizePixel = 0
+textBox.Font = Enum.Font.Gotham
+
+local textBoxCorner = Instance.new("UICorner")
+textBoxCorner.Parent = textBox
+textBoxCorner.CornerRadius = UDim.new(0.2, 0)
+
+local attractionStrength = 15000
+local playerAttractionStrength = 0
+
+local strengthBox = Instance.new("TextBox")
+strengthBox.Parent = frame
+strengthBox.Size = UDim2.new(0.9, 0, 0.12, 0)
+strengthBox.Position = UDim2.new(0.05, 0, 0.28, 0)
+strengthBox.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+strengthBox.BackgroundTransparency = 0.35
+strengthBox.Text = tostring(attractionStrength)
+strengthBox.PlaceholderText = "Attraction Strength"
+strengthBox.TextColor3 = Color3.new(1, 1, 1)
+strengthBox.TextScaled = true
+strengthBox.BorderSizePixel = 0
+strengthBox.Font = Enum.Font.Gotham
+
+local strengthBoxCorner = Instance.new("UICorner")
+strengthBoxCorner.Parent = strengthBox
+strengthBoxCorner.CornerRadius = UDim.new(0.2, 0)
+
+local button = Instance.new("TextButton")
+button.Parent = frame
+button.Size = UDim2.new(0.9, 0, 0.15, 0)
+button.Position = UDim2.new(0.05, 0, 0.42, 0)
+button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+button.BackgroundTransparency = 0.35
+button.Text = "Bring Parts | Off"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextScaled = true
+button.BorderSizePixel = 0
+button.Font = Enum.Font.Gotham
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.Parent = button
+buttonCorner.CornerRadius = UDim.new(0.2, 0)
+
+local reloadButton = Instance.new("TextButton")
+reloadButton.Parent = frame
+reloadButton.Size = UDim2.new(0.9, 0, 0.15, 0)
+reloadButton.Position = UDim2.new(0.05, 0, 0.59, 0)
+reloadButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+reloadButton.BackgroundTransparency = 0.35
+reloadButton.Text = "Reload Parts"
+reloadButton.TextColor3 = Color3.new(1, 1, 1)
+reloadButton.TextScaled = true
+reloadButton.BorderSizePixel = 0
+reloadButton.Font = Enum.Font.Gotham
+
+local reloadButtonCorner = Instance.new("UICorner")
+reloadButtonCorner.Parent = reloadButton
+reloadButtonCorner.CornerRadius = UDim.new(0.2, 0)
+
+local footerLabel = Instance.new("TextLabel")
+footerLabel.Parent = frame
+footerLabel.Size = UDim2.new(0.9, 0, 0.1, 0)
+footerLabel.Position = UDim2.new(0.05, 0, 0.8, 0)
+footerLabel.BackgroundTransparency = 1
+footerLabel.Text = "By PrespeshnikShashlika, \n CapyBurger"
+footerLabel.TextColor3 = Color3.new(1, 1, 1)
+footerLabel.TextScaled = true
+footerLabel.Font = Enum.Font.Gotham
+footerLabel.TextStrokeTransparency = 0.7
+
+local blackHoleActive = false
+local player = nil
+local humanoidRootPart = nil
+local simulationUpdateThread = nil
+
+local connections = {
+    DescendantAdded = nil,
+    CharacterAdded = nil,
+    Heartbeat = nil,
+    DescendantRemoving = nil
+}
+
+local parts = {}
+
+local function removePart(part)
+    local index = table.find(parts, part)
+    if index then
+        table.remove(parts, index)
+    end
+end
+
+local function cleanupBlackHoleConnections()
+    if connections.DescendantAdded then
+        connections.DescendantAdded:Disconnect()
+        connections.DescendantAdded = nil
+    end
+    if connections.DescendantRemoving then
+        connections.DescendantRemoving:Disconnect()
+        connections.DescendantRemoving = nil
+    end
+    if connections.Heartbeat then
+        connections.Heartbeat:Disconnect()
+        connections.Heartbeat = nil
+    end
+    
+    if simulationUpdateThread then
+        coroutine.close(simulationUpdateThread)
+        simulationUpdateThread = nil
+        sethiddenproperty(Players.LocalPlayer, "SimulationRadius", 100)
+    end
+end
+
+local function resetParts()
+    for _, part in pairs(parts) do
+        if part and part:IsDescendantOf(Workspace) then
+            part.CanCollide = true
+            part.Velocity = Vector3.new(0, 0, 0)
+            part.CustomPhysicalProperties = nil
+            part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+    parts = {}
+    
+    if humanoidRootPart and humanoidRootPart:IsDescendantOf(Workspace) then
+        humanoidRootPart.CustomPhysicalProperties = nil
+        humanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+        humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        humanoidRootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    end
+end
+
+local function addPart(part)
+    if part:IsA("BasePart") and not part.Anchored and part:IsDescendantOf(Workspace) then
+        if part.Parent:FindFirstChildOfClass("Humanoid") or part.Parent:FindFirstChild("Head") or part.Name == "Handle" then
+            return
+        end
+
+        part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+        part.CanCollide = false
+
+        if not table.find(parts, part) then
+            table.insert(parts, part)
+            part.AncestryChanged:Connect(function()
+                if not part:IsDescendantOf(Workspace) then
+                    removePart(part)
+                end
+            end)
+        end
+    end
+end
+
+local function attractParts()
+    if not humanoidRootPart or not humanoidRootPart:IsDescendantOf(Workspace) then return end
+
+    local targetPosition = humanoidRootPart.Position
+
+    for _, part in pairs(parts) do
+        if part and part:IsDescendantOf(Workspace) and not part.Anchored then
+            local direction = (targetPosition - part.Position).Unit
+            local strength = (part == humanoidRootPart) and playerAttractionStrength or attractionStrength
+            part.Velocity = direction * strength
+        end
+    end
+end
+
+local function reloadParts()
+    if not blackHoleActive then return end
+    
+    resetParts()
+    
+    if connections.DescendantAdded then
+        pcall(function() connections.DescendantAdded:Disconnect() end)
+    end
+    if connections.DescendantRemoving then
+        pcall(function() connections.DescendantRemoving:Disconnect() end)
+    end
+    
+    connections.DescendantAdded = Workspace.DescendantAdded:Connect(addPart)
+    connections.DescendantRemoving = Workspace.DescendantRemoving:Connect(function(descendant)
+        if descendant:IsA("BasePart") then
+            removePart(descendant)
+        end
+    end)
+    
+    for _, part in pairs(Workspace:GetDescendants()) do
+        addPart(part)
+    end
+end
+
+local function updateSimulationRadius()
+    while blackHoleActive and task.wait(0.1) do
+        sethiddenproperty(Players.LocalPlayer, "SimulationRadius", math.huge)
+    end
+end
+
+local function setupPlayerTracking(targetPlayer)
+    if connections.CharacterAdded then
+        connections.CharacterAdded:Disconnect()
+        connections.CharacterAdded = nil
+    end
+    
+    player = targetPlayer
+    textBox.Text = player.Name
+    
+    local function setupCharacter(character)
+        humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+        if not humanoidRootPart then
+            warn("Не удалось найти HumanoidRootPart у игрока "..player.Name)
+        end
+    end
+    
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    
+    connections.CharacterAdded = player.CharacterAdded:Connect(function(character)
+        setupCharacter(character)
+        
+        if blackHoleActive then
+            reloadParts()
+        end
+    end)
+end
+
+local function toggleBlackHole()
+    if not player then
+        textBox.Text = "Enter nickname first!"
+        return
+    end
+    
+    blackHoleActive = not blackHoleActive
+
+    if blackHoleActive then
+        button.Text = "Bring Parts | On"
+        button.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+
+        resetParts()
+        cleanupBlackHoleConnections()
+
+        reloadParts()
+
+        connections.Heartbeat = RunService.Heartbeat:Connect(function()
+            if blackHoleActive and humanoidRootPart then
+                attractParts()
+            end
+        end)
+
+        simulationUpdateThread = coroutine.create(updateSimulationRadius)
+        coroutine.resume(simulationUpdateThread)
+    else
+        button.Text = "Bring Parts | Off"
+        button.BackgroundColor3 = Color3.fromRGB(0.3, 0.3, 0.3)
+
+        cleanupBlackHoleConnections()
+        resetParts()
+    end
+end
+
+local function getPlayer(name)
+    local lowerName = name and string.lower(name) or ""
+    for _, p in pairs(Players:GetPlayers()) do
+        if string.find(string.lower(p.Name), lowerName) or
+           (p.DisplayName and string.find(string.lower(p.DisplayName), lowerName)) then
+            return p
+        end
+    end
+end
+
+textBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local targetPlayer = getPlayer(textBox.Text)
+        if targetPlayer then
+            setupPlayerTracking(targetPlayer)
+        else
+            textBox.Text = "Player not found!"
+            task.delay(1, function()
+                textBox.Text = player and player.Name or ""
+            end)
+        end
+    end
+end)
+
+strengthBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local newStrength = tonumber(strengthBox.Text)
+        if newStrength and newStrength > 0 then
+            attractionStrength = newStrength
+            strengthBox.Text = tostring(attractionStrength)
+        else
+            strengthBox.Text = "Invalid value!"
+            task.delay(1, function()
+                strengthBox.Text = tostring(attractionStrength)
+            end)
+        end
+    end
+end)
+
+button.MouseButton1Click:Connect(toggleBlackHole)
+
+reloadButton.MouseButton1Click:Connect(function()
+    if blackHoleActive then
+        reloadParts()
+    end
+end)
+
+screenGui.Destroying:Connect(function()
+    cleanupBlackHoleConnections()
+    resetParts()
+    if connections.CharacterAdded then
+        connections.CharacterAdded:Disconnect()
+    end
+end)
+
+local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Bring/Fling Parts",
+    Text = "version V6",
+    Icon = content,
+    Duration = 7
+})
