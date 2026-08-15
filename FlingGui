@@ -626,7 +626,7 @@ phase4Button1.MouseButton1Click:Connect(function()
         end
     end)
 
-    phase4Button1.Text = densityEnabled and "Density 0.001: ON" or "Density 0.001: OFF"
+    phase4Button1.Text = densityEnabled and "Lightness: ON" or "Lightness OFF"
     phase4Button1.BackgroundColor3 = densityEnabled and Color3.fromRGB(80, 20, 20) or Color3.fromRGB(60, 60, 60)
 
     game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -647,8 +647,8 @@ local function applyGravity()
     if gravityEnabled then
         gravityConnection = game:GetService("RunService").Heartbeat:Connect(function()
             pcall(function()
-                if workspace.Gravity ~= 9e9 then
-                    workspace.Gravity = 9e9
+                if workspace.Gravity ~= 1000000000000 then
+                    workspace.Gravity = 1000000000000
                 end
             end)
         end)
@@ -659,14 +659,14 @@ phase4Button2.MouseButton1Click:Connect(function()
     gravityEnabled = not gravityEnabled
 
     if gravityEnabled then
-        workspace.Gravity = 9e9
+        workspace.Gravity = 1000000000000
         applyGravity()
-        phase4Button2.Text = "Gravity 9e9: ON"
+        phase4Button2.Text = "Big Gravity: ON"
         phase4Button2.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
 
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Gravity",
-            Text = "Enabled (Gravity: 9e9)",
+            Text = "Enabled (Gravity: 1000000000000)",
             Duration = 2
         })
     else
@@ -675,7 +675,7 @@ phase4Button2.MouseButton1Click:Connect(function()
             gravityConnection = nil
         end
         workspace.Gravity = 196.2
-        phase4Button2.Text = "Gravity 9e9: OFF"
+        phase4Button2.Text = "Big Gravity: OFF"
         phase4Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
         game:GetService("StarterGui"):SetCore("SendNotification", {
