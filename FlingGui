@@ -1,4 +1,4 @@
---// Fling Gui V25.0
+--// Fling Gui V30.0
   --// by prespeshnikShashlika
 --// loadstring version: loadstring(game:HttpGet("https://glot.io/snippets/h86gnsdgud/raw/FlingGui.lua"))()
 
@@ -369,6 +369,28 @@ phase3Button6.Parent = frame
 phase3Button6.Font = Enum.Font.Sarpanch
 phase3Button6.TextSize = 16
 
+local phase4Button1 = Instance.new("TextButton")
+phase4Button1.Size = UDim2.new(0.9, 0, 0, 30)
+phase4Button1.Position = UDim2.new(0.05, 0, 0, 40)
+phase4Button1.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+phase4Button1.Text = "Density 0.001: OFF"
+phase4Button1.TextColor3 = Color3.new(1, 1, 1)
+phase4Button1.Visible = false
+phase4Button1.Parent = frame
+phase4Button1.Font = Enum.Font.Sarpanch
+phase4Button1.TextSize = 16
+
+local phase4Button2 = Instance.new("TextButton")
+phase4Button2.Size = UDim2.new(0.9, 0, 0, 30)
+phase4Button2.Position = UDim2.new(0.05, 0, 0, 80)
+phase4Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+phase4Button2.Text = "Gravity 9e9: OFF"
+phase4Button2.TextColor3 = Color3.new(1, 1, 1)
+phase4Button2.Visible = false
+phase4Button2.Parent = frame
+phase4Button2.Font = Enum.Font.Sarpanch
+phase4Button2.TextSize = 16
+
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, 0, 0, 20)
 statusLabel.Position = UDim2.new(0, 0, 0, 280)
@@ -384,9 +406,10 @@ local originalSize = frame.Size
 local originalTitle = title.Text
 local isPhase2 = false
 local isPhase3 = false
+local isPhase4 = false
 
 local function togglePhase()
-    if not isPhase2 and not isPhase3 then
+    if not isPhase2 and not isPhase3 and not isPhase4 then
         isPhase2 = true
         togglePhaseBtn.Text = "2"
         inputBox.Visible = false
@@ -418,8 +441,20 @@ local function togglePhase()
         phase3Button4.Visible = true
         phase3Button5.Visible = true
         phase3Button6.Visible = true
-    else
+    elseif isPhase3 then
         isPhase3 = false
+        isPhase4 = true
+        togglePhaseBtn.Text = "4"
+        phase3Button1.Visible = false
+        phase3Button2.Visible = false
+        phase3Button3.Visible = false
+        phase3Button4.Visible = false
+        phase3Button5.Visible = false
+        phase3Button6.Visible = false
+        phase4Button1.Visible = true
+        phase4Button2.Visible = true
+    else
+        isPhase4 = false
         togglePhaseBtn.Text = "1"
         inputBox.Visible = true
         toggleBtnContainer.Visible = true
@@ -427,12 +462,8 @@ local function togglePhase()
         antiFlingBtn.Visible = true
         antiKillBtn.Visible = true
         loadBtn.Visible = true
-        phase3Button1.Visible = false
-        phase3Button2.Visible = false
-        phase3Button3.Visible = false
-        phase3Button4.Visible = false
-        phase3Button5.Visible = false
-        phase3Button6.Visible = false
+        phase4Button1.Visible = false
+        phase4Button2.Visible = false
         statusLabel.Visible = true
     end
 end
@@ -449,6 +480,7 @@ local function toggleMinimize()
         phase2Button4, phase2Button5, phase2Button6,
         phase3Button1, phase3Button2, phase3Button3,
         phase3Button4, phase3Button5, phase3Button6,
+        phase4Button1, phase4Button2,
         statusLabel, toggleMinimizeBtn, togglePhaseBtn
     }
 
@@ -516,6 +548,10 @@ local function toggleMinimize()
             for _, btn in ipairs({phase3Button1, phase3Button2, phase3Button3, phase3Button4, phase3Button5, phase3Button6}) do
                 if btn then btn.Visible = true end
             end
+        elseif isPhase4 then
+            for _, btn in ipairs({phase4Button1, phase4Button2}) do
+                if btn then btn.Visible = true end
+            end
         else
             for _, element in ipairs({inputBox, toggleBtnContainer, touchFlingBtn, antiFlingBtn, antiKillBtn, loadBtn}) do
                 if element then element.Visible = true end
@@ -530,6 +566,123 @@ toggleMinimizeBtn.MouseButton1Click:Connect(toggleMinimize)
 invisibleExpandBtn.MouseButton1Click:Connect(function()
     if isMinimized then
         toggleMinimize()
+    end
+end)
+
+local densityEnabled = false
+local densityConnections = {}
+local originalDensityProperties = {}
+
+local function manageDensity(character, enable)
+    if not character or not character:IsA("Model") then return end
+
+    for _, conn in pairs(densityConnections) do
+        conn:Disconnect()
+    end
+    densityConnections = {}
+
+    if enable then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if not originalDensityProperties[part] then
+                    originalDensityProperties[part] = part.CustomPhysicalProperties or PhysicalProperties.new(0.7, 0.3, 0.5)
+                end
+
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.001, 0.3, 0.5)
+
+                table.insert(densityConnections, part:GetPropertyChangedSignal("CustomPhysicalProperties"):Connect(function()
+                    if densityEnabled then
+                        local current = part.CustomPhysicalProperties
+                        if not current or current.Density ~= 0.001 then
+                            part.CustomPhysicalProperties = PhysicalProperties.new(0.001, 0.3, 0.5)
+                        end
+                    end
+                end))
+            end
+        end
+    else
+        for part, props in pairs(originalDensityProperties) do
+            if part:IsA("BasePart") and part.Parent then
+                part.CustomPhysicalProperties = props
+            end
+        end
+        originalDensityProperties = {}
+    end
+end
+
+phase4Button1.MouseButton1Click:Connect(function()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+
+    densityEnabled = not densityEnabled
+
+    if character then
+        manageDensity(character, densityEnabled)
+    end
+
+    player.CharacterAdded:Connect(function(newChar)
+        if densityEnabled then
+            manageDensity(newChar, true)
+        end
+    end)
+
+    phase4Button1.Text = densityEnabled and "Density 0.001: ON" or "Density 0.001: OFF"
+    phase4Button1.BackgroundColor3 = densityEnabled and Color3.fromRGB(80, 20, 20) or Color3.fromRGB(60, 60, 60)
+
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Density",
+        Text = densityEnabled and "Enabled (Density: 0.001)" or "Disabled (Default Density restored)",
+        Duration = 2
+    })
+end)
+
+local gravityEnabled = false
+local gravityConnection = nil
+
+local function applyGravity()
+    if gravityConnection then
+        gravityConnection:Disconnect()
+    end
+
+    if gravityEnabled then
+        gravityConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            pcall(function()
+                if workspace.Gravity ~= 9e9 then
+                    workspace.Gravity = 9e9
+                end
+            end)
+        end)
+    end
+end
+
+phase4Button2.MouseButton1Click:Connect(function()
+    gravityEnabled = not gravityEnabled
+
+    if gravityEnabled then
+        workspace.Gravity = 9e9
+        applyGravity()
+        phase4Button2.Text = "Gravity 9e9: ON"
+        phase4Button2.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Gravity",
+            Text = "Enabled (Gravity: 9e9)",
+            Duration = 2
+        })
+    else
+        if gravityConnection then
+            gravityConnection:Disconnect()
+            gravityConnection = nil
+        end
+        workspace.Gravity = 196.2
+        phase4Button2.Text = "Gravity 9e9: OFF"
+        phase4Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Gravity",
+            Text = "Disabled (Gravity restored to 196.2)",
+            Duration = 2
+        })
     end
 end)
 
@@ -1011,18 +1164,18 @@ local conveyorBlacklist = {}
 
 phase3Button2.MouseButton1Click:Connect(function()
     antiConveyorEnabled = not antiConveyorEnabled
-    
+
     if antiConveyorEnabled then
         antiConveyorConnection = RunService.Heartbeat:Connect(function()
             pcall(function()
                 local character = localPlayer.Character
                 if not character then return end
-                
+
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
-                
+
                 local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 5)
-                
+
                 for _, part in pairs(parts) do
                     if part:IsA("BasePart") and part ~= rootPart and not part:IsDescendantOf(character) then
                         if part.AssemblyLinearVelocity ~= Vector3.zero or part.AssemblyAngularVelocity ~= Vector3.zero then
@@ -1037,7 +1190,7 @@ phase3Button2.MouseButton1Click:Connect(function()
                         end
                     end
                 end
-                
+
                 for part, _ in pairs(conveyorBlacklist) do
                     if not part.Parent then
                         conveyorBlacklist[part] = nil
@@ -1045,7 +1198,7 @@ phase3Button2.MouseButton1Click:Connect(function()
                 end
             end)
         end)
-        
+
         phase3Button2.Text = "Anti Conveyor: ON"
         phase3Button2.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
     else
@@ -1053,7 +1206,7 @@ phase3Button2.MouseButton1Click:Connect(function()
             antiConveyorConnection:Disconnect()
             antiConveyorConnection = nil
         end
-        
+
         for part, data in pairs(conveyorBlacklist) do
             if part and part.Parent then
                 pcall(function()
@@ -1063,7 +1216,7 @@ phase3Button2.MouseButton1Click:Connect(function()
             end
         end
         conveyorBlacklist = {}
-        
+
         phase3Button2.Text = "Anti Conveyor: OFF"
         phase3Button2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
@@ -1552,6 +1705,8 @@ btnCorner:Clone().Parent = phase3Button3
 btnCorner:Clone().Parent = phase3Button4
 btnCorner:Clone().Parent = phase3Button5
 btnCorner:Clone().Parent = phase3Button6
+btnCorner:Clone().Parent = phase4Button1
+btnCorner:Clone().Parent = phase4Button2
 
 local function setCanCollideOfModelDescendants(model, bval)
     if not model then
@@ -2499,7 +2654,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Fling GUI",
-    Text = "version V25.0",
+    Text = "version V30.0",
     Icon = content,
     Duration = 7
 })
@@ -2516,8 +2671,7 @@ local function enableAntiKick()
     if not LocalPlayer then return false end
 
     local oldhmmi
-    local oldhmmnc
-    local oldKickFunction
+    local oldhmmnc    local oldKickFunction
 
     if hookfunction and LocalPlayer.Kick then
         oldKickFunction = hookfunction(LocalPlayer.Kick, function() end)
