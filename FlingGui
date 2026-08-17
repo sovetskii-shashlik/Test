@@ -1631,8 +1631,7 @@ phase3Button5.Text = "Anti Ragdoll: OFF"
 phase3Button5.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
 phase3Button6.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://glot.io/snippets/hfk7jcu7mz/raw/punch.lua"))()
-end)
+    loadstring(game:HttpGet("https://github.com/sovetskii-shashlik/Test/raw/main/PunchFling",true))()
 
 local function enableNoclip()
     if SteppedConnection then return end
