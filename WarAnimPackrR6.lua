@@ -222,8 +222,14 @@ localPlayer.CharacterAdded:Connect(function(newChar)
     layBtn.Text = "Lay: OFF"
 end)
 
+local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "War Anim Pack R6",
     Text = "Version V1.0",
-    Duration = 5
+    Icon = content,
+    Duration = 7
 })
