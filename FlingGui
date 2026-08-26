@@ -23,8 +23,6 @@ local currentInput = ""
 local SteppedConnection = nil
 local isNoclipEnabled = false
 local flingMode = 1
-local hipHeightEnabled = false
-local originalHipHeight = 0
 local autoEquipEnabled = false
 local autoEquipToolName = nil
 local autoEquipConnection = nil
@@ -419,7 +417,7 @@ local phase4Button3 = Instance.new("TextButton")
 phase4Button3.Size = UDim2.new(0.9, 0, 0, 30)
 phase4Button3.Position = UDim2.new(0.05, 0, 0, 120)
 phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase4Button3.Text = "HipHeight Levit: OFF"
+phase4Button3.Text = "Anti Consile Error"
 phase4Button3.TextColor3 = Color3.new(1, 1, 1)
 phase4Button3.Visible = false
 phase4Button3.Parent = frame
@@ -730,29 +728,8 @@ phase4Button2.MouseButton1Click:Connect(function()
     end
 end)
 
-local function applyHipHeight(character)
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        if hipHeightEnabled then
-            if originalHipHeight == 0 then
-                originalHipHeight = humanoid.HipHeight
-            end
-            humanoid.HipHeight = originalHipHeight + 0.1
-        else
-            humanoid.HipHeight = originalHipHeight
-        end
-    end
-end
-
-phase4Button3.MouseButton1Click:Connect(function()
-    hipHeightEnabled = not hipHeightEnabled
-    local character = localPlayer.Character
-    if character then
-        applyHipHeight(character)
-    end
-    phase4Button3.Text = hipHeightEnabled and "HipHeight Levit: ON" or "HipHeight Levit: OFF"
-    phase4Button3.BackgroundColor3 = hipHeightEnabled and Color3.fromRGB(80, 20, 20) or Color3.fromRGB(60, 60, 60)
+phase3Button6.MouseButton1Click:Connect(function()
+     loadstring(game:HttpGet("https://github.com/sovetskii-shashlik/Test/raw/main/AntiErr.lua",true))()
 end)
 
 local function startAutoEquip()
@@ -2559,10 +2536,6 @@ localPlayer.CharacterAdded:Connect(function(character)
     end
     if densityEnabled then
         manageDensity(character, true)
-    end
-    if hipHeightEnabled then
-        task.wait(0.1)
-        applyHipHeight(character)
     end
     if autoEquipEnabled and autoEquipToolName then
         task.wait(0.5)
