@@ -1,4 +1,4 @@
---// Fling Gui V30.0
+--// Fling Gui V35.0
   --// by prespeshnikShashlika
 --// loadstring version: loadstring(game:HttpGet("https://glot.io/snippets/h86gnsdgud/raw/FlingGui.lua"))()
 
@@ -2768,7 +2768,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Fling GUI",
-    Text = "version V30.0",
+    Text = "version V35.0",
     Icon = content,
     Duration = 7
 })
