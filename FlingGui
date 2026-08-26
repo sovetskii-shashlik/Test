@@ -738,7 +738,7 @@ local function applyHipHeight(character)
             if originalHipHeight == 0 then
                 originalHipHeight = humanoid.HipHeight
             end
-            humanoid.HipHeight = originalHipHeight + 0.05
+            humanoid.HipHeight = originalHipHeight + 0.1
         else
             humanoid.HipHeight = originalHipHeight
         end
