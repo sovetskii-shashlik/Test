@@ -2816,6 +2816,136 @@ end
 local kineticSuppressorEnabled = false
 local suppressorConnection = nil
 
+local function getPhysicalLimits(character, humanoid)
+    local limits = {
+        walkSpeed = humanoid.WalkSpeed or 16,
+        jumpPower = humanoid.JumpPower or 50,
+        maxJumpVelocity = math.sqrt(2 * workspace.Gravity * (humanoid.JumpPower or 50)),
+        jumpHeight = humanoid.JumpHeight or 7.2,
+        hipHeight = humanoid.HipHeight or 0
+    }
+    
+    return limits
+end
+
+local function getPhysicalState(character, rootPart)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return nil end
+
+    local state = {
+        isMoving = false,
+        isJumping = false,
+        isFalling = false,
+        isClimbing = false,
+        isSwimming = false,
+        isSeated = false,
+        moveDirection = humanoid.MoveDirection
+    }
+
+    state.velocity = rootPart.AssemblyLinearVelocity
+
+    if humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+        state.isSwimming = true
+    elseif humanoid:GetState() == Enum.HumanoidStateType.Climbing then
+        state.isClimbing = true
+    elseif humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+        state.isFalling = true
+    elseif humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+        state.isJumping = true
+    elseif humanoid:GetState() == Enum.HumanoidStateType.Seated then
+        state.isSeated = true
+    end
+
+    if state.moveDirection.Magnitude > 0 then
+        state.isMoving = true
+    end
+
+    if humanoid.Sit then
+        state.isSeated = true
+    end
+
+    if humanoid.Jump then
+        state.isJumping = true
+    end
+
+    return state
+end
+
+local function processEnergy(rootPart, groundPart, state, limits)
+    if not state then return end
+
+    local velocity = rootPart.AssemblyLinearVelocity
+    local angularVelocity = rootPart.AssemblyAngularVelocity
+
+    if state.isMoving then
+        local horizontalVelocity = Vector3.new(velocity.X, 0, velocity.Z)
+        local verticalVelocity = Vector3.new(0, velocity.Y, 0)
+        local moveSpeed = horizontalVelocity.Magnitude
+
+        if moveSpeed > limits.walkSpeed * 2 then
+            local excessHorizontal = horizontalVelocity * (1 - (limits.walkSpeed * 2) / moveSpeed)
+            groundPart.AssemblyLinearVelocity = excessHorizontal
+            groundPart.AssemblyAngularVelocity = angularVelocity
+            rootPart.AssemblyLinearVelocity = horizontalVelocity - excessHorizontal + verticalVelocity
+        else
+            rootPart.AssemblyLinearVelocity = velocity
+            rootPart.AssemblyAngularVelocity = angularVelocity
+        end
+
+    elseif state.isJumping then
+        local jumpEnergy = Vector3.new(0, velocity.Y * 0.8, 0)
+        local horizontalEnergy = Vector3.new(velocity.X * 0.5, 0, velocity.Z * 0.5)
+        local excessEnergy = velocity - jumpEnergy - horizontalEnergy
+        groundPart.AssemblyLinearVelocity = excessEnergy
+        groundPart.AssemblyAngularVelocity = angularVelocity
+        rootPart.AssemblyLinearVelocity = jumpEnergy + horizontalEnergy
+
+    elseif state.isFalling then
+        local fallEnergy = Vector3.new(0, velocity.Y, 0)
+        local horizontalEnergy = Vector3.new(velocity.X * 0.3, 0, velocity.Z * 0.3)
+        local excessEnergy = velocity - fallEnergy - horizontalEnergy
+        groundPart.AssemblyLinearVelocity = excessEnergy
+        groundPart.AssemblyAngularVelocity = angularVelocity
+        rootPart.AssemblyLinearVelocity = fallEnergy + horizontalEnergy
+
+    elseif state.isClimbing then
+        local climbSpeed = velocity.Magnitude
+        if climbSpeed > limits.walkSpeed then
+            local excessClimb = velocity * (1 - limits.walkSpeed / climbSpeed)
+            groundPart.AssemblyLinearVelocity = excessClimb
+            groundPart.AssemblyAngularVelocity = angularVelocity
+            rootPart.AssemblyLinearVelocity = velocity - excessClimb
+        else
+            rootPart.AssemblyLinearVelocity = velocity
+            rootPart.AssemblyAngularVelocity = angularVelocity
+        end
+
+    elseif state.isSwimming then
+        local swimSpeed = velocity.Magnitude
+        if swimSpeed > limits.walkSpeed * 1.5 then
+            local excessSwim = velocity * (1 - (limits.walkSpeed * 1.5) / swimSpeed)
+            groundPart.AssemblyLinearVelocity = excessSwim
+            groundPart.AssemblyAngularVelocity = angularVelocity
+            rootPart.AssemblyLinearVelocity = velocity - excessSwim
+        else
+            rootPart.AssemblyLinearVelocity = velocity
+            rootPart.AssemblyAngularVelocity = angularVelocity
+        end
+
+    elseif state.isSeated then
+        groundPart.AssemblyLinearVelocity = velocity
+        groundPart.AssemblyAngularVelocity = angularVelocity
+        rootPart.AssemblyLinearVelocity = Vector3.zero
+        rootPart.AssemblyAngularVelocity = Vector3.zero
+
+    else
+        groundPart.AssemblyLinearVelocity = velocity
+        groundPart.AssemblyAngularVelocity = angularVelocity
+        rootPart.AssemblyLinearVelocity = Vector3.zero
+        rootPart.AssemblyAngularVelocity = Vector3.zero
+    end
+end
+
 phase4Button3.MouseButton1Click:Connect(function()
     kineticSuppressorEnabled = not kineticSuppressorEnabled
     
@@ -2828,6 +2958,11 @@ phase4Button3.MouseButton1Click:Connect(function()
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
                 
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if not humanoid then return end
+                
+                local limits = getPhysicalLimits(character, humanoid)
+                
                 local groundPart = nil
                 local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 100)
                 
@@ -2839,11 +2974,8 @@ phase4Button3.MouseButton1Click:Connect(function()
                 end
                 
                 if groundPart then
-                    groundPart.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity
-                    groundPart.AssemblyAngularVelocity = rootPart.AssemblyAngularVelocity
-                    
-                    rootPart.AssemblyLinearVelocity = Vector3.zero
-                    rootPart.AssemblyAngularVelocity = Vector3.zero
+                    local state = getPhysicalState(character, rootPart)
+                    processEnergy(rootPart, groundPart, state, limits)
                 end
             end)
         end)
@@ -2851,7 +2983,7 @@ phase4Button3.MouseButton1Click:Connect(function()
         phase4Button3.Text = "Kinetic Suppressor: ON"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         
-        print("[Kinetic Suppressor] Activated")
+        print("[Kinetic Suppressor Beta] Activated")
     else
         if suppressorConnection then
             suppressorConnection:Disconnect()
@@ -2861,6 +2993,6 @@ phase4Button3.MouseButton1Click:Connect(function()
         phase4Button3.Text = "Kinetic Suppressor: OFF"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         
-        print("[Kinetic Suppressor] Deactivated")
+        print("[Kinetic Suppressor Beta] Deactivated")
     end
 end)
