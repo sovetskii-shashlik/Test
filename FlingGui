@@ -2814,59 +2814,66 @@ local function BypassAdonis()
 end
 
 local kineticSuppressorEnabled = false
-local oldNamecall = nil
-local oldIndex = nil
+local suppressorConnection = nil
+local originalProperties = {}
+
+local function makePhysicallyInert(character)
+    if not character then return end
+    
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            if not originalProperties[part] then
+                originalProperties[part] = {
+                    Massless = part.Massless,
+                    CustomPhysicalProperties = part.CustomPhysicalProperties,
+                    CanCollide = part.CanCollide
+                }
+            end
+            
+            part.Massless = true
+            part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+        end
+    end
+end
+
+local function restorePhysics(character)
+    if not character then return end
+    
+    for part, props in pairs(originalProperties) do
+        if part and part.Parent then
+            part.Massless = props.Massless
+            part.CustomPhysicalProperties = props.CustomPhysicalProperties
+        end
+    end
+    originalProperties = {}
+end
 
 phase4Button3.MouseButton1Click:Connect(function()
     kineticSuppressorEnabled = not kineticSuppressorEnabled
     
     if kineticSuppressorEnabled then
-        local mt = getrawmetatable(Instance.new("Part"))
-        oldNamecall = mt.__namecall
-        oldIndex = mt.__index
-        
-        setreadonly(mt, false)
-        
-        mt.__namecall = function(self, ...)
-            local method = getnamecallmethod()
-            local args = {...}
-            
-            if method == "ApplyImpulse" then
-                local character = localPlayer.Character
-                if character and self:IsDescendantOf(character) then
-                    return nil
-                end
-            end
-            
-            return oldNamecall(self, ...)
+        if localPlayer.Character then
+            makePhysicallyInert(localPlayer.Character)
         end
-        
-        setreadonly(mt, true)
         
         phase4Button3.Text = "Kinetic Suppressor: ON"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Kinetic Suppressor",
-            Text = "Enabled (Impulse transfer blocked)",
-            Duration = 2
-        })
+        print("[Kinetic Suppressor activate")
     else
-        if oldNamecall then
-            local mt = getrawmetatable(Instance.new("Part"))
-            setreadonly(mt, false)
-            mt.__namecall = oldNamecall
-            mt.__index = oldIndex
-            setreadonly(mt, true)
-        end
+        restorePhysics(localPlayer.Character)
         
         phase4Button3.Text = "Kinetic Suppressor: OFF"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Kinetic Suppressor",
-            Text = "Disabled",
-            Duration = 2
-        })
+        print("[Kinetic Suppressor deactivate")
+    end
+end)
+
+localPlayer.CharacterAdded:Connect(function(character)
+    if kineticSuppressorEnabled then
+        task.wait(0.5)
+        originalProperties = {}
+        makePhysicallyInert(character)
     end
 end)
