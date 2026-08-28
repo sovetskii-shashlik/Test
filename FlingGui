@@ -728,60 +728,8 @@ phase4Button2.MouseButton1Click:Connect(function()
     end
 end)
 
-local kineticSuppressorEnabled = false
-local suppressedParts = {}
-
-local function applySuppressor(character)
-    if not character then return end
-    
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") and not suppressedParts[part] then
-            local oldApplyImpulse = part.ApplyImpulse
-            
-            part.ApplyImpulse = function(self, impulse)
-                if kineticSuppressorEnabled then
-                    return
-                end
-                return oldApplyImpulse(self, impulse)
-            end
-            
-            suppressedParts[part] = true
-        end
-    end
-end
-
-if localPlayer.Character then
-    applySuppressor(localPlayer.Character)
-end
-
-localPlayer.CharacterAdded:Connect(function(character)
-    task.wait(0.5)
-    suppressedParts = {}
-    applySuppressor(character)
-end)
-
-phase4Button3.MouseButton1Click:Connect(function()
-    kineticSuppressorEnabled = not kineticSuppressorEnabled
-    
-    if kineticSuppressorEnabled then
-        phase4Button3.Text = "Kinetic Suppressor: ON"
-        phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Kinetic Suppressor",
-            Text = "Enabled (Impulse blocked)",
-            Duration = 2
-        })
-    else
-        phase4Button3.Text = "Kinetic Suppressor: OFF"
-        phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Kinetic Suppressor",
-            Text = "Disabled (Impulse allowed)",
-            Duration = 2
-        })
-    end
+phase3Button6.MouseButton1Click:Connect(function()
+     loadstring(game:HttpGet("https://github.com/sovetskii-shashlik/Test/raw/main/PunchFling",true))()
 end)
 
 local function startAutoEquip()
@@ -2864,3 +2812,60 @@ local function BypassAdonis()
         iDetour:Enable()
         dDetour:Enable()
 end
+
+-- Kinetic Suppressor
+local kineticSuppressorEnabled = false
+local suppressedParts = {}
+
+local function applySuppressor(character)
+    if not character then return end
+    
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and not suppressedParts[part] then
+            local oldApplyImpulse = part.ApplyImpulse
+            
+            part.ApplyImpulse = function(self, impulse)
+                if kineticSuppressorEnabled then
+                    return
+                end
+                return oldApplyImpulse(self, impulse)
+            end
+            
+            suppressedParts[part] = true
+        end
+    end
+end
+
+if localPlayer.Character then
+    applySuppressor(localPlayer.Character)
+end
+
+localPlayer.CharacterAdded:Connect(function(character)
+    task.wait(0.5)
+    suppressedParts = {}
+    applySuppressor(character)
+end)
+
+phase4Button3.MouseButton1Click:Connect(function()
+    kineticSuppressorEnabled = not kineticSuppressorEnabled
+    
+    if kineticSuppressorEnabled then
+        phase4Button3.Text = "Kinetic Suppressor: ON"
+        phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Kinetic Suppressor",
+            Text = "Enabled (Impulse blocked)",
+            Duration = 2
+        })
+    else
+        phase4Button3.Text = "Kinetic Suppressor: OFF"
+        phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Kinetic Suppressor",
+            Text = "Disabled (Impulse allowed)",
+            Duration = 2
+        })
+    end
+end)
