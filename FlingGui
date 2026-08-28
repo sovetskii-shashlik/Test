@@ -2815,65 +2815,64 @@ end
 
 local kineticSuppressorEnabled = false
 local suppressorConnection = nil
-local originalProperties = {}
+local bodyVelocities = {}
 
-local function makePhysicallyInert(character)
+local function collectBodyVelocities(character)
+    bodyVelocities = {}
     if not character then return end
     
     for _, part in ipairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
-            if not originalProperties[part] then
-                originalProperties[part] = {
-                    Massless = part.Massless,
-                    CustomPhysicalProperties = part.CustomPhysicalProperties,
-                    CanCollide = part.CanCollide
-                }
-            end
-            
-            part.Massless = true
-            part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+            bodyVelocities[part] = {
+                Velocity = part.Velocity,
+                RotVelocity = part.RotVelocity,
+                CFrame = part.CFrame
+            }
         end
     end
 end
 
-local function restorePhysics(character)
+local function restoreBodyVelocities(character)
     if not character then return end
     
-    for part, props in pairs(originalProperties) do
+    for part, data in pairs(bodyVelocities) do
         if part and part.Parent then
-            part.Massless = props.Massless
-            part.CustomPhysicalProperties = props.CustomPhysicalProperties
+            part.Velocity = data.Velocity
+            part.RotVelocity = data.RotVelocity
+            part.CFrame = data.CFrame
         end
     end
-    originalProperties = {}
 end
 
 phase4Button3.MouseButton1Click:Connect(function()
     kineticSuppressorEnabled = not kineticSuppressorEnabled
     
     if kineticSuppressorEnabled then
-        if localPlayer.Character then
-            makePhysicallyInert(localPlayer.Character)
-        end
+        collectBodyVelocities(localPlayer.Character)
+        
+        suppressorConnection = game:GetService("RunService").PhysicsStepped:Connect(function()
+            pcall(function()
+                local character = localPlayer.Character
+                if not character then return end
+                
+                restoreBodyVelocities(character)
+            end)
+        end)
         
         phase4Button3.Text = "Kinetic Suppressor: ON"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         
-        print("[Kinetic Suppressor activate")
+        print("Kinetic Suppressor Activate")
     else
-        restorePhysics(localPlayer.Character)
+        if suppressorConnection then
+            suppressorConnection:Disconnect()
+            suppressorConnection = nil
+        end
+        bodyVelocities = {}
         
         phase4Button3.Text = "Kinetic Suppressor: OFF"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         
-        print("[Kinetic Suppressor deactivate")
-    end
-end)
-
-localPlayer.CharacterAdded:Connect(function(character)
-    if kineticSuppressorEnabled then
-        task.wait(0.5)
-        originalProperties = {}
-        makePhysicallyInert(character)
+        print("Kinetic Suppressor Deactivate")
     end
 end)
