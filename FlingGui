@@ -2815,64 +2815,52 @@ end
 
 local kineticSuppressorEnabled = false
 local suppressorConnection = nil
-local bodyVelocities = {}
-
-local function collectBodyVelocities(character)
-    bodyVelocities = {}
-    if not character then return end
-    
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            bodyVelocities[part] = {
-                Velocity = part.Velocity,
-                RotVelocity = part.RotVelocity,
-                CFrame = part.CFrame
-            }
-        end
-    end
-end
-
-local function restoreBodyVelocities(character)
-    if not character then return end
-    
-    for part, data in pairs(bodyVelocities) do
-        if part and part.Parent then
-            part.Velocity = data.Velocity
-            part.RotVelocity = data.RotVelocity
-            part.CFrame = data.CFrame
-        end
-    end
-end
 
 phase4Button3.MouseButton1Click:Connect(function()
     kineticSuppressorEnabled = not kineticSuppressorEnabled
     
     if kineticSuppressorEnabled then
-        collectBodyVelocities(localPlayer.Character)
-        
-        suppressorConnection = game:GetService("RunService").PhysicsStepped:Connect(function()
+        suppressorConnection = RunService.Heartbeat:Connect(function()
             pcall(function()
                 local character = localPlayer.Character
                 if not character then return end
                 
-                restoreBodyVelocities(character)
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if not rootPart then return end
+                
+                local groundPart = nil
+                local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 100)
+                
+                for _, part in ipairs(parts) do
+                    if part:IsA("BasePart") and part.Anchored and part ~= rootPart and not part:IsDescendantOf(character) then
+                        groundPart = part
+                        break
+                    end
+                end
+                
+                if groundPart then
+                    groundPart.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity
+                    groundPart.AssemblyAngularVelocity = rootPart.AssemblyAngularVelocity
+                    
+                    rootPart.AssemblyLinearVelocity = Vector3.zero
+                    rootPart.AssemblyAngularVelocity = Vector3.zero
+                end
             end)
         end)
         
         phase4Button3.Text = "Kinetic Suppressor: ON"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         
-        print("Kinetic Suppressor Activate")
+        print("[Kinetic Suppressor] Activated")
     else
         if suppressorConnection then
             suppressorConnection:Disconnect()
             suppressorConnection = nil
         end
-        bodyVelocities = {}
         
         phase4Button3.Text = "Kinetic Suppressor: OFF"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         
-        print("Kinetic Suppressor Deactivate")
+        print("[Kinetic Suppressor] Deactivated")
     end
 end)
