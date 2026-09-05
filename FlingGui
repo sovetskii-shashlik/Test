@@ -417,7 +417,7 @@ local phase4Button3 = Instance.new("TextButton")
 phase4Button3.Size = UDim2.new(0.9, 0, 0, 30)
 phase4Button3.Position = UDim2.new(0.05, 0, 0, 120)
 phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-phase4Button3.Text = "Anti BodyMover: OFF"
+phase4Button3.Text = "Anti Tornado (test): OFF"
 phase4Button3.TextColor3 = Color3.new(1, 1, 1)
 phase4Button3.Visible = false
 phase4Button3.Parent = frame
@@ -2813,48 +2813,52 @@ local function BypassAdonis()
         dDetour:Enable()
 end
 
-local antiBodyMoverEnabled = false
-local antiBodyMoverConnection = nil
+-- Anti Tornado
+local antiTornadoEnabled = false
+local antiTornadoConnection = nil
 
 phase4Button3.MouseButton1Click:Connect(function()
-    antiBodyMoverEnabled = not antiBodyMoverEnabled
-    
-    if antiBodyMoverEnabled then
-        antiBodyMoverConnection = RunService.Heartbeat:Connect(function()
+    antiTornadoEnabled = not antiTornadoEnabled
+
+    if antiTornadoEnabled then
+        antiTornadoConnection = RunService.Heartbeat:Connect(function()
             pcall(function()
                 local character = localPlayer.Character
                 if not character then return end
-                
+
+                for _, child in ipairs(character:GetDescendants()) do
+                    if child:IsA("BodyVelocity") or child:IsA("BodyGyro") or child:IsA("BodyPosition") or child:IsA("BodyAngularVelocity") or child:IsA("VectorForce") or child:IsA("LineForce") or child:IsA("Torque") or child:IsA("RocketPropulsion") or child:IsA("AlignPosition") or child:IsA("AlignOrientation") then
+                        child:Destroy()
+                    end
+                end
+
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
-                if not rootPart then return end
-                
-                local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 20)
-                
-                for _, part in ipairs(parts) do
-                    if part:IsA("BasePart") and not part:IsDescendantOf(character) then
-                        for _, child in ipairs(part:GetChildren()) do
-                            if child:IsA("BodyVelocity") or child:IsA("BodyGyro") or child:IsA("BodyThrust") or child:IsA("BodyPosition") or child:IsA("BodyAngularVelocity") or child:IsA("RocketPropulsion") or child:IsA("VectorForce") or child:IsA("LineForce") or child:IsA("Torque") then
-                                child:Destroy()
+                if rootPart then
+                    local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 30)
+                    for _, part in ipairs(parts) do
+                        if part:IsA("BasePart") and not part:IsDescendantOf(character) then
+                            for _, child in ipairs(part:GetChildren()) do
+                                if child:IsA("BodyVelocity") or child:IsA("BodyGyro") or child:IsA("BodyPosition") or child:IsA("BodyAngularVelocity") or child:IsA("VectorForce") or child:IsA("LineForce") or child:IsA("Torque") or child:IsA("RocketPropulsion") or child:IsA("AlignPosition") or child:IsA("AlignOrientation") then
+                                    child:Destroy()
+                                end
                             end
                         end
                     end
                 end
             end)
         end)
-        
-        phase4Button3.Text = "Anti BodyMover: ON"
+
+        phase4Button3.Text = "Anti Tornado (test): ON"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
-        
-        print("[Anti BodyMover] Activated")
+
     else
-        if antiBodyMoverConnection then
-            antiBodyMoverConnection:Disconnect()
-            antiBodyMoverConnection = nil
+        if antiTornadoConnection then
+            antiTornadoConnection:Disconnect()
+            antiTornadoConnection = nil
         end
-        
-        phase4Button3.Text = "Anti BodyMover: OFF"
+
+        phase4Button3.Text = "Anti Tornado (test): OFF"
         phase4Button3.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        
-        print("[Anti BodyMover] Deactivated")
+
     end
 end)
