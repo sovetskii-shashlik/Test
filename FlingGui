@@ -1271,7 +1271,7 @@ phase3Button2.MouseButton1Click:Connect(function()
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then return end
 
-                local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 5)
+                local parts = workspace:GetPartBoundsInRadius(rootPart.Position, 9e9)
 
                 for _, part in pairs(parts) do
                     if part:IsA("BasePart") and part ~= rootPart and not part:IsDescendantOf(character) then
