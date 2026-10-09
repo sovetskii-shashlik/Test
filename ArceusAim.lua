@@ -659,7 +659,7 @@ runService.RenderStepped:Connect(function()
             if notAggressive then
                 local angle = getAngleToTarget(aimobj)
                 if angle <= 60 then
-                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, 0.15)
+                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, 0.75)
                 end
             else
                 lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position)
