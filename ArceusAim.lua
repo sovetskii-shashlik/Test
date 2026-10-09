@@ -62,7 +62,7 @@ Main.Draggable = true
 Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Main.BorderSizePixel = 0
-Main.Position = UDim2.new(0.5, 0, -0.2, 0) --UDim2.new(0.5, 0, 0.5, 0)
+Main.Position = UDim2.new(0.5, 0, -0.2, 0)
 Main.Size = UDim2.new(0.3, 0, 0.3, 0)
 
 UICorner.CornerRadius = UDim.new(0.1, 0)
@@ -530,25 +530,42 @@ local teamcheck = false
 local wallcheck = false
 local nonfriends = false
 local aimpart = "Head"
+local notAggressive = false
 
 function lookAt(target, eye)
     workspace.CurrentCamera.CFrame = CFrame.new(target, eye)
 end
 
+function lookAtSmooth(target, eye, alpha)
+    local currentCFrame = workspace.CurrentCamera.CFrame
+    local targetCFrame = CFrame.new(target, eye)
+    workspace.CurrentCamera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
+end
+
+function getAngleToTarget(aimobj)
+    local camera = workspace.CurrentCamera
+    local cameraPos = camera.CFrame.Position
+    local cameraLook = camera.CFrame.LookVector
+    local directionToTarget = (aimobj.Position - cameraPos).Unit
+    local dot = cameraLook:Dot(directionToTarget)
+    local angle = math.deg(math.acos(math.clamp(dot, -1, 1)))
+    return angle
+end
+
 function isVisible(part)
     if not wallcheck then return true end
-    
+
     local camera = workspace.CurrentCamera
     local origin = camera.CFrame.Position
     local direction = (part.Position - origin).Unit * (origin - part.Position).Magnitude
     local ray = Ray.new(origin, direction)
-    
+
     local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {camera, plrsService.LocalPlayer.Character})
-    
+
     if hit and hit:IsDescendantOf(part.Parent) then
         return true
     end
-    
+
     return false
 end
 
@@ -573,12 +590,11 @@ function getClosestPlayerToCursor(trg_part)
             if teamcheck and v.Team ~= localPlayer.Team then
                 allowed = true
             end
-            
-            -- Check if nonfriends is enabled and if player is not a friend
+
             if nonfriends and isFriend(v) then
                 allowed = false
             end
-            
+
             if allowed then
                 local aimobj = v.Character:FindFirstChild(trg_part) or v.Character:FindFirstChild("UpperTorso")
                 if aimobj then
@@ -587,13 +603,12 @@ function getClosestPlayerToCursor(trg_part)
                         local AccPos = Vector2.new(ePos.x, ePos.y)
                         local mousePos = Vector2.new(workspace.CurrentCamera.ViewportSize.x / 2, workspace.CurrentCamera.ViewportSize.y / 2)
                         local distance = (AccPos - mousePos).magnitude
-                        
-                        -- Check if player is visible through walls if wallcheck is enabled
+
                         local visibleThroughWalls = true
                         if wallcheck then
                             visibleThroughWalls = isVisible(aimobj)
                         end
-                        
+
                         if distance < last and vissss and distance < 400 and visibleThroughWalls then
                             last = distance
                             nearest = v
@@ -626,6 +641,11 @@ toggleNonFriendsBtn = addToggle("Non Friends", function(state)
     nonfriends = state
 end, false)
 
+local toggleNotAggressiveBtn
+toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state)
+    notAggressive = state
+end, false)
+
 local aimPartCombo
 aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
     aimpart = selection
@@ -636,7 +656,14 @@ runService.RenderStepped:Connect(function()
     if enabled and closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
         if aimobj then
-            lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position)
+            if notAggressive then
+                local angle = getAngleToTarget(aimobj)
+                if angle <= 60 then
+                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, 0.15)
+                end
+            else
+                lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position)
+            end
         end
     end
 end)
