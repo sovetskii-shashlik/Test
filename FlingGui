@@ -2877,35 +2877,10 @@ phase4Button3.MouseButton1Click:Connect(function()
     end
 end)
 
--- Magnitude Anti-Flyer
 local antiFlyerEnabled = false
 local antiFlyerConnection = nil
 local antiFlyerMaxRayDistance = 20
 local antiFlyerRootOffset = 3.0
-
-local function antiFlyerGetGroundPart()
-    local character = localPlayer.Character
-    if not character then return nil end
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return nil end
-
-    local origin = rootPart.Position
-    local ignoreList = {character}
-
-    local downRay = Ray.new(origin, Vector3.new(0, -1, 0) * antiFlyerMaxRayDistance)
-    local hit, position = Workspace:FindPartOnRayWithIgnoreList(downRay, ignoreList)
-    if hit and position then
-        return position
-    end
-
-    local upRay = Ray.new(origin, Vector3.new(0, 1, 0) * antiFlyerMaxRayDistance)
-    local hitUp, positionUp = Workspace:FindPartOnRayWithIgnoreList(upRay, ignoreList)
-    if hitUp and positionUp then
-        return positionUp
-    end
-
-    return nil
-end
 
 local function antiFlyerStick()
     local character = localPlayer.Character
@@ -2915,7 +2890,22 @@ local function antiFlyerStick()
     if not rootPart or not humanoid then return end
     if humanoid.Health <= 0 then return end
 
-    local surfacePos = antiFlyerGetGroundPart()
+    local origin = rootPart.Position
+    local ignoreList = {character}
+    local surfacePos = nil
+
+    local downRay = Ray.new(origin, Vector3.new(0, -1, 0) * antiFlyerMaxRayDistance)
+    local hit, position = Workspace:FindPartOnRayWithIgnoreList(downRay, ignoreList)
+    if hit and position then
+        surfacePos = position
+    else
+        local upRay = Ray.new(origin, Vector3.new(0, 1, 0) * antiFlyerMaxRayDistance)
+        local hitUp, positionUp = Workspace:FindPartOnRayWithIgnoreList(upRay, ignoreList)
+        if hitUp and positionUp then
+            surfacePos = positionUp
+        end
+    end
+
     if not surfacePos then return end
 
     local targetY = surfacePos.Y + antiFlyerRootOffset
