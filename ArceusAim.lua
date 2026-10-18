@@ -3,6 +3,7 @@
 
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
+    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -532,13 +533,29 @@ local nonfriends = false
 local aimpart = "Head"
 local notAggressive = false
 
-function lookAt(target, eye)
-    workspace.CurrentCamera.CFrame = CFrame.new(target, eye)
+local aimOffsetYaw = 0
+local aimOffsetPitch = 0
+
+local naSmoothness = 0.75
+local naFlickForce = 0.15
+local naZoneAngle = 60
+
+local showZone = false
+local zoneGui = nil
+
+function lookAt(target, eye, yawOff, pitchOff)
+    local baseCF = CFrame.new(target, eye)
+    local yawRad = math.rad(yawOff or 0)
+    local pitchRad = math.rad(pitchOff or 0)
+    workspace.CurrentCamera.CFrame = baseCF * CFrame.Angles(pitchRad, yawRad, 0)
 end
 
-function lookAtSmooth(target, eye, alpha)
+function lookAtSmooth(target, eye, alpha, yawOff, pitchOff)
     local currentCFrame = workspace.CurrentCamera.CFrame
-    local targetCFrame = CFrame.new(target, eye)
+    local baseCF = CFrame.new(target, eye)
+    local yawRad = math.rad(yawOff or 0)
+    local pitchRad = math.rad(pitchOff or 0)
+    local targetCFrame = baseCF * CFrame.Angles(pitchRad, yawRad, 0)
     workspace.CurrentCamera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
 end
 
@@ -621,6 +638,258 @@ function getClosestPlayerToCursor(trg_part)
     return nearest
 end
 
+-- Zone Visualizer
+local function createZoneGUI()
+    if zoneGui then zoneGui:Destroy() end
+    zoneGui = Instance.new("ScreenGui")
+    zoneGui.Name = "AimbotZone"
+    zoneGui.ResetOnSpawn = false
+    zoneGui.IgnoreGuiInset = true
+    zoneGui.Parent = uiparent()
+
+    local circle = Instance.new("Frame")
+    circle.Name = "ZoneCircle"
+    circle.AnchorPoint = Vector2.new(0.5, 0.5)
+    circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    circle.BackgroundTransparency = 1
+    circle.Parent = zoneGui
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(255, 80, 80)
+    stroke.Parent = circle
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = circle
+
+    return circle
+end
+
+local function updateZoneGUI()
+    if not showZone or not zoneGui then return end
+    local circle = zoneGui:FindFirstChild("ZoneCircle")
+    if not circle then return end
+
+    local viewport = workspace.CurrentCamera.ViewportSize
+    local radiusPixels = (naZoneAngle / 60) * (viewport.Y * 0.5)
+    circle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
+end
+
+-- Add combobox with -5/+5 buttons and percentage indicator
+local function addOffsetComboBox(text, initialValue, onChange)
+    local newCombo = ComboBox:Clone()
+    local isOpen = false
+    local currentValue = initialValue or 0
+    local elems = {}
+
+    local function updateText()
+        local percent = math.floor((currentValue / 45) * 100)
+        newCombo:WaitForChild("Name").Text = string.format("%s: %d° (%d%%)", text, currentValue, percent)
+    end
+
+    local function setBoxState()
+        newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
+    end
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
+    updateText()
+    newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+    newCombo.Name = text
+    newCombo.Parent = Menu
+    newCombo.LayoutOrder = elements
+    newCombo.Visible = true
+
+    elements += 1
+    addSpace(Menu)
+
+    -- Add -5 and +5 buttons
+    local minusBtn = ComboElem:Clone()
+    minusBtn:WaitForChild("Name").Text = "-5°"
+    minusBtn.Size = UDim2.new(0.95, 0, 0, element_height)
+    minusBtn.Name = "-5"
+    minusBtn.Parent = Menu
+    minusBtn.LayoutOrder = elements
+    minusBtn.Visible = false
+    table.insert(elems, minusBtn)
+
+    minusBtn.MouseButton1Click:Connect(function()
+        currentValue = math.clamp(currentValue - 5, -45, 45)
+        updateText()
+        onChange(currentValue)
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    local plusBtn = ComboElem:Clone()
+    plusBtn:WaitForChild("Name").Text = "+5°"
+    plusBtn.Size = UDim2.new(0.95, 0, 0, element_height)
+    plusBtn.Name = "+5"
+    plusBtn.Parent = Menu
+    plusBtn.LayoutOrder = elements
+    plusBtn.Visible = false
+    table.insert(elems, plusBtn)
+
+    plusBtn.MouseButton1Click:Connect(function()
+        currentValue = math.clamp(currentValue + 5, -45, 45)
+        updateText()
+        onChange(currentValue)
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    return newCombo
+end
+
+-- Not Aggressive Advanced Combo
+local function addNAComboBox()
+    local newCombo = ComboBox:Clone()
+    local isOpen = false
+    local elems = {}
+
+    local function setBoxState()
+        newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
+    end
+
+    local function updateText()
+        newCombo:WaitForChild("Name").Text = string.format("NA: Speed %d%% | Force %d%% | Zone %d°", math.floor(naSmoothness * 100), math.floor((1 - naFlickForce) * 100), naZoneAngle)
+    end
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
+    updateText()
+    newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+    newCombo.Name = "NotAggressiveSettings"
+    newCombo.Parent = Menu
+    newCombo.LayoutOrder = elements
+    newCombo.Visible = true
+
+    elements += 1
+    addSpace(Menu)
+
+    -- Speed +/- 
+    local speedMinus = ComboElem:Clone()
+    speedMinus:WaitForChild("Name").Text = "Speed -10%"
+    speedMinus.Size = UDim2.new(0.95, 0, 0, element_height)
+    speedMinus.Name = "SpeedMinus"
+    speedMinus.Parent = Menu
+    speedMinus.LayoutOrder = elements
+    speedMinus.Visible = false
+    table.insert(elems, speedMinus)
+
+    speedMinus.MouseButton1Click:Connect(function()
+        naSmoothness = math.clamp(naSmoothness - 0.1, 0.1, 1)
+        updateText()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    local speedPlus = ComboElem:Clone()
+    speedPlus:WaitForChild("Name").Text = "Speed +10%"
+    speedPlus.Size = UDim2.new(0.95, 0, 0, element_height)
+    speedPlus.Name = "SpeedPlus"
+    speedPlus.Parent = Menu
+    speedPlus.LayoutOrder = elements
+    speedPlus.Visible = false
+    table.insert(elems, speedPlus)
+
+    speedPlus.MouseButton1Click:Connect(function()
+        naSmoothness = math.clamp(naSmoothness + 0.1, 0.1, 1)
+        updateText()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    -- Force (Tactility)
+    local forceMinus = ComboElem:Clone()
+    forceMinus:WaitForChild("Name").Text = "Tactility -10%"
+    forceMinus.Size = UDim2.new(0.95, 0, 0, element_height)
+    forceMinus.Name = "ForceMinus"
+    forceMinus.Parent = Menu
+    forceMinus.LayoutOrder = elements
+    forceMinus.Visible = false
+    table.insert(elems, forceMinus)
+
+    forceMinus.MouseButton1Click:Connect(function()
+        naFlickForce = math.clamp(naFlickForce + 0.05, 0, 1)
+        updateText()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    local forcePlus = ComboElem:Clone()
+    forcePlus:WaitForChild("Name").Text = "Tactility +10%"
+    forcePlus.Size = UDim2.new(0.95, 0, 0, element_height)
+    forcePlus.Name = "ForcePlus"
+    forcePlus.Parent = Menu
+    forcePlus.LayoutOrder = elements
+    forcePlus.Visible = false
+    table.insert(elems, forcePlus)
+
+    forcePlus.MouseButton1Click:Connect(function()
+        naFlickForce = math.clamp(naFlickForce - 0.05, 0, 1)
+        updateText()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    -- Zone
+    local zoneMinus = ComboElem:Clone()
+    zoneMinus:WaitForChild("Name").Text = "Zone -5°"
+    zoneMinus.Size = UDim2.new(0.95, 0, 0, element_height)
+    zoneMinus.Name = "ZoneMinus"
+    zoneMinus.Parent = Menu
+    zoneMinus.LayoutOrder = elements
+    zoneMinus.Visible = false
+    table.insert(elems, zoneMinus)
+
+    zoneMinus.MouseButton1Click:Connect(function()
+        naZoneAngle = math.clamp(naZoneAngle - 5, 5, 180)
+        updateText()
+        updateZoneGUI()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    local zonePlus = ComboElem:Clone()
+    zonePlus:WaitForChild("Name").Text = "Zone +5°"
+    zonePlus.Size = UDim2.new(0.95, 0, 0, element_height)
+    zonePlus.Name = "ZonePlus"
+    zonePlus.Parent = Menu
+    zonePlus.LayoutOrder = elements
+    zonePlus.Visible = false
+    table.insert(elems, zonePlus)
+
+    zonePlus.MouseButton1Click:Connect(function()
+        naZoneAngle = math.clamp(naZoneAngle + 5, 5, 180)
+        updateText()
+        updateZoneGUI()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+end
+
 local toggleBtn
 toggleBtn = addToggle("Toggle aimbot", function(state)
     enabled = state
@@ -651,18 +920,39 @@ aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
     aimpart = selection
 end)
 
+addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
+addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
+
+addNAComboBox()
+
+local toggleZoneBtn
+toggleZoneBtn = addToggle("Show Zone", function(state)
+    showZone = state
+    if showZone then
+        if not zoneGui then createZoneGUI() end
+        if zoneGui then zoneGui.Enabled = true end
+        updateZoneGUI()
+    else
+        if zoneGui then zoneGui.Enabled = false end
+    end
+end, false)
+
 runService.RenderStepped:Connect(function()
+    if showZone then
+        updateZoneGUI()
+    end
+    
     local closest = getClosestPlayerToCursor(aimpart)
     if enabled and closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
         if aimobj then
             if notAggressive then
                 local angle = getAngleToTarget(aimobj)
-                if angle <= 60 then
-                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, 0.75)
+                if angle <= naZoneAngle then
+                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, naSmoothness, aimOffsetYaw, aimOffsetPitch)
                 end
             else
-                lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position)
+                lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position, aimOffsetYaw, aimOffsetPitch)
             end
         end
     end
