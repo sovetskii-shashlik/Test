@@ -3,7 +3,7 @@
 
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range
+    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -544,19 +544,78 @@ local naZoneAngle = 60
 local showZone = false
 local zoneGui = nil
 
-function lookAt(target, eye, yawOff, pitchOff)
-    local baseCF = CFrame.new(target, eye)
-    local yawRad = math.rad(yawOff or 0)
-    local pitchRad = math.rad(pitchOff or 0)
-    workspace.CurrentCamera.CFrame = baseCF * CFrame.Angles(pitchRad, yawRad, 0)
+local customCrosshair = false
+local crosshairObjects = {}
+
+local function createCrosshair()
+    for _, obj in ipairs(crosshairObjects) do
+        pcall(function() obj:Remove() end)
+    end
+    crosshairObjects = {}
+
+    if not customCrosshair then return end
+
+    local center = Drawing.new("Circle")
+    center.Radius = 2
+    center.Color = Color3.fromRGB(255, 80, 80)
+    center.Filled = true
+    center.Visible = true
+    table.insert(crosshairObjects, center)
+
+    local lines = {}
+    for i = 1, 4 do
+        local line = Drawing.new("Line")
+        line.Color = Color3.fromRGB(255, 80, 80)
+        line.Thickness = 1.5
+        line.Visible = true
+        table.insert(crosshairObjects, line)
+        table.insert(lines, line)
+    end
+
+    return center, lines
 end
 
-function lookAtSmooth(target, eye, alpha, yawOff, pitchOff)
+local function updateCrosshair(center, lines)
+    if not customCrosshair or not center then return end
+    
+    local viewport = workspace.CurrentCamera.ViewportSize
+    local centerX = viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2)
+    local centerY = viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
+    
+    center.Position = Vector2.new(centerX, centerY)
+    
+    local len = 6
+    lines[1].From = Vector2.new(centerX - len, centerY)
+    lines[1].To = Vector2.new(centerX - len - 4, centerY)
+    
+    lines[2].From = Vector2.new(centerX + len, centerY)
+    lines[2].To = Vector2.new(centerX + len + 4, centerY)
+    
+    lines[3].From = Vector2.new(centerX, centerY - len)
+    lines[3].To = Vector2.new(centerX, centerY - len - 4)
+    
+    lines[4].From = Vector2.new(centerX, centerY + len)
+    lines[4].To = Vector2.new(centerX, centerY + len + 4)
+end
+
+local function getAimPoint()
+    if customCrosshair then
+        local viewport = workspace.CurrentCamera.ViewportSize
+        local centerX = viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2)
+        local centerY = viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
+        return Vector2.new(centerX, centerY)
+    else
+        return Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
+    end
+end
+
+function lookAt(target, eye)
+    workspace.CurrentCamera.CFrame = CFrame.new(target, eye)
+end
+
+function lookAtSmooth(target, eye, alpha)
     local currentCFrame = workspace.CurrentCamera.CFrame
-    local baseCF = CFrame.new(target, eye)
-    local yawRad = math.rad(yawOff or 0)
-    local pitchRad = math.rad(pitchOff or 0)
-    local targetCFrame = baseCF * CFrame.Angles(pitchRad, yawRad, 0)
+    local targetCFrame = CFrame.new(target, eye)
     workspace.CurrentCamera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
 end
 
@@ -601,6 +660,8 @@ function getClosestPlayerToCursor(trg_part)
     local localPlayer = plrsService.LocalPlayer
     local myPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
 
+    local aimPoint = getAimPoint()
+
     for i, v in ipairs(plrsService:GetPlayers()) do
         if v ~= localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChildWhichIsA("Humanoid") and localPlayer.Character:FindFirstChildWhichIsA("Humanoid").Health > 0
             and v.Character and v.Character:FindFirstChildWhichIsA("Humanoid") and v.Character:FindFirstChildWhichIsA("Humanoid").Health > 0
@@ -622,8 +683,7 @@ function getClosestPlayerToCursor(trg_part)
                         if distanceToPlayer <= detectRange then
                             local ePos, vissss = workspace.CurrentCamera:WorldToViewportPoint(aimobj.Position)
                             local AccPos = Vector2.new(ePos.x, ePos.y)
-                            local mousePos = Vector2.new(workspace.CurrentCamera.ViewportSize.x / 2, workspace.CurrentCamera.ViewportSize.y / 2)
-                            local distance = (AccPos - mousePos).magnitude
+                            local distance = (AccPos - aimPoint).magnitude
 
                             local visibleThroughWalls = true
                             if wallcheck then
@@ -678,6 +738,41 @@ local function updateZoneGUI()
     local viewport = workspace.CurrentCamera.ViewportSize
     local radiusPixels = (naZoneAngle / 60) * (viewport.Y * 0.5)
     circle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
+end
+
+local function addTextBox(text, initialText, onChange)
+    local newBox = Instance.new("TextBox")
+    newBox.Size = UDim2.new(0.95, 0, 0, element_height)
+    newBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    newBox.BorderSizePixel = 0
+    newBox.Text = initialText
+    newBox.PlaceholderText = text
+    newBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    newBox.Font = Enum.Font.TitilliumWeb
+    newBox.TextSize = 14
+    newBox.TextScaled = true
+    newBox.ClearTextOnFocus = false
+    newBox.Parent = Menu
+    newBox.LayoutOrder = elements
+    newBox.Visible = true
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.25, 0)
+    corner.Parent = newBox
+
+    newBox.FocusLost:Connect(function()
+        local num = tonumber(newBox.Text)
+        if num and num > 0 then
+            onChange(num)
+        else
+            newBox.Text = tostring(initialText)
+        end
+    end)
+
+    elements += 1
+    addSpace(Menu)
+
+    return newBox
 end
 
 local function addOffsetComboBox(text, initialValue, onChange)
@@ -858,80 +953,20 @@ local function addNAComboBox()
     end
 end
 
-local function addTextBox(text, initialText, onChange)
-    local newBox = Instance.new("TextBox")
-    newBox.Size = UDim2.new(0.95, 0, 0, element_height)
-    newBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-    newBox.BorderSizePixel = 0
-    newBox.Text = initialText
-    newBox.PlaceholderText = text
-    newBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    newBox.Font = Enum.Font.TitilliumWeb
-    newBox.TextSize = 14
-    newBox.TextScaled = true
-    newBox.ClearTextOnFocus = false
-    newBox.Parent = Menu
-    newBox.LayoutOrder = elements
-    newBox.Visible = true
+-- ORDER OF UI ELEMENTS
+addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.25, 0)
-    corner.Parent = newBox
-
-    newBox.FocusLost:Connect(function()
-        local num = tonumber(newBox.Text)
-        if num and num > 0 then
-            onChange(num)
-        else
-            newBox.Text = tostring(initialText)
-        end
-    end)
-
-    elements += 1
-    addSpace(Menu)
-
-    return newBox
-end
-
-local toggleBtn
-toggleBtn = addToggle("Toggle aimbot", function(state)
+local toggleBtn = addToggle("Toggle aimbot", function(state)
     enabled = state
 end, false)
 
-local toggleTeamCheckBtn
-toggleTeamCheckBtn = addToggle("Team check", function(state)
-    teamcheck = state
-end, false)
-
-local toggleWallCheckBtn
-toggleWallCheckBtn = addToggle("Wall check", function(state)
-    wallcheck = state
-end, false)
-
-local toggleNonFriendsBtn
-toggleNonFriendsBtn = addToggle("Non Friends", function(state)
-    nonfriends = state
-end, false)
-
-local toggleNotAggressiveBtn
-toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state)
+local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state)
     notAggressive = state
 end, false)
 
-local aimPartCombo
-aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
-    aimpart = selection
-end)
-
-addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
-
-addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
-addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
-
 addNAComboBox()
 
-local toggleZoneBtn
-toggleZoneBtn = addToggle("Show Zone", function(state)
+local toggleZoneBtn = addToggle("Show Zone", function(state)
     showZone = state
     if showZone then
         if not zoneGui then createZoneGUI() end
@@ -942,9 +977,47 @@ toggleZoneBtn = addToggle("Show Zone", function(state)
     end
 end, false)
 
+local toggleTeamCheckBtn = addToggle("Team check", function(state)
+    teamcheck = state
+end, false)
+
+local toggleNonFriendsBtn = addToggle("Non Friends", function(state)
+    nonfriends = state
+end, false)
+
+local toggleWallCheckBtn = addToggle("Wall check", function(state)
+    wallcheck = state
+end, false)
+
+local aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
+    aimpart = selection
+end)
+
+addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
+addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
+
+local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
+    customCrosshair = state
+    if customCrosshair then
+        createCrosshair()
+    else
+        for _, obj in ipairs(crosshairObjects) do
+            pcall(function() obj:Remove() end)
+        end
+        crosshairObjects = {}
+    end
+end, false)
+
+local crosshairCenter, crosshairLines = nil, nil
+crosshairCenter, crosshairLines = createCrosshair()
+
 runService.RenderStepped:Connect(function()
     if showZone then
         updateZoneGUI()
+    end
+    
+    if customCrosshair then
+        updateCrosshair(crosshairCenter, crosshairLines)
     end
     
     local closest = getClosestPlayerToCursor(aimpart)
@@ -954,10 +1027,10 @@ runService.RenderStepped:Connect(function()
             if notAggressive then
                 local angle = getAngleToTarget(aimobj)
                 if angle <= naZoneAngle then
-                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, naSmoothness, aimOffsetYaw, aimOffsetPitch)
+                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, naSmoothness)
                 end
             else
-                lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position, aimOffsetYaw, aimOffsetPitch)
+                lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position)
             end
         end
     end
