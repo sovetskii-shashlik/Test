@@ -545,57 +545,60 @@ local showZone = false
 local zoneGui = nil
 
 local customCrosshair = false
-local crosshairObjects = {}
+local crosshairCenter = nil
+local crosshairLines = {}
 
-local function createCrosshair()
-    for _, obj in ipairs(crosshairObjects) do
-        pcall(function() obj:Remove() end)
-    end
-    crosshairObjects = {}
-
-    if not customCrosshair then return end
-
-    local center = Drawing.new("Circle")
-    center.Radius = 2
-    center.Color = Color3.fromRGB(255, 80, 80)
-    center.Filled = true
-    center.Visible = true
-    table.insert(crosshairObjects, center)
-
-    local lines = {}
-    for i = 1, 4 do
-        local line = Drawing.new("Line")
-        line.Color = Color3.fromRGB(255, 80, 80)
-        line.Thickness = 1.5
-        line.Visible = true
-        table.insert(crosshairObjects, line)
-        table.insert(lines, line)
+local function updateCrosshair()
+    if not customCrosshair then
+        if crosshairCenter then crosshairCenter:Remove() end
+        for _, line in ipairs(crosshairLines) do pcall(function() line:Remove() end) end
+        crosshairCenter = nil
+        crosshairLines = {}
+        return
     end
 
-    return center, lines
-end
-
-local function updateCrosshair(center, lines)
-    if not customCrosshair or not center then return end
-    
     local viewport = workspace.CurrentCamera.ViewportSize
     local centerX = viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2)
     local centerY = viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
-    
-    center.Position = Vector2.new(centerX, centerY)
-    
-    local len = 6
-    lines[1].From = Vector2.new(centerX - len, centerY)
-    lines[1].To = Vector2.new(centerX - len - 4, centerY)
-    
-    lines[2].From = Vector2.new(centerX + len, centerY)
-    lines[2].To = Vector2.new(centerX + len + 4, centerY)
-    
-    lines[3].From = Vector2.new(centerX, centerY - len)
-    lines[3].To = Vector2.new(centerX, centerY - len - 4)
-    
-    lines[4].From = Vector2.new(centerX, centerY + len)
-    lines[4].To = Vector2.new(centerX, centerY + len + 4)
+    local pos = Vector2.new(centerX, centerY)
+
+    if not crosshairCenter then
+        crosshairCenter = Drawing.new("Circle")
+        crosshairCenter.Radius = 3
+        crosshairCenter.Filled = false
+        crosshairCenter.Thickness = 1.5
+        crosshairCenter.Color = Color3.fromRGB(255, 80, 80)
+        crosshairCenter.Visible = true
+
+        for i = 1, 4 do
+            local line = Drawing.new("Line")
+            line.Color = Color3.fromRGB(255, 80, 80)
+            line.Thickness = 1.5
+            line.Visible = true
+            table.insert(crosshairLines, line)
+        end
+    end
+
+    crosshairCenter.Position = pos
+    crosshairCenter.Visible = true
+
+    local gap = 5
+    local len = 10
+    crosshairLines[1].From = Vector2.new(pos.X - gap, pos.Y)
+    crosshairLines[1].To = Vector2.new(pos.X - gap - len, pos.Y)
+    crosshairLines[1].Visible = true
+
+    crosshairLines[2].From = Vector2.new(pos.X + gap, pos.Y)
+    crosshairLines[2].To = Vector2.new(pos.X + gap + len, pos.Y)
+    crosshairLines[2].Visible = true
+
+    crosshairLines[3].From = Vector2.new(pos.X, pos.Y - gap)
+    crosshairLines[3].To = Vector2.new(pos.X, pos.Y - gap - len)
+    crosshairLines[3].Visible = true
+
+    crosshairLines[4].From = Vector2.new(pos.X, pos.Y + gap)
+    crosshairLines[4].To = Vector2.new(pos.X, pos.Y + gap + len)
+    crosshairLines[4].Visible = true
 end
 
 local function getAimPoint()
@@ -998,18 +1001,8 @@ addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
 
 local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
     customCrosshair = state
-    if customCrosshair then
-        createCrosshair()
-    else
-        for _, obj in ipairs(crosshairObjects) do
-            pcall(function() obj:Remove() end)
-        end
-        crosshairObjects = {}
-    end
+    updateCrosshair()
 end, false)
-
-local crosshairCenter, crosshairLines = nil, nil
-crosshairCenter, crosshairLines = createCrosshair()
 
 runService.RenderStepped:Connect(function()
     if showZone then
@@ -1017,7 +1010,7 @@ runService.RenderStepped:Connect(function()
     end
     
     if customCrosshair then
-        updateCrosshair(crosshairCenter, crosshairLines)
+        updateCrosshair()
     end
     
     local closest = getClosestPlayerToCursor(aimpart)
