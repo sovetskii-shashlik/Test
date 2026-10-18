@@ -1,9 +1,9 @@
 --[[
     AIMBOT SCRIPT
-
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair
+    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
+    Fixed: Accurate Crosshair Aiming
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -533,6 +533,8 @@ local nonfriends = false
 local aimpart = "Head"
 local notAggressive = false
 local detectRange = 500
+local superAim = false
+local superAimAngle = 45
 
 local aimOffsetYaw = 0
 local aimOffsetPitch = 0
@@ -548,28 +550,15 @@ local customCrosshair = false
 local crosshairCenter = nil
 local crosshairLines = {}
 
-local function updateCrosshair()
-    if not customCrosshair then
-        if crosshairCenter then crosshairCenter:Remove() end
-        for _, line in ipairs(crosshairLines) do pcall(function() line:Remove() end) end
-        crosshairCenter = nil
-        crosshairLines = {}
-        return
-    end
-
-    local viewport = workspace.CurrentCamera.ViewportSize
-    local centerX = viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2)
-    local centerY = viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
-    local pos = Vector2.new(centerX, centerY)
-
+local function createCrosshair()
     if not crosshairCenter then
         crosshairCenter = Drawing.new("Circle")
-        crosshairCenter.Radius = 3
-        crosshairCenter.Filled = false
-        crosshairCenter.Thickness = 1.5
+        crosshairCenter.Radius = 2
+        crosshairCenter.Filled = true
         crosshairCenter.Color = Color3.fromRGB(255, 80, 80)
+        crosshairCenter.Transparency = 1
         crosshairCenter.Visible = true
-
+        
         for i = 1, 4 do
             local line = Drawing.new("Line")
             line.Color = Color3.fromRGB(255, 80, 80)
@@ -578,12 +567,38 @@ local function updateCrosshair()
             table.insert(crosshairLines, line)
         end
     end
+end
+
+local function getAimScreenPos()
+    local viewport = workspace.CurrentCamera.ViewportSize
+    if customCrosshair then
+        return Vector2.new(
+            viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2),
+            viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
+        )
+    end
+    return Vector2.new(viewport.X / 2, viewport.Y / 2)
+end
+
+local function updateCrosshair()
+    if not customCrosshair then
+        if crosshairCenter then crosshairCenter.Visible = false end
+        for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end
+        return
+    end
+
+    if not crosshairCenter then
+        createCrosshair()
+    end
+
+    local pos = getAimScreenPos()
 
     crosshairCenter.Position = pos
     crosshairCenter.Visible = true
 
     local gap = 5
     local len = 10
+    
     crosshairLines[1].From = Vector2.new(pos.X - gap, pos.Y)
     crosshairLines[1].To = Vector2.new(pos.X - gap - len, pos.Y)
     crosshairLines[1].Visible = true
@@ -601,24 +616,40 @@ local function updateCrosshair()
     crosshairLines[4].Visible = true
 end
 
-local function getAimPoint()
-    if customCrosshair then
-        local viewport = workspace.CurrentCamera.ViewportSize
-        local centerX = viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2)
-        local centerY = viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
-        return Vector2.new(centerX, centerY)
-    else
-        return Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
-    end
+-- ИСПРАВЛЕННАЯ ФУНКЦИЯ (Точное наведение на крестик)
+local function getCFrameToTarget(targetPos)
+    local camera = workspace.CurrentCamera
+    local viewport = camera.ViewportSize
+    local aimPos = getAimScreenPos()
+    
+    -- 1. Получаем базовый CFrame, смотрящий прямо на цель
+    local baseCFrame = CFrame.new(camera.CFrame.Position, targetPos)
+    
+    -- 2. Вычисляем, где цель оказалась на экране при этом CFrame
+    local screenPoint = camera:WorldToViewportPoint(targetPos) -- будет в центре (viewport.X/2)
+    
+    -- 3. Вычисляем разницу в пикселях между целью и нашим крестиком
+    local deltaX = aimPos.X - (viewport.X / 2)
+    local deltaY = aimPos.Y - (viewport.Y / 2)
+    
+    -- 4. Переводим пиксели в радианы. Используем FOV камеры (по умолчанию 70).
+    -- Формула: (delta / (viewport / 2)) * tan(rad(FOV/2))
+    local fov = math.rad(camera.FieldOfView)
+    local yawOffset = math.atan(deltaX / (viewport.X / 2) * math.tan(fov / 2))
+    local pitchOffset = math.atan(deltaY / (viewport.Y / 2) * math.tan(fov / 2))
+    
+    -- 5. Поворачиваем базовый CFrame на эти углы, чтобы цель сместилась в крестик
+    -- (Знаки минуса зависят от того, как Roblox считает Yaw и Pitch)
+    return baseCFrame * CFrame.Angles(pitchOffset, -yawOffset, 0)
 end
 
-function lookAt(target, eye)
-    workspace.CurrentCamera.CFrame = CFrame.new(target, eye)
+function lookAt(targetPos)
+    workspace.CurrentCamera.CFrame = getCFrameToTarget(targetPos)
 end
 
-function lookAtSmooth(target, eye, alpha)
+function lookAtSmooth(targetPos, alpha)
     local currentCFrame = workspace.CurrentCamera.CFrame
-    local targetCFrame = CFrame.new(target, eye)
+    local targetCFrame = getCFrameToTarget(targetPos)
     workspace.CurrentCamera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
 end
 
@@ -629,6 +660,18 @@ function getAngleToTarget(aimobj)
     local directionToTarget = (aimobj.Position - cameraPos).Unit
     local dot = cameraLook:Dot(directionToTarget)
     local angle = math.deg(math.acos(math.clamp(dot, -1, 1)))
+    return angle
+end
+
+local function getAngleFromAimToTarget(aimobj)
+    local camera = workspace.CurrentCamera
+    local viewport = camera.ViewportSize
+    local screenPos = camera:WorldToViewportPoint(aimobj.Position)
+    local targetScreen = Vector2.new(screenPos.X, screenPos.Y)
+    local aimPos = getAimScreenPos()
+    local diff = (targetScreen - aimPos).Magnitude
+    local fov = 70
+    local angle = (diff / math.max(viewport.X, viewport.Y)) * fov
     return angle
 end
 
@@ -663,7 +706,7 @@ function getClosestPlayerToCursor(trg_part)
     local localPlayer = plrsService.LocalPlayer
     local myPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
 
-    local aimPoint = getAimPoint()
+    local aimPoint = getAimScreenPos()
 
     for i, v in ipairs(plrsService:GetPlayers()) do
         if v ~= localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChildWhichIsA("Humanoid") and localPlayer.Character:FindFirstChildWhichIsA("Humanoid").Health > 0
@@ -969,6 +1012,10 @@ end, false)
 
 addNAComboBox()
 
+local toggleSuperAimBtn = addToggle("Super Aim (Snap to target)", function(state)
+    superAim = state
+end, false)
+
 local toggleZoneBtn = addToggle("Show Zone", function(state)
     showZone = state
     if showZone then
@@ -1001,29 +1048,43 @@ addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
 
 local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
     customCrosshair = state
-    updateCrosshair()
+    if customCrosshair then
+        createCrosshair()
+    else
+        if crosshairCenter then crosshairCenter.Visible = false end
+        for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end
+    end
 end, false)
 
 runService.RenderStepped:Connect(function()
+    updateCrosshair()
+    
     if showZone then
         updateZoneGUI()
     end
     
-    if customCrosshair then
-        updateCrosshair()
+    local closest = getClosestPlayerToCursor(aimpart)
+    
+    if superAim and closest then
+        local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
+        if aimobj then
+            local angleFromAim = getAngleFromAimToTarget(aimobj)
+            if angleFromAim <= superAimAngle then
+                lookAtSmooth(aimobj.Position, 0.25)
+            end
+        end
     end
     
-    local closest = getClosestPlayerToCursor(aimpart)
     if enabled and closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
         if aimobj then
             if notAggressive then
                 local angle = getAngleToTarget(aimobj)
                 if angle <= naZoneAngle then
-                    lookAtSmooth(workspace.CurrentCamera.CFrame.p, aimobj.Position, naSmoothness)
+                    lookAtSmooth(aimobj.Position, naSmoothness)
                 end
             else
-                lookAt(workspace.CurrentCamera.CFrame.p, aimobj.Position)
+                lookAt(aimobj.Position)
             end
         end
     end
