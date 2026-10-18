@@ -3,7 +3,7 @@
 
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer
+    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -532,6 +532,7 @@ local wallcheck = false
 local nonfriends = false
 local aimpart = "Head"
 local notAggressive = false
+local detectRange = 500
 
 local aimOffsetYaw = 0
 local aimOffsetPitch = 0
@@ -598,6 +599,7 @@ function getClosestPlayerToCursor(trg_part)
     local nearest = nil
     local last = math.huge
     local localPlayer = plrsService.LocalPlayer
+    local myPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
 
     for i, v in ipairs(plrsService:GetPlayers()) do
         if v ~= localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChildWhichIsA("Humanoid") and localPlayer.Character:FindFirstChildWhichIsA("Humanoid").Health > 0
@@ -616,19 +618,22 @@ function getClosestPlayerToCursor(trg_part)
                 local aimobj = v.Character:FindFirstChild(trg_part) or v.Character:FindFirstChild("UpperTorso")
                 if aimobj then
                     if localPlayer.Character:FindFirstChild("Head") then
-                        local ePos, vissss = workspace.CurrentCamera:WorldToViewportPoint(aimobj.Position)
-                        local AccPos = Vector2.new(ePos.x, ePos.y)
-                        local mousePos = Vector2.new(workspace.CurrentCamera.ViewportSize.x / 2, workspace.CurrentCamera.ViewportSize.y / 2)
-                        local distance = (AccPos - mousePos).magnitude
+                        local distanceToPlayer = myPos and (aimobj.Position - myPos).Magnitude or 0
+                        if distanceToPlayer <= detectRange then
+                            local ePos, vissss = workspace.CurrentCamera:WorldToViewportPoint(aimobj.Position)
+                            local AccPos = Vector2.new(ePos.x, ePos.y)
+                            local mousePos = Vector2.new(workspace.CurrentCamera.ViewportSize.x / 2, workspace.CurrentCamera.ViewportSize.y / 2)
+                            local distance = (AccPos - mousePos).magnitude
 
-                        local visibleThroughWalls = true
-                        if wallcheck then
-                            visibleThroughWalls = isVisible(aimobj)
-                        end
+                            local visibleThroughWalls = true
+                            if wallcheck then
+                                visibleThroughWalls = isVisible(aimobj)
+                            end
 
-                        if distance < last and vissss and distance < 400 and visibleThroughWalls then
-                            last = distance
-                            nearest = v
+                            if distance < last and vissss and distance < 400 and visibleThroughWalls then
+                                last = distance
+                                nearest = v
+                            end
                         end
                     end
                 end
@@ -638,7 +643,6 @@ function getClosestPlayerToCursor(trg_part)
     return nearest
 end
 
--- Zone Visualizer
 local function createZoneGUI()
     if zoneGui then zoneGui:Destroy() end
     zoneGui = Instance.new("ScreenGui")
@@ -676,7 +680,6 @@ local function updateZoneGUI()
     circle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
 end
 
--- Add combobox with -5/+5 buttons and percentage indicator
 local function addOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -685,7 +688,7 @@ local function addOffsetComboBox(text, initialValue, onChange)
 
     local function updateText()
         local percent = math.floor((currentValue / 45) * 100)
-        newCombo:WaitForChild("Name").Text = string.format("%s: %d° (%d%%)", text, currentValue, percent)
+        newCombo:WaitForChild("Name").Text = string.format("%s: %.1f° (%d%%)", text, currentValue, percent)
     end
 
     local function setBoxState()
@@ -710,47 +713,38 @@ local function addOffsetComboBox(text, initialValue, onChange)
     elements += 1
     addSpace(Menu)
 
-    -- Add -5 and +5 buttons
-    local minusBtn = ComboElem:Clone()
-    minusBtn:WaitForChild("Name").Text = "-5°"
-    minusBtn.Size = UDim2.new(0.95, 0, 0, element_height)
-    minusBtn.Name = "-5"
-    minusBtn.Parent = Menu
-    minusBtn.LayoutOrder = elements
-    minusBtn.Visible = false
-    table.insert(elems, minusBtn)
+    local buttons = {
+        {label = "-5°",   value = -5},
+        {label = "-2.5°", value = -2.5},
+        {label = "-1°",   value = -1},
+        {label = "+1°",   value = 1},
+        {label = "+2.5°", value = 2.5},
+        {label = "+5°",   value = 5},
+    }
 
-    minusBtn.MouseButton1Click:Connect(function()
-        currentValue = math.clamp(currentValue - 5, -45, 45)
-        updateText()
-        onChange(currentValue)
-    end)
+    for _, btnData in ipairs(buttons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
 
-    elements += 1
-    addSpace(Menu)
+        btn.MouseButton1Click:Connect(function()
+            currentValue = math.clamp(currentValue + btnData.value, -45, 45)
+            updateText()
+            onChange(currentValue)
+        end)
 
-    local plusBtn = ComboElem:Clone()
-    plusBtn:WaitForChild("Name").Text = "+5°"
-    plusBtn.Size = UDim2.new(0.95, 0, 0, element_height)
-    plusBtn.Name = "+5"
-    plusBtn.Parent = Menu
-    plusBtn.LayoutOrder = elements
-    plusBtn.Visible = false
-    table.insert(elems, plusBtn)
-
-    plusBtn.MouseButton1Click:Connect(function()
-        currentValue = math.clamp(currentValue + 5, -45, 45)
-        updateText()
-        onChange(currentValue)
-    end)
-
-    elements += 1
-    addSpace(Menu)
+        elements += 1
+        addSpace(Menu)
+    end
 
     return newCombo
 end
 
--- Not Aggressive Advanced Combo
 local function addNAComboBox()
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -782,112 +776,121 @@ local function addNAComboBox()
     elements += 1
     addSpace(Menu)
 
-    -- Speed +/- 
-    local speedMinus = ComboElem:Clone()
-    speedMinus:WaitForChild("Name").Text = "Speed -10%"
-    speedMinus.Size = UDim2.new(0.95, 0, 0, element_height)
-    speedMinus.Name = "SpeedMinus"
-    speedMinus.Parent = Menu
-    speedMinus.LayoutOrder = elements
-    speedMinus.Visible = false
-    table.insert(elems, speedMinus)
+    local speedButtons = {
+        {label = "Speed -10%", value = -0.1},
+        {label = "Speed -5%",  value = -0.05},
+        {label = "Speed +5%",  value = 0.05},
+        {label = "Speed +10%", value = 0.1},
+    }
 
-    speedMinus.MouseButton1Click:Connect(function()
-        naSmoothness = math.clamp(naSmoothness - 0.1, 0.1, 1)
-        updateText()
+    for _, btnData in ipairs(speedButtons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            naSmoothness = math.clamp(naSmoothness + btnData.value, 0.1, 1)
+            updateText()
+        end)
+
+        elements += 1
+        addSpace(Menu)
+    end
+
+    local forceButtons = {
+        {label = "Tactility -10%", value = 0.1},
+        {label = "Tactility -5%",  value = 0.05},
+        {label = "Tactility +5%",  value = -0.05},
+        {label = "Tactility +10%", value = -0.1},
+    }
+
+    for _, btnData in ipairs(forceButtons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            naFlickForce = math.clamp(naFlickForce + btnData.value, 0, 1)
+            updateText()
+        end)
+
+        elements += 1
+        addSpace(Menu)
+    end
+
+    local zoneButtons = {
+        {label = "Zone -5°",   value = -5},
+        {label = "Zone -2.5°", value = -2.5},
+        {label = "Zone -1°",   value = -1},
+        {label = "Zone +1°",   value = 1},
+        {label = "Zone +2.5°", value = 2.5},
+        {label = "Zone +5°",   value = 5},
+    }
+
+    for _, btnData in ipairs(zoneButtons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            naZoneAngle = math.clamp(naZoneAngle + btnData.value, 5, 180)
+            updateText()
+            updateZoneGUI()
+        end)
+
+        elements += 1
+        addSpace(Menu)
+    end
+end
+
+local function addTextBox(text, initialText, onChange)
+    local newBox = Instance.new("TextBox")
+    newBox.Size = UDim2.new(0.95, 0, 0, element_height)
+    newBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    newBox.BorderSizePixel = 0
+    newBox.Text = initialText
+    newBox.PlaceholderText = text
+    newBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    newBox.Font = Enum.Font.TitilliumWeb
+    newBox.TextSize = 14
+    newBox.TextScaled = true
+    newBox.ClearTextOnFocus = false
+    newBox.Parent = Menu
+    newBox.LayoutOrder = elements
+    newBox.Visible = true
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.25, 0)
+    corner.Parent = newBox
+
+    newBox.FocusLost:Connect(function()
+        local num = tonumber(newBox.Text)
+        if num and num > 0 then
+            onChange(num)
+        else
+            newBox.Text = tostring(initialText)
+        end
     end)
 
     elements += 1
     addSpace(Menu)
 
-    local speedPlus = ComboElem:Clone()
-    speedPlus:WaitForChild("Name").Text = "Speed +10%"
-    speedPlus.Size = UDim2.new(0.95, 0, 0, element_height)
-    speedPlus.Name = "SpeedPlus"
-    speedPlus.Parent = Menu
-    speedPlus.LayoutOrder = elements
-    speedPlus.Visible = false
-    table.insert(elems, speedPlus)
-
-    speedPlus.MouseButton1Click:Connect(function()
-        naSmoothness = math.clamp(naSmoothness + 0.1, 0.1, 1)
-        updateText()
-    end)
-
-    elements += 1
-    addSpace(Menu)
-
-    -- Force (Tactility)
-    local forceMinus = ComboElem:Clone()
-    forceMinus:WaitForChild("Name").Text = "Tactility -10%"
-    forceMinus.Size = UDim2.new(0.95, 0, 0, element_height)
-    forceMinus.Name = "ForceMinus"
-    forceMinus.Parent = Menu
-    forceMinus.LayoutOrder = elements
-    forceMinus.Visible = false
-    table.insert(elems, forceMinus)
-
-    forceMinus.MouseButton1Click:Connect(function()
-        naFlickForce = math.clamp(naFlickForce + 0.05, 0, 1)
-        updateText()
-    end)
-
-    elements += 1
-    addSpace(Menu)
-
-    local forcePlus = ComboElem:Clone()
-    forcePlus:WaitForChild("Name").Text = "Tactility +10%"
-    forcePlus.Size = UDim2.new(0.95, 0, 0, element_height)
-    forcePlus.Name = "ForcePlus"
-    forcePlus.Parent = Menu
-    forcePlus.LayoutOrder = elements
-    forcePlus.Visible = false
-    table.insert(elems, forcePlus)
-
-    forcePlus.MouseButton1Click:Connect(function()
-        naFlickForce = math.clamp(naFlickForce - 0.05, 0, 1)
-        updateText()
-    end)
-
-    elements += 1
-    addSpace(Menu)
-
-    -- Zone
-    local zoneMinus = ComboElem:Clone()
-    zoneMinus:WaitForChild("Name").Text = "Zone -5°"
-    zoneMinus.Size = UDim2.new(0.95, 0, 0, element_height)
-    zoneMinus.Name = "ZoneMinus"
-    zoneMinus.Parent = Menu
-    zoneMinus.LayoutOrder = elements
-    zoneMinus.Visible = false
-    table.insert(elems, zoneMinus)
-
-    zoneMinus.MouseButton1Click:Connect(function()
-        naZoneAngle = math.clamp(naZoneAngle - 5, 5, 180)
-        updateText()
-        updateZoneGUI()
-    end)
-
-    elements += 1
-    addSpace(Menu)
-
-    local zonePlus = ComboElem:Clone()
-    zonePlus:WaitForChild("Name").Text = "Zone +5°"
-    zonePlus.Size = UDim2.new(0.95, 0, 0, element_height)
-    zonePlus.Name = "ZonePlus"
-    zonePlus.Parent = Menu
-    zonePlus.LayoutOrder = elements
-    zonePlus.Visible = false
-    table.insert(elems, zonePlus)
-
-    zonePlus.MouseButton1Click:Connect(function()
-        naZoneAngle = math.clamp(naZoneAngle + 5, 5, 180)
-        updateText()
-        updateZoneGUI()
-    end)
-
-    elements += 1
-    addSpace(Menu)
+    return newBox
 end
 
 local toggleBtn
@@ -919,6 +922,8 @@ local aimPartCombo
 aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
     aimpart = selection
 end)
+
+addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
 addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
 addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
