@@ -4,6 +4,7 @@
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
     Fixed: Accurate Crosshair Aiming
+    Added: Pixel offset combos, Reset button
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -538,6 +539,8 @@ local superAimAngle = 45
 
 local aimOffsetYaw = 0
 local aimOffsetPitch = 0
+local pixelOffsetX = 0
+local pixelOffsetY = 0
 
 local naSmoothness = 0.75
 local naFlickForce = 0.15
@@ -558,7 +561,7 @@ local function createCrosshair()
         crosshairCenter.Color = Color3.fromRGB(255, 80, 80)
         crosshairCenter.Transparency = 1
         crosshairCenter.Visible = true
-        
+
         for i = 1, 4 do
             local line = Drawing.new("Line")
             line.Color = Color3.fromRGB(255, 80, 80)
@@ -573,8 +576,8 @@ local function getAimScreenPos()
     local viewport = workspace.CurrentCamera.ViewportSize
     if customCrosshair then
         return Vector2.new(
-            viewport.X / 2 + (aimOffsetYaw / 45) * (viewport.X / 2),
-            viewport.Y / 2 - (aimOffsetPitch / 45) * (viewport.Y / 2)
+            viewport.X / 2 + pixelOffsetX,
+            viewport.Y / 2 + pixelOffsetY
         )
     end
     return Vector2.new(viewport.X / 2, viewport.Y / 2)
@@ -598,7 +601,7 @@ local function updateCrosshair()
 
     local gap = 5
     local len = 10
-    
+
     crosshairLines[1].From = Vector2.new(pos.X - gap, pos.Y)
     crosshairLines[1].To = Vector2.new(pos.X - gap - len, pos.Y)
     crosshairLines[1].Visible = true
@@ -616,30 +619,21 @@ local function updateCrosshair()
     crosshairLines[4].Visible = true
 end
 
--- ИСПРАВЛЕННАЯ ФУНКЦИЯ (Точное наведение на крестик)
 local function getCFrameToTarget(targetPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
     local aimPos = getAimScreenPos()
-    
-    -- 1. Получаем базовый CFrame, смотрящий прямо на цель
+
     local baseCFrame = CFrame.new(camera.CFrame.Position, targetPos)
-    
-    -- 2. Вычисляем, где цель оказалась на экране при этом CFrame
-    local screenPoint = camera:WorldToViewportPoint(targetPos) -- будет в центре (viewport.X/2)
-    
-    -- 3. Вычисляем разницу в пикселях между целью и нашим крестиком
+    local screenPoint = camera:WorldToViewportPoint(targetPos)
+
     local deltaX = aimPos.X - (viewport.X / 2)
     local deltaY = aimPos.Y - (viewport.Y / 2)
-    
-    -- 4. Переводим пиксели в радианы. Используем FOV камеры (по умолчанию 70).
-    -- Формула: (delta / (viewport / 2)) * tan(rad(FOV/2))
+
     local fov = math.rad(camera.FieldOfView)
     local yawOffset = math.atan(deltaX / (viewport.X / 2) * math.tan(fov / 2))
     local pitchOffset = math.atan(deltaY / (viewport.Y / 2) * math.tan(fov / 2))
-    
-    -- 5. Поворачиваем базовый CFrame на эти углы, чтобы цель сместилась в крестик
-    -- (Знаки минуса зависят от того, как Roblox считает Yaw и Pitch)
+
     return baseCFrame * CFrame.Angles(pitchOffset, -yawOffset, 0)
 end
 
@@ -886,6 +880,72 @@ local function addOffsetComboBox(text, initialValue, onChange)
     return newCombo
 end
 
+local function addPixelOffsetComboBox(text, initialValue, onChange)
+    local newCombo = ComboBox:Clone()
+    local isOpen = false
+    local currentValue = initialValue or 0
+    local elems = {}
+
+    local function updateText()
+        newCombo:WaitForChild("Name").Text = string.format("%s: %d px", text, currentValue)
+    end
+
+    local function setBoxState()
+        newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
+    end
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
+    updateText()
+    newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+    newCombo.Name = text
+    newCombo.Parent = Menu
+    newCombo.LayoutOrder = elements
+    newCombo.Visible = true
+
+    elements += 1
+    addSpace(Menu)
+
+    local buttons = {
+        {label = "-10px", value = -10},
+        {label = "-5px",  value = -5},
+        {label = "-2.5px",value = -2.5},
+        {label = "-1px",  value = -1},
+        {label = "+1px",  value = 1},
+        {label = "+2.5px",value = 2.5},
+        {label = "+5px",  value = 5},
+        {label = "+10px", value = 10},
+    }
+
+    for _, btnData in ipairs(buttons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            currentValue = currentValue + btnData.value
+            updateText()
+            onChange(currentValue)
+        end)
+
+        elements += 1
+        addSpace(Menu)
+    end
+
+    return newCombo
+end
+
 local function addNAComboBox()
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1046,6 +1106,9 @@ end)
 addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
 addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
 
+addPixelOffsetComboBox("Pixel X Offset", 0, function(v) pixelOffsetX = v end)
+addPixelOffsetComboBox("Pixel Y Offset", 0, function(v) pixelOffsetY = v end)
+
 local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
     customCrosshair = state
     if customCrosshair then
@@ -1056,15 +1119,32 @@ local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
     end
 end, false)
 
+local resetBtn = addButton("Reset Settings", function()
+    aimOffsetYaw = 0
+    aimOffsetPitch = 0
+    pixelOffsetX = 0
+    pixelOffsetY = 0
+    naSmoothness = 0.75
+    naFlickForce = 0.15
+    naZoneAngle = 60
+    detectRange = 500
+    
+    StarterGui:SetCore("SendNotification", {
+        Title = "Reset",
+        Text = "All settings reset to default",
+        Duration = 2
+    })
+end)
+
 runService.RenderStepped:Connect(function()
     updateCrosshair()
-    
+
     if showZone then
         updateZoneGUI()
     end
-    
+
     local closest = getClosestPlayerToCursor(aimpart)
-    
+
     if superAim and closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
         if aimobj then
@@ -1074,7 +1154,7 @@ runService.RenderStepped:Connect(function()
             end
         end
     end
-    
+
     if enabled and closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
         if aimobj then
