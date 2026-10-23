@@ -3,8 +3,7 @@
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
-    Fixed: Accurate Crosshair Aiming
-    Added: Pixel offset combos, Reset button
+    Fixed: Accurate Crosshair Aiming, Reset button, Combined offsets display
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -411,6 +410,7 @@ end
 
 local element_height = 50*Menu.AbsoluteSize.Y/210
 local elements = 0
+local updateCallbacks = {} -- Хранилище функций обновления текста
 
 local function addSpace(parent)
     local space = tab:Clone()
@@ -575,9 +575,12 @@ end
 local function getAimScreenPos()
     local viewport = workspace.CurrentCamera.ViewportSize
     if customCrosshair then
+        local fov = math.rad(workspace.CurrentCamera.FieldOfView)
+        local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / math.tan(fov / 2)) * (viewport.X / 2)
+        local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / math.tan(fov / 2)) * (viewport.Y / 2)
         return Vector2.new(
-            viewport.X / 2 + pixelOffsetX,
-            viewport.Y / 2 + pixelOffsetY
+            viewport.X / 2 + pixelOffsetX + yawPixels,
+            viewport.Y / 2 + pixelOffsetY + pitchPixels
         )
     end
     return Vector2.new(viewport.X / 2, viewport.Y / 2)
@@ -625,7 +628,6 @@ local function getCFrameToTarget(targetPos)
     local aimPos = getAimScreenPos()
 
     local baseCFrame = CFrame.new(camera.CFrame.Position, targetPos)
-    local screenPoint = camera:WorldToViewportPoint(targetPos)
 
     local deltaX = aimPos.X - (viewport.X / 2)
     local deltaY = aimPos.Y - (viewport.Y / 2)
@@ -822,8 +824,14 @@ local function addOffsetComboBox(text, initialValue, onChange)
     local elems = {}
 
     local function updateText()
+        -- Отображаем градусы + пересчитанные пиксели
+        local viewport = workspace.CurrentCamera.ViewportSize
+        local fov = math.rad(workspace.CurrentCamera.FieldOfView)
+        local pixelValue = (math.tan(math.rad(currentValue)) / math.tan(fov / 2)) * (viewport.X / 2)
+        pixelValue = math.floor(pixelValue + pixelOffsetX) -- Складываем с текущим пиксельным оффсетом
+        
         local percent = math.floor((currentValue / 45) * 100)
-        newCombo:WaitForChild("Name").Text = string.format("%s: %.1f° (%d%%)", text, currentValue, percent)
+        newCombo:WaitForChild("Name").Text = string.format("%s: %.1f° (%d%%) [~%d px]", text, currentValue, percent, pixelValue)
     end
 
     local function setBoxState()
@@ -839,6 +847,8 @@ local function addOffsetComboBox(text, initialValue, onChange)
     end)
 
     updateText()
+    table.insert(updateCallbacks, updateText) -- Сохраняем для сброса
+    
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = text
     newCombo.Parent = Menu
@@ -887,7 +897,13 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     local elems = {}
 
     local function updateText()
-        newCombo:WaitForChild("Name").Text = string.format("%s: %d px", text, currentValue)
+        -- Отображаем пиксели + пересчитанные градусы
+        local viewport = workspace.CurrentCamera.ViewportSize
+        local fov = math.rad(workspace.CurrentCamera.FieldOfView)
+        local degreesValue = math.deg(math.atan((currentValue / (viewport.X / 2)) * math.tan(fov / 2)))
+        degreesValue = degreesValue + aimOffsetYaw -- Складываем с текущим градусным оффсетом
+        
+        newCombo:WaitForChild("Name").Text = string.format("%s: %d px [~%.1f°]", text, currentValue, degreesValue)
     end
 
     local function setBoxState()
@@ -903,6 +919,8 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     end)
 
     updateText()
+    table.insert(updateCallbacks, updateText) -- Сохраняем для сброса
+
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = text
     newCombo.Parent = Menu
@@ -968,6 +986,8 @@ local function addNAComboBox()
     end)
 
     updateText()
+    table.insert(updateCallbacks, updateText) -- Сохраняем для сброса
+
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = "NotAggressiveSettings"
     newCombo.Parent = Menu
@@ -1128,6 +1148,11 @@ local resetBtn = addButton("Reset Settings", function()
     naFlickForce = 0.15
     naZoneAngle = 60
     detectRange = 500
+    
+    -- Обновляем все текстовые поля
+    for _, callback in ipairs(updateCallbacks) do
+        pcall(callback)
+    end
     
     StarterGui:SetCore("SendNotification", {
         Title = "Reset",
