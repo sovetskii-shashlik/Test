@@ -4,6 +4,7 @@
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
     Fixed: Accurate Crosshair Aiming, Reset button, Combined offsets display
+    Added: Target Priority (Closest/Item), Whitelists (Players/Teams)
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -410,7 +411,7 @@ end
 
 local element_height = 50*Menu.AbsoluteSize.Y/210
 local elements = 0
-local updateCallbacks = {} -- Хранилище функций обновления текста
+local updateCallbacks = {}
 
 local function addSpace(parent)
     local space = tab:Clone()
@@ -552,6 +553,12 @@ local zoneGui = nil
 local customCrosshair = false
 local crosshairCenter = nil
 local crosshairLines = {}
+
+-- WHITELISTS
+local whitelistPlayers = {}
+local whitelistTeams = {}
+local whitelistPanelPlayers = nil
+local whitelistPanelTeams = nil
 
 local function createCrosshair()
     if not crosshairCenter then
@@ -696,9 +703,23 @@ function isFriend(player)
     return success and isFriend
 end
 
+local function isWhitelisted(player)
+    if whitelistPlayers[player.UserId] then return true end
+    if player.Team and whitelistTeams[player.Team.Name] then return true end
+    return false
+end
+
+local function hasItem(player)
+    local char = player.Character
+    if not char then return false end
+    return char:FindFirstChildWhichIsA("Tool") ~= nil
+end
+
+local priorityClosest = false
+local priorityItem = false
+
 function getClosestPlayerToCursor(trg_part)
-    local nearest = nil
-    local last = math.huge
+    local candidates = {}
     local localPlayer = plrsService.LocalPlayer
     local myPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
 
@@ -717,6 +738,18 @@ function getClosestPlayerToCursor(trg_part)
                 allowed = false
             end
 
+            -- Whitelist check
+            if isWhitelisted(v) then
+                allowed = false
+            end
+
+            -- Если nonfriends включен, друзья идут в приоритет (но не под сброс)
+            local isFriendPriority = false
+            if nonfriends and isFriend(v) then
+                isFriendPriority = true
+                allowed = false -- они не цели, но мы их подсветим
+            end
+
             if allowed then
                 local aimobj = v.Character:FindFirstChild(trg_part) or v.Character:FindFirstChild("UpperTorso")
                 if aimobj then
@@ -732,9 +765,14 @@ function getClosestPlayerToCursor(trg_part)
                                 visibleThroughWalls = isVisible(aimobj)
                             end
 
-                            if distance < last and vissss and distance < 400 and visibleThroughWalls then
-                                last = distance
-                                nearest = v
+                            if vissss and distance < 400 and visibleThroughWalls then
+                                table.insert(candidates, {
+                                    player = v,
+                                    distance = distance,
+                                    worldDistance = distanceToPlayer,
+                                    hasItem = hasItem(v),
+                                    isFriend = isFriendPriority
+                                })
                             end
                         end
                     end
@@ -742,7 +780,37 @@ function getClosestPlayerToCursor(trg_part)
             end
         end
     end
-    return nearest
+
+    if #candidates == 0 then return nil end
+
+    -- Сортировка по приоритетам
+    if priorityClosest and priorityItem then
+        -- 50/50: сортируем по минимальному расстоянию, но если кто-то с предметом ближе - он тоже в приоритете
+        table.sort(candidates, function(a, b)
+            -- Если один с предметом, а другой нет, и предметный приоритет включён, то с предметом идёт первым, если он не слишком далеко
+            if a.hasItem ~= b.hasItem then
+                return a.hasItem -- предметные идут первыми
+            end
+            return a.worldDistance < b.worldDistance
+        end)
+    elseif priorityClosest then
+        table.sort(candidates, function(a, b)
+            return a.worldDistance < b.worldDistance
+        end)
+    elseif priorityItem then
+        table.sort(candidates, function(a, b)
+            if a.hasItem ~= b.hasItem then
+                return a.hasItem
+            end
+            return a.worldDistance < b.worldDistance
+        end)
+    else
+        table.sort(candidates, function(a, b)
+            return a.distance < b.distance
+        end)
+    end
+
+    return candidates[1] and candidates[1].player or nil
 end
 
 local function createZoneGUI()
@@ -824,12 +892,11 @@ local function addOffsetComboBox(text, initialValue, onChange)
     local elems = {}
 
     local function updateText()
-        -- Отображаем градусы + пересчитанные пиксели
         local viewport = workspace.CurrentCamera.ViewportSize
         local fov = math.rad(workspace.CurrentCamera.FieldOfView)
         local pixelValue = (math.tan(math.rad(currentValue)) / math.tan(fov / 2)) * (viewport.X / 2)
-        pixelValue = math.floor(pixelValue + pixelOffsetX) -- Складываем с текущим пиксельным оффсетом
-        
+        pixelValue = math.floor(pixelValue + pixelOffsetX)
+
         local percent = math.floor((currentValue / 45) * 100)
         newCombo:WaitForChild("Name").Text = string.format("%s: %.1f° (%d%%) [~%d px]", text, currentValue, percent, pixelValue)
     end
@@ -847,8 +914,8 @@ local function addOffsetComboBox(text, initialValue, onChange)
     end)
 
     updateText()
-    table.insert(updateCallbacks, updateText) -- Сохраняем для сброса
-    
+    table.insert(updateCallbacks, updateText)
+
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = text
     newCombo.Parent = Menu
@@ -897,12 +964,11 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     local elems = {}
 
     local function updateText()
-        -- Отображаем пиксели + пересчитанные градусы
         local viewport = workspace.CurrentCamera.ViewportSize
         local fov = math.rad(workspace.CurrentCamera.FieldOfView)
         local degreesValue = math.deg(math.atan((currentValue / (viewport.X / 2)) * math.tan(fov / 2)))
-        degreesValue = degreesValue + aimOffsetYaw -- Складываем с текущим градусным оффсетом
-        
+        degreesValue = degreesValue + aimOffsetYaw
+
         newCombo:WaitForChild("Name").Text = string.format("%s: %d px [~%.1f°]", text, currentValue, degreesValue)
     end
 
@@ -919,7 +985,7 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     end)
 
     updateText()
-    table.insert(updateCallbacks, updateText) -- Сохраняем для сброса
+    table.insert(updateCallbacks, updateText)
 
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = text
@@ -986,7 +1052,7 @@ local function addNAComboBox()
     end)
 
     updateText()
-    table.insert(updateCallbacks, updateText) -- Сохраняем для сброса
+    table.insert(updateCallbacks, updateText)
 
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = "NotAggressiveSettings"
@@ -1079,65 +1145,142 @@ local function addNAComboBox()
     end
 end
 
--- ORDER OF UI ELEMENTS
+local function refreshWhitelistPlayers()
+    if not whitelistPanelPlayers then return end
+    for _, child in ipairs(whitelistPanelPlayers:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    for _, player in ipairs(plrsService:GetPlayers()) do
+        if player ~= plrsService.LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(0.95, 0, 0, 25)
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            btn.TextColor3 = whitelistPlayers[player.UserId] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 50, 50)
+            btn.Text = player.Name
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 12
+            btn.Parent = whitelistPanelPlayers
+            local c = Instance.new("UICorner", btn)
+            c.CornerRadius = UDim.new(0, 4)
+            btn.MouseButton1Click:Connect(function()
+                if whitelistPlayers[player.UserId] then
+                    whitelistPlayers[player.UserId] = nil
+                else
+                    whitelistPlayers[player.UserId] = true
+                end
+                refreshWhitelistPlayers()
+            end)
+        end
+    end
+end
+
+local function refreshWhitelistTeams()
+    if not whitelistPanelTeams then return end
+    for _, child in ipairs(whitelistPanelTeams:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    local teams = {}
+    for _, player in ipairs(plrsService:GetPlayers()) do
+        if player.Team then teams[player.Team.Name] = true end
+    end
+    for teamName, _ in pairs(teams) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0.95, 0, 0, 25)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        btn.TextColor3 = whitelistTeams[teamName] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 50, 50)
+        btn.Text = teamName
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 12
+        btn.Parent = whitelistPanelTeams
+        local c = Instance.new("UICorner", btn)
+        c.CornerRadius = UDim.new(0, 4)
+        btn.MouseButton1Click:Connect(function()
+            if whitelistTeams[teamName] then
+                whitelistTeams[teamName] = nil
+            else
+                whitelistTeams[teamName] = true
+            end
+            refreshWhitelistTeams()
+        end)
+    end
+end
+
+-- UI Elements Order
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
-local toggleBtn = addToggle("Toggle aimbot", function(state)
-    enabled = state
-end, false)
-
-local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state)
-    notAggressive = state
-end, false)
-
+local toggleBtn = addToggle("Toggle aimbot", function(state) enabled = state end, false)
+local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state) notAggressive = state end, false)
 addNAComboBox()
+local toggleSuperAimBtn = addToggle("Super Aim (Snap to target)", function(state) superAim = state end, false)
+local toggleZoneBtn = addToggle("Show Zone", function(state) showZone = state; if showZone then if not zoneGui then createZoneGUI() end; zoneGui.Enabled = true; updateZoneGUI() else if zoneGui then zoneGui.Enabled = false end end end, false)
+local toggleTeamCheckBtn = addToggle("Team check", function(state) teamcheck = state end, false)
+local toggleNonFriendsBtn = addToggle("Non Friends", function(state) nonfriends = state end, false)
+local toggleWallCheckBtn = addToggle("Wall check", function(state) wallcheck = state end, false)
+local aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection) aimpart = selection end)
 
-local toggleSuperAimBtn = addToggle("Super Aim (Snap to target)", function(state)
-    superAim = state
-end, false)
-
-local toggleZoneBtn = addToggle("Show Zone", function(state)
-    showZone = state
-    if showZone then
-        if not zoneGui then createZoneGUI() end
-        if zoneGui then zoneGui.Enabled = true end
-        updateZoneGUI()
-    else
-        if zoneGui then zoneGui.Enabled = false end
-    end
-end, false)
-
-local toggleTeamCheckBtn = addToggle("Team check", function(state)
-    teamcheck = state
-end, false)
-
-local toggleNonFriendsBtn = addToggle("Non Friends", function(state)
-    nonfriends = state
-end, false)
-
-local toggleWallCheckBtn = addToggle("Wall check", function(state)
-    wallcheck = state
-end, false)
-
-local aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
-    aimpart = selection
-end)
+local togglePriorityClosest = addToggle("Priority: Closest", function(state) priorityClosest = state end, false)
+local togglePriorityItem = addToggle("Priority: Item", function(state) priorityItem = state end, false)
 
 addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
 addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
-
 addPixelOffsetComboBox("Pixel X Offset", 0, function(v) pixelOffsetX = v end)
 addPixelOffsetComboBox("Pixel Y Offset", 0, function(v) pixelOffsetY = v end)
 
-local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
-    customCrosshair = state
-    if customCrosshair then
-        createCrosshair()
-    else
-        if crosshairCenter then crosshairCenter.Visible = false end
-        for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end
-    end
-end, false)
+local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state) customCrosshair = state; if customCrosshair then createCrosshair() else if crosshairCenter then crosshairCenter.Visible = false end; for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end end end, false)
+
+-- WHITELIST PANELS
+local function addExpandablePanel(titleText, contentHeight)
+    local panelBtn = Button:Clone()
+    panelBtn.Size = UDim2.new(0.95, 0, 0, element_height)
+    panelBtn.Name = titleText
+    panelBtn:WaitForChild("Name").Text = titleText
+    panelBtn.Parent = Menu
+    panelBtn.LayoutOrder = elements
+    panelBtn.Visible = true
+
+    elements += 1
+    addSpace(Menu)
+
+    local panel = Instance.new("ScrollingFrame")
+    panel.Size = UDim2.new(0.95, 0, 0, 0)
+    panel.BackgroundTransparency = 1
+    panel.BorderSizePixel = 0
+    panel.ScrollBarThickness = 2
+    panel.CanvasSize = UDim2.new(0, 0, 0, 0)
+    panel.Parent = Menu
+    panel.LayoutOrder = elements
+    panel.Visible = false
+
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = panel
+    layout.Padding = UDim.new(0, 2)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    elements += 1
+    addSpace(Menu)
+
+    local isOpen = false
+    panelBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        panel.Visible = isOpen
+        if isOpen then
+            panel.Size = UDim2.new(0.95, 0, 0, contentHeight)
+        else
+            panel.Size = UDim2.new(0.95, 0, 0, 0)
+        end
+    end)
+
+    return panel
+end
+
+whitelistPanelTeams = addExpandablePanel("Whitelist Teams", 150)
+whitelistPanelPlayers = addExpandablePanel("Whitelist Players", 150)
+
+refreshWhitelistTeams()
+refreshWhitelistPlayers()
+
+plrsService.PlayerAdded:Connect(function() task.wait(1); refreshWhitelistPlayers(); refreshWhitelistTeams() end)
+plrsService.PlayerRemoving:Connect(function() task.wait(1); refreshWhitelistPlayers(); refreshWhitelistTeams() end)
 
 local resetBtn = addButton("Reset Settings", function()
     aimOffsetYaw = 0
@@ -1148,70 +1291,37 @@ local resetBtn = addButton("Reset Settings", function()
     naFlickForce = 0.15
     naZoneAngle = 60
     detectRange = 500
-    
-    -- Обновляем все текстовые поля
-    for _, callback in ipairs(updateCallbacks) do
-        pcall(callback)
-    end
-    
-    StarterGui:SetCore("SendNotification", {
-        Title = "Reset",
-        Text = "All settings reset to default",
-        Duration = 2
-    })
+    for _, callback in ipairs(updateCallbacks) do pcall(callback) end
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Reset", Text = "All settings reset to default (except whitelists)", Duration = 2})
 end)
 
 runService.RenderStepped:Connect(function()
     updateCrosshair()
-
-    if showZone then
-        updateZoneGUI()
-    end
+    if showZone then updateZoneGUI() end
 
     local closest = getClosestPlayerToCursor(aimpart)
 
-    if superAim and closest then
+    if closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
         if aimobj then
-            local angleFromAim = getAngleFromAimToTarget(aimobj)
-            if angleFromAim <= superAimAngle then
-                lookAtSmooth(aimobj.Position, 0.25)
+            if superAim then
+                local angleFromAim = getAngleFromAimToTarget(aimobj)
+                if angleFromAim <= superAimAngle then lookAtSmooth(aimobj.Position, 0.25) end
             end
-        end
-    end
-
-    if enabled and closest then
-        local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
-        if aimobj then
-            if notAggressive then
-                local angle = getAngleToTarget(aimobj)
-                if angle <= naZoneAngle then
-                    lookAtSmooth(aimobj.Position, naSmoothness)
+            if enabled then
+                if notAggressive then
+                    local angle = getAngleToTarget(aimobj)
+                    if angle <= naZoneAngle then lookAtSmooth(aimobj.Position, naSmoothness) end
+                else
+                    lookAt(aimobj.Position)
                 end
-            else
-                lookAt(aimobj.Position)
             end
         end
     end
 end)
 
--- INIT
-
-Main:TweenPosition(
-    UDim2.fromScale(0.5, 0.5),
-    Enum.EasingDirection.In,
-    Enum.EasingStyle.Quad,
-    1, true, nil
-)
-
+Main:TweenPosition(UDim2.fromScale(0.5, 0.5), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 1, true, nil)
 task.wait(1.5)
-Logo:TweenSizeAndPosition(
-    UDim2.fromScale(0.175, 0.175),
-    UDim2.fromScale(0.075, 0.15),
-    Enum.EasingDirection.In,
-    Enum.EasingStyle.Quad,
-    1, true, nil
-)
-
+Logo:TweenSizeAndPosition(UDim2.fromScale(0.175, 0.175), UDim2.fromScale(0.075, 0.15), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 1, true, nil)
 task.wait(1.5)
 TweenService:Create(Intro, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
