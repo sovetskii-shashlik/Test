@@ -4,7 +4,7 @@
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
     Fixed: Accurate Crosshair Aiming, Reset button, Combined offsets display
-    Added: Target Priority (Closest/Item), Whitelists (Players/Teams) in ComboBox style
+    Added: Target Priority (Closest/Item), Whitelists (Players/Teams) via native ComboBox
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -491,6 +491,7 @@ local function addComboBox(text, options, funct, ...)
     newCombo.Name = #options > 0 and options[1] or ""
     newCombo.Parent = Menu
     newCombo.LayoutOrder = elements
+    newCombo.Parent = Menu
     newCombo.Visible = true
 
     elements += 1
@@ -553,7 +554,6 @@ local customCrosshair = false
 local crosshairCenter = nil
 local crosshairLines = {}
 
--- WHITELISTS
 local whitelistPlayers = {}
 local whitelistTeams = {}
 
@@ -1130,8 +1130,9 @@ local function addNAComboBox()
     end
 end
 
--- UI Elements Order
+-- ORDER OF UI ELEMENTS
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
+
 local toggleBtn = addToggle("Toggle aimbot", function(state) enabled = state end, false)
 local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state) notAggressive = state end, false)
 addNAComboBox()
@@ -1145,214 +1146,123 @@ local aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selecti
 local togglePriorityClosest = addToggle("Priority: Closest", function(state) priorityClosest = state end, false)
 local togglePriorityItem = addToggle("Priority: Item", function(state) priorityItem = state end, false)
 
--- Функция для добавления интерактивного выпадающего списка (для белых списков)
-local function addInteractiveComboBox(text, updateCallback)
-    local newCombo = ComboBox:Clone()
-    local isOpen = false
-    local elems = {}
-
-    local function setBoxState()
-        newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
-        for _, elem in ipairs(elems) do
-            elem.Visible = isOpen
-        end
-    end
-
-    newCombo.MouseButton1Click:Connect(function()
-        isOpen = not isOpen
-        setBoxState()
-    end)
-
-    newCombo:WaitForChild("Name").Text = text
-    newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
-    newCombo.Name = text
-    newCombo.Parent = Menu
-    newCombo.LayoutOrder = elements
-    newCombo.Visible = true
-
-    elements += 1
-    addSpace(Menu)
-
-    -- Возвращаем функцию для обновления списка извне
-    local function rebuild(playersList, teamsList)
-        for _, elem in ipairs(elems) do
-            elem:Destroy()
-        end
-        elems = {}
-
-        local function createItem(itemText, isGreen, isBlue, clickFunc)
-            local btn = ComboElem:Clone()
-            btn:WaitForChild("Name").Text = itemText
-            btn.Size = UDim2.new(0.95, 0, 0, element_height)
-            btn.Name = itemText
-            
-            if isBlue then
-                btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(0, 150, 255)
-            elseif isGreen then
-                btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(0, 255, 0)
-            else
-                btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(255, 50, 50)
-            end
-
-            btn.Parent = Menu
-            btn.LayoutOrder = elements
-            btn.Visible = isOpen
-            table.insert(elems, btn)
-
-            btn.MouseButton1Click:Connect(clickFunc)
-            elements += 1
-            addSpace(Menu)
-        end
-
-        if playersList then
-            for _, data in ipairs(playersList) do
-                createItem(data.name, data.isWhitelisted, data.isTeamWhitelisted, data.click)
-            end
-        end
-        
-        if teamsList then
-            for _, data in ipairs(teamsList) do
-                createItem(data.name, data.isWhitelisted, false, data.click)
-            end
-        end
-    end
-
-    return newCombo, rebuild
-end
-
--- Настройка белого списка игроков
-local function refreshWhitelistPlayers(rebuildFunc)
-    local list = {}
-    for _, player in ipairs(plrsService:GetPlayers()) do
-        if player ~= plrsService.LocalPlayer then
-            local isTeamWl = player.Team and whitelistTeams[player.Team.Name]
-            table.insert(list, {
-                name = player.Name .. (player.Team and (" ["..player.Team.Name.."]") or ""),
-                isWhitelisted = whitelistPlayers[player.UserId],
-                isTeamWhitelisted = isTeamWl,
-                click = function()
-                    if whitelistPlayers[player.UserId] then
-                        whitelistPlayers[player.UserId] = nil
-                    else
-                        whitelistPlayers[player.UserId] = true
-                    end
-                    -- Пересобираем список
-                    local newList = {}
-                    for _, p in ipairs(plrsService:GetPlayers()) do
-                        if p ~= plrsService.LocalPlayer then
-                            local isT = p.Team and whitelistTeams[p.Team.Name]
-                            table.insert(newList, {
-                                name = p.Name .. (p.Team and (" ["..p.Team.Name.."]") or ""),
-                                isWhitelisted = whitelistPlayers[p.UserId],
-                                isTeamWhitelisted = isT,
-                                click = function() -- Замыкание сложно, используем простой пересбор
-                                    if whitelistPlayers[p.UserId] then whitelistPlayers[p.UserId] = nil else whitelistPlayers[p.UserId] = true end
-                                    -- Вызовем обновление UI через глобальную функцию
-                                    if _G.UpdateWhitelistPlayers then _G.UpdateWhitelistPlayers() end
-                                end
-                            })
-                        end
-                    end
-                    rebuildFunc(newList, nil)
-                end
-            })
-        end
-    end
-    return list
-end
-
-local function refreshWhitelistTeams(rebuildFunc)
-    local teams = {}
-    for _, player in ipairs(plrsService:GetPlayers()) do
-        if player.Team then teams[player.Team.Name] = true end
-    end
-    local list = {}
-    for teamName, _ in pairs(teams) do
-        table.insert(list, {
-            name = teamName,
-            isWhitelisted = whitelistTeams[teamName],
-            click = function()
-                if whitelistTeams[teamName] then whitelistTeams[teamName] = nil else whitelistTeams[teamName] = true end
-                if _G.UpdateWhitelistTeams then _G.UpdateWhitelistTeams() end
-            end
-        })
-    end
-    return list
-end
-
-local whitelistPlayersCombo, rebuildPlayers
-whitelistPlayersCombo, rebuildPlayers = addInteractiveComboBox("Whitelist Players")
-
-local whitelistTeamsCombo, rebuildTeams
-whitelistTeamsCombo, rebuildTeams = addInteractiveComboBox("Whitelist Teams")
-
-_G.UpdateWhitelistPlayers = function()
-    local list = {}
-    for _, player in ipairs(plrsService:GetPlayers()) do
-        if player ~= plrsService.LocalPlayer then
-            local isTeamWl = player.Team and whitelistTeams[player.Team.Name]
-            table.insert(list, {
-                name = player.Name .. (player.Team and (" ["..player.Team.Name.."]") or ""),
-                isWhitelisted = whitelistPlayers[player.UserId],
-                isTeamWhitelisted = isTeamWl,
-                click = function()
-                    if whitelistPlayers[player.UserId] then
-                        whitelistPlayers[player.UserId] = nil
-                    else
-                        whitelistPlayers[player.UserId] = true
-                    end
-                    _G.UpdateWhitelistPlayers()
-                end
-            })
-        end
-    end
-    rebuildPlayers(list, nil)
-end
-
-_G.UpdateWhitelistTeams = function()
-    local teams = {}
-    for _, player in ipairs(plrsService:GetPlayers()) do
-        if player.Team then teams[player.Team.Name] = true end
-    end
-    local list = {}
-    for teamName, _ in pairs(teams) do
-        table.insert(list, {
-            name = teamName,
-            isWhitelisted = whitelistTeams[teamName],
-            click = function()
-                if whitelistTeams[teamName] then
-                    whitelistTeams[teamName] = nil
-                else
-                    whitelistTeams[teamName] = true
-                end
-                _G.UpdateWhitelistPlayers() -- Пересобрать и игроков, т.к. цвет изменится
-                _G.UpdateWhitelistTeams()
-            end
-        })
-    end
-    rebuildTeams(list)
-end
-
-_G.UpdateWhitelistPlayers()
-_G.UpdateWhitelistTeams()
-
-plrsService.PlayerAdded:Connect(function() task.wait(1); _G.UpdateWhitelistPlayers(); _G.UpdateWhitelistTeams() end)
-plrsService.PlayerRemoving:Connect(function() task.wait(1); _G.UpdateWhitelistPlayers(); _G.UpdateWhitelistTeams() end)
-
 addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
 addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
 addPixelOffsetComboBox("Pixel X Offset", 0, function(v) pixelOffsetX = v end)
 addPixelOffsetComboBox("Pixel Y Offset", 0, function(v) pixelOffsetY = v end)
 
-local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
-    customCrosshair = state
-    if customCrosshair then
-        createCrosshair()
-    else
-        if crosshairCenter then crosshairCenter.Visible = false end
-        for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end
+local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state) customCrosshair = state; if customCrosshair then createCrosshair() else if crosshairCenter then crosshairCenter.Visible = false end; for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end end end, false)
+
+-- WHITELIST COMBOBOXES
+local function refreshWhitelistPlayersCombo(combo, elems)
+    local players = {}
+    for _, p in ipairs(plrsService:GetPlayers()) do
+        if p ~= plrsService.LocalPlayer then table.insert(players, p.Name) end
     end
-end, false)
+    for _, el in ipairs(elems) do el:Destroy() end
+    table.clear(elems)
+    for _, name in ipairs(players) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = name
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = name
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        
+        local pObj = plrsService:FindFirstChild(name)
+        if pObj then
+            btn:WaitForChild("Name").TextColor3 = whitelistPlayers[pObj.UserId] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 50, 50)
+        end
+        
+        table.insert(elems, btn)
+        
+        btn.MouseButton1Click:Connect(function()
+            if pObj then
+                if whitelistPlayers[pObj.UserId] then
+                    whitelistPlayers[pObj.UserId] = nil
+                    btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(255, 50, 50)
+                else
+                    whitelistPlayers[pObj.UserId] = true
+                    btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(0, 255, 0)
+                end
+            end
+        end)
+        elements += 1
+        addSpace(Menu)
+    end
+end
+
+local function refreshWhitelistTeamsCombo(combo, elems)
+    local teams = {}
+    for _, p in ipairs(plrsService:GetPlayers()) do
+        if p.Team then teams[p.Team.Name] = true end
+    end
+    for _, el in ipairs(elems) do el:Destroy() end
+    table.clear(elems)
+    for teamName, _ in pairs(teams) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = teamName
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = teamName
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        
+        btn:WaitForChild("Name").TextColor3 = whitelistTeams[teamName] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 50, 50)
+        
+        table.insert(elems, btn)
+        
+        btn.MouseButton1Click:Connect(function()
+            if whitelistTeams[teamName] then
+                whitelistTeams[teamName] = nil
+                btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(255, 50, 50)
+            else
+                whitelistTeams[teamName] = true
+                btn:WaitForChild("Name").TextColor3 = Color3.fromRGB(0, 255, 0)
+            end
+        end)
+        elements += 1
+        addSpace(Menu)
+    end
+end
+
+local wlTeamsCombo = ComboBox:Clone()
+local wlTeamsElems = {}
+wlTeamsCombo.MouseButton1Click:Connect(function()
+    local enabled = not wlTeamsCombo:WaitForChild("Img").Rotation == 0
+    wlTeamsCombo:WaitForChild("Img").Rotation = enabled and 0 or 180
+    for _, elem in ipairs(wlTeamsElems) do elem.Visible = enabled end
+end)
+wlTeamsCombo:WaitForChild("Name").Text = "Whitelist Teams"
+wlTeamsCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+wlTeamsCombo.Name = "WhitelistTeams"
+wlTeamsCombo.Parent = Menu
+wlTeamsCombo.LayoutOrder = elements
+wlTeamsCombo.Visible = true
+elements += 1
+addSpace(Menu)
+refreshWhitelistTeamsCombo(wlTeamsCombo, wlTeamsElems)
+
+local wlPlayersCombo = ComboBox:Clone()
+local wlPlayersElems = {}
+wlPlayersCombo.MouseButton1Click:Connect(function()
+    local enabled = not wlPlayersCombo:WaitForChild("Img").Rotation == 0
+    wlPlayersCombo:WaitForChild("Img").Rotation = enabled and 0 or 180
+    for _, elem in ipairs(wlPlayersElems) do elem.Visible = enabled end
+end)
+wlPlayersCombo:WaitForChild("Name").Text = "Whitelist Players"
+wlPlayersCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+wlPlayersCombo.Name = "WhitelistPlayers"
+wlPlayersCombo.Parent = Menu
+wlPlayersCombo.LayoutOrder = elements
+wlPlayersCombo.Visible = true
+elements += 1
+addSpace(Menu)
+refreshWhitelistPlayersCombo(wlPlayersCombo, wlPlayersElems)
+
+plrsService.PlayerAdded:Connect(function() task.wait(1); refreshWhitelistPlayersCombo(wlPlayersCombo, wlPlayersElems); refreshWhitelistTeamsCombo(wlTeamsCombo, wlTeamsElems) end)
+plrsService.PlayerRemoving:Connect(function() task.wait(1); refreshWhitelistPlayersCombo(wlPlayersCombo, wlPlayersElems); refreshWhitelistTeamsCombo(wlTeamsCombo, wlTeamsElems) end)
 
 local resetBtn = addButton("Reset Settings", function()
     aimOffsetYaw = 0
@@ -1364,25 +1274,24 @@ local resetBtn = addButton("Reset Settings", function()
     naZoneAngle = 60
     detectRange = 500
     for _, callback in ipairs(updateCallbacks) do pcall(callback) end
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Reset", Text = "All settings reset to default (except whitelists)", Duration = 2})
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Reset", Text = "All settings reset to default (whitelists kept)", Duration = 2})
 end)
 
-local clearAllBtn = addButton("Clear Whitelists (All)", function()
-    whitelistPlayers = {}
-    whitelistTeams = {}
-    _G.UpdateWhitelistPlayers()
-    _G.UpdateWhitelistTeams()
-end)
-
-local clearPlayersBtn = addButton("Clear Whitelisted Players", function()
-    whitelistPlayers = {}
-    _G.UpdateWhitelistPlayers()
-end)
-
-local clearTeamsBtn = addButton("Clear Whitelisted Teams", function()
-    whitelistTeams = {}
-    _G.UpdateWhitelistTeams()
-    _G.UpdateWhitelistPlayers()
+-- Whitelist cleanup button (under reset)
+local cleanupBtn = addComboBox("Whitelist Cleanup", {"Clear Players", "Clear Teams", "Clear All"}, function(selection)
+    if selection == "Clear Players" then
+        for pId, _ in pairs(whitelistPlayers) do
+            local p = plrsService:GetPlayerByUserId(pId)
+            if not p or not p.Parent then whitelistPlayers[pId] = nil end
+        end
+    elseif selection == "Clear Teams" then
+        whitelistTeams = {}
+    elseif selection == "Clear All" then
+        whitelistPlayers = {}
+        whitelistTeams = {}
+    end
+    refreshWhitelistPlayersCombo(wlPlayersCombo, wlPlayersElems)
+    refreshWhitelistTeamsCombo(wlTeamsCombo, wlTeamsElems)
 end)
 
 runService.RenderStepped:Connect(function()
@@ -1410,8 +1319,23 @@ runService.RenderStepped:Connect(function()
     end
 end)
 
-Main:TweenPosition(UDim2.fromScale(0.5, 0.5), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 1, true, nil)
+-- INIT
+
+Main:TweenPosition(
+    UDim2.fromScale(0.5, 0.5),
+    Enum.EasingDirection.In,
+    Enum.EasingStyle.Quad,
+    1, true, nil
+)
+
 task.wait(1.5)
-Logo:TweenSizeAndPosition(UDim2.fromScale(0.175, 0.175), UDim2.fromScale(0.075, 0.15), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 1, true, nil)
+Logo:TweenSizeAndPosition(
+    UDim2.fromScale(0.175, 0.175),
+    UDim2.fromScale(0.075, 0.15),
+    Enum.EasingDirection.In,
+    Enum.EasingStyle.Quad,
+    1, true, nil
+)
+
 task.wait(1.5)
 TweenService:Create(Intro, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
