@@ -5,6 +5,7 @@
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
     Fixed: Accurate Crosshair Aiming, Reset button, Combined offsets display
     Added: Target Priority (Closest / Holding Tool), Hold Tool check
+    FIXED 2: Unified pixel-based targeting for all modes, Super Aim sync
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -577,18 +578,20 @@ local function createCrosshair()
     end
 end
 
+-- ЕДИНАЯ ФУНКЦИЯ ПОЗИЦИИ ПРИЦЕЛА В ПИКСЕЛЯХ
 local function getAimScreenPos()
     local viewport = workspace.CurrentCamera.ViewportSize
-    if customCrosshair then
-        local fov = math.rad(workspace.CurrentCamera.FieldOfView)
-        local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / math.tan(fov / 2)) * (viewport.X / 2)
-        local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / math.tan(fov / 2)) * (viewport.Y / 2)
-        return Vector2.new(
-            viewport.X / 2 + pixelOffsetX + yawPixels,
-            viewport.Y / 2 + pixelOffsetY + pitchPixels
-        )
-    end
-    return Vector2.new(viewport.X / 2, viewport.Y / 2)
+    local fov = math.rad(workspace.CurrentCamera.FieldOfView)
+
+    -- Переводим градусы в пиксели (чтобы они тоже сдвигали точку)
+    local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / math.tan(fov / 2)) * (viewport.X / 2)
+    local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / math.tan(fov / 2)) * (viewport.Y / 2)
+
+    -- Итоговая точка: центр + пиксельные оффсеты + пересчитанные градусные оффсеты
+    return Vector2.new(
+        viewport.X / 2 + pixelOffsetX + yawPixels,
+        viewport.Y / 2 + pixelOffsetY + pitchPixels
+    )
 end
 
 local function updateCrosshair()
@@ -627,20 +630,25 @@ local function updateCrosshair()
     crosshairLines[4].Visible = true
 end
 
+-- ЕДИНАЯ ФУНКЦИЯ ПОВОРОТА КАМЕРЫ НА ОСНОВЕ ПИКСЕЛЬНОЙ ТОЧКИ
 local function getCFrameToTarget(targetPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
     local aimPos = getAimScreenPos()
 
+    -- Базовый поворот на цель (цель будет в центре экрана)
     local baseCFrame = CFrame.new(camera.CFrame.Position, targetPos)
 
+    -- Вычисляем, насколько пикселей цель смещена от нашей прицельной точки
     local deltaX = aimPos.X - (viewport.X / 2)
     local deltaY = aimPos.Y - (viewport.Y / 2)
 
+    -- Переводим это смещение в углы
     local fov = math.rad(camera.FieldOfView)
     local yawOffset = math.atan(deltaX / (viewport.X / 2) * math.tan(fov / 2))
     local pitchOffset = math.atan(deltaY / (viewport.Y / 2) * math.tan(fov / 2))
 
+    -- Поворачиваем камеру так, чтобы цель оказалась в точке aimPos
     return baseCFrame * CFrame.Angles(pitchOffset, -yawOffset, 0)
 end
 
@@ -714,7 +722,7 @@ end
 
 function getClosestPlayerToCursor(trg_part)
     local localPlayer = plrsService.LocalPlayer
-    
+
     if requireTool and not localHasTool() then
         return nil
     end
@@ -730,7 +738,7 @@ function getClosestPlayerToCursor(trg_part)
 
     local bestClosest = nil
     local bestClosestDist = math.huge
-    
+
     local bestTool = nil
     local bestToolDist = math.huge
 
@@ -751,7 +759,7 @@ function getClosestPlayerToCursor(trg_part)
                 local aimobj = v.Character:FindFirstChild(trg_part) or v.Character:FindFirstChild("UpperTorso")
                 if aimobj then
                     local distanceToPlayer = (aimobj.Position - myPos).Magnitude
-                    
+
                     if distanceToPlayer <= detectRange then
                         local ePos, vissss = workspace.CurrentCamera:WorldToViewportPoint(aimobj.Position)
                         local AccPos = Vector2.new(ePos.x, ePos.y)
@@ -767,7 +775,7 @@ function getClosestPlayerToCursor(trg_part)
                                 bestClosestDist = distanceToPlayer
                                 bestClosest = v
                             end
-                            
+
                             if isHoldingTool(v) and distanceToPlayer < bestToolDist then
                                 bestToolDist = distanceToPlayer
                                 bestTool = v
@@ -1240,6 +1248,7 @@ runService.RenderStepped:Connect(function()
         if aimobj then
             local angleFromAim = getAngleFromAimToTarget(aimobj)
             if angleFromAim <= superAimAngle then
+                -- Супер аим тоже использует единую точку getAimScreenPos
                 lookAtSmooth(aimobj.Position, 0.25)
             end
         end
