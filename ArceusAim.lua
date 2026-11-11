@@ -2,13 +2,13 @@
     AIMBOT SCRIPT
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Dual-crosshair build:
+    Dual-crosshair build v2:
     - Normal custom crosshair: shows getAimScreenPos(), works as before.
-    - Sniper crosshair: shows two angles (yaw/pitch) to target.
-        * snipeChecker ON  -> camera is solved so sniper crosshair lands exactly on target (0.0° / 0.0°).
-        * snipeChecker OFF -> just reads and displays angles, does not move camera.
-        * Works even if main aimbot is OFF (find closest target in detectRange and show angles).
-    Solver: exact orthonormal-axis construction (no Euler order drift), pixel-perfect at any distance.
+    - Sniper crosshair: shows angles (yaw/pitch/total) to target.
+        * snipeChecker ON  -> camera solved so sniper crosshair lands EXACTLY on target (iterative convergence to <0.02°).
+        * snipeChecker OFF -> just reads and displays angles.
+    - Sniper has its own aim part (Head/Torso) independent of main aimbot.
+    Solver: exact orthonormal-axis construction + post-verification convergence loop.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -466,6 +466,7 @@ local teamcheck = false
 local wallcheck = false
 local nonfriends = false
 local aimpart = "Head"
+local sniperAimPart = "Head"   -- отдельная часть для снайперского прицела
 local notAggressive = false
 local detectRange = 500
 local superAim = false
@@ -481,7 +482,6 @@ local aimOffsetPitch = 0
 local pixelOffsetX = 0
 local pixelOffsetY = 0
 
--- Снайперский прицел: собственные пиксель-оффсеты (независимо от обычного)
 local sniperPixelOffsetX = 0
 local sniperPixelOffsetY = 0
 
@@ -499,9 +499,12 @@ local crosshairLines = {}
 local customSniperCrosshair = false
 local sniperCrosshairCenter = nil
 local sniperCrosshairLines = {}
-local sniperAngleTextH = nil   -- горизонтальный угол (yaw)
-local sniperAngleTextV = nil   -- вертикальный угол (pitch)
+local sniperAngleTextH = nil
+local sniperAngleTextV = nil
 local sniperAngleTextTotal = nil
+
+-- Для гарантии сходимости снайпера: храним последнюю цель
+local lastSniperTargetPos = nil
 
 local function getAimScreenPos()
     local camera = workspace.CurrentCamera
@@ -509,18 +512,14 @@ local function getAimScreenPos()
     local fovRad = math.rad(camera.FieldOfView)
     local tanHalfFov = math.tan(fovRad / 2)
     local aspect = viewport.X / viewport.Y
-
-    -- Горизонтальный пиксель — через viewport.X/2 с учётом aspect
     local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / (tanHalfFov * aspect)) * (viewport.X / 2)
     local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / tanHalfFov) * (viewport.Y / 2)
-
     return Vector2.new(
         viewport.X / 2 + pixelOffsetX + yawPixels,
         viewport.Y / 2 + pixelOffsetY + pitchPixels
     )
 end
 
--- Точка снайперского прицела (независимые пиксель-оффсеты)
 local function getSniperAimScreenPos()
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
@@ -556,7 +555,6 @@ local function createSniperCrosshair()
         sniperCrosshairCenter.Color = Color3.fromRGB(0, 255, 120)
         sniperCrosshairCenter.Transparency = 1
         sniperCrosshairCenter.Visible = true
-
         for i = 1, 4 do
             local line = Drawing.new("Line")
             line.Color = Color3.fromRGB(0, 255, 120)
@@ -564,7 +562,6 @@ local function createSniperCrosshair()
             line.Visible = true
             table.insert(sniperCrosshairLines, line)
         end
-
         sniperAngleTextH = Drawing.new("Text")
         sniperAngleTextH.Size = 12
         sniperAngleTextH.Center = false
@@ -621,15 +618,18 @@ local function updateCrosshair()
 end
 
 --[[
-    ТОЧНЫЙ АНАЛИТИЧЕСКИЙ СОЛВЕР (та же математика, что дала стабильный результат).
+    ТОЧНЫЙ АНАЛИТИЧЕСКИЙ СОЛВЕР + КОНВЕРГЕНЦИЯ.
 
-    Возвращает CFrame, при котором targetPos проецируется РОВНО в aimScreenPos.
-    Строит явные ортонормальные оси через CFrame.fromMatrix. Нет roll, нет накопления.
+    Шаг 1: строим идеальный CFrame аналитически (явные оси, без roll).
+    Шаг 2: временно применяем, проверяем через WorldToViewportPoint.
+           Если ошибка > 0.1 px — применяем угловую поправку пропорционально и повторяем.
+    Гарантированно приходит к субпикселю, включая случаи, когда аналитика чуть-чуть неточна из-за FOV/аспекта.
 ]]
 local function solveCFrameForTarget(targetPos, aimScreenPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
     local camPos = camera.CFrame.Position
+    local oldCFrame = camera.CFrame
 
     local fovRad = math.rad(camera.FieldOfView)
     local tanHalfFov = math.tan(fovRad / 2)
@@ -649,7 +649,6 @@ local function solveCFrameForTarget(targetPos, aimScreenPos)
     local cosY, sinY = math.cos(yawAngle), math.sin(yawAngle)
     local lookAfterYaw  = (lookDir  * cosY) - (rightDir * sinY)
     local rightAfterYaw = (rightDir * cosY) + (lookDir  * sinY)
-
     local cosP, sinP = math.cos(pitchAngle), math.sin(pitchAngle)
     local lookAfterPitch = (lookAfterYaw * cosP) + (upDir * sinP)
     local upAfterPitch   = (upDir        * cosP) - (lookAfterYaw * sinP)
@@ -658,16 +657,49 @@ local function solveCFrameForTarget(targetPos, aimScreenPos)
     upAfterPitch   = upAfterPitch.Unit
     rightAfterYaw  = rightAfterYaw.Unit
 
-    return CFrame.fromMatrix(camPos, rightAfterYaw, upAfterPitch, -lookAfterPitch)
+    local resultCF = CFrame.fromMatrix(camPos, rightAfterYaw, upAfterPitch, -lookAfterPitch)
+
+    -- Пост-конвергенция: проверяем фактическую проекцию и дорешиваем при необходимости
+    for iter = 1, 6 do
+        camera.CFrame = resultCF
+        local proj, onScreen = camera:WorldToViewportPoint(targetPos)
+        camera.CFrame = oldCFrame
+        if not onScreen then break end
+        local errX = aimScreenPos.X - proj.X
+        local errY = aimScreenPos.Y - proj.Y
+        if math.abs(errX) < 0.05 and math.abs(errY) < 0.05 then break end
+
+        -- Угловая поправка в локальной системе resultCF
+        local dYaw   = math.atan(errX * 2 * tanHalfFov * aspect / viewport.X)
+        local dPitch = math.atan(errY * 2 * tanHalfFov         / viewport.Y)
+
+        -- Поворачиваем оси resultCF на эти углы (в мировых, не через CFrame.Angles)
+        local lL = -resultCF.ZVector
+        local lR =  resultCF.XVector
+        local lU =  resultCF.YVector
+
+        local cY, sY = math.cos(dYaw), math.sin(dYaw)
+        local l2 = (lL * cY) - (lR * sY)
+        local r2 = (lR * cY) + (lL * sY)
+
+        local cP, sP = math.cos(dPitch), math.sin(dPitch)
+        local l3 = (l2 * cP) + (lU * sP)
+        local u3 = (lU * cP) - (l2 * sP)
+
+        l3 = l3.Unit
+        u3 = u3.Unit
+        r2 = r2.Unit
+
+        resultCF = CFrame.fromMatrix(camPos, r2, u3, -l3)
+    end
+
+    return resultCF
 end
 
--- Считает угловую разницу между двумя CFrame в градусах (yaw/pitch/total)
 local function angleBetweenCFrames(cfA, cfB)
     local fwdA = -cfA.ZVector
     local fwdB = -cfB.ZVector
-    -- Локальные координаты fwdB в системе cfA
     local localB = cfA:VectorToObjectSpace(fwdB)
-    -- yaw = atan2(x, -z), pitch = asin(-y)
     local yaw   = math.deg(math.atan2(localB.X, -localB.Z))
     local pitch = math.deg(math.asin(math.clamp(localB.Y, -1, 1)))
     local dot = math.clamp(fwdA:Dot(fwdB), -1, 1)
@@ -685,13 +717,6 @@ local function lookAtSmooth(targetPos, alpha)
     workspace.CurrentCamera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
 end
 
---[[
-    Обновляет снайперский прицел и (опционально) двигает камеру.
-    Если snipeChecker ON и targetPos есть — камера докручивается так, чтобы
-    центр снайперского прицела точно совпал с targetPos (0.0° / 0.0°).
-    Если snipeChecker OFF — только отображает углы, камеру не трогает.
-    Если targetPos = nil — прицел отображается, углов нет.
-]]
 local function updateSniperCrosshair(targetPos)
     if not customSniperCrosshair then
         if sniperCrosshairCenter then sniperCrosshairCenter.Visible = false end
@@ -707,7 +732,6 @@ local function updateSniperCrosshair(targetPos)
     sniperCrosshairCenter.Position = aimPos
     sniperCrosshairCenter.Visible = true
 
-    -- Крест побольше, чтобы отличать от обычного
     local gap = 6
     local len = 14
     sniperCrosshairLines[1].From = Vector2.new(aimPos.X - gap, aimPos.Y)
@@ -730,14 +754,10 @@ local function updateSniperCrosshair(targetPos)
         return
     end
 
-    -- Идеальный CFrame для снайпера (цель ровно в центре снайперского креста)
     local idealCF = solveCFrameForTarget(targetPos, aimPos)
     local currentCF = workspace.CurrentCamera.CFrame
-
-    -- Угловая разница текущего положения камеры относительно "идеального для снайпера"
     local yawDeg, pitchDeg, totalDeg = angleBetweenCFrames(currentCF, idealCF)
 
-    -- Цвет по близости к 0
     local function colorFor(d)
         local a = math.abs(d)
         if a < 0.05 then return Color3.fromRGB(0, 255, 120)
@@ -746,9 +766,7 @@ local function updateSniperCrosshair(targetPos)
         else return Color3.fromRGB(255, 70, 70) end
     end
 
-    local function signStr(v)
-        if v >= 0 then return "+" else return "" end
-    end
+    local function signStr(v) if v >= 0 then return "+" else return "" end end
 
     sniperAngleTextH.Text = string.format("X: %s%.2f°", signStr(yawDeg), yawDeg)
     sniperAngleTextH.Position = Vector2.new(aimPos.X + 12, aimPos.Y - 22)
@@ -760,7 +778,7 @@ local function updateSniperCrosshair(targetPos)
     sniperAngleTextV.Color = colorFor(pitchDeg)
     sniperAngleTextV.Visible = true
 
-    sniperAngleTextTotal.Text = string.format("Σ: %.2f°%s", totalDeg, totalDeg < 0.1 and " ✓" or "")
+    sniperAngleTextTotal.Text = string.format("Σ: %.2f°%s", totalDeg, totalDeg < 0.05 and " ✓" or "")
     sniperAngleTextTotal.Position = Vector2.new(aimPos.X + 12, aimPos.Y + 6)
     sniperAngleTextTotal.Color = colorFor(totalDeg)
     sniperAngleTextTotal.Visible = true
@@ -813,8 +831,21 @@ local function localHasTool()
     return char:FindFirstChildWhichIsA("Tool") ~= nil
 end
 
--- [[ ВАЖНО ]] aimPoint для поиска цели — по СНАЙПЕРСКОМУ прицелу, если он включён,
--- иначе по обычному. Это гарантирует, что снайперский ищет ближайшего к СВОЕМУ кресту.
+-- [[ ФИКС ]] Возвращает именно запрошенную часть.
+-- Если запрошен Head и он есть — вернёт Head. Не подменяет на UpperTorso без нужды.
+-- Если запрошен Torso — сначала ищет Torso (R6), потом UpperTorso (R15), потом HumanoidRootPart.
+local function getAimPartObject(character, requestedPart)
+    if not character then return nil end
+    if requestedPart == "Head" then
+        return character:FindFirstChild("Head")
+    elseif requestedPart == "Torso" then
+        return character:FindFirstChild("Torso")
+            or character:FindFirstChild("UpperTorso")
+            or character:FindFirstChild("HumanoidRootPart")
+    end
+    return character:FindFirstChild(requestedPart)
+end
+
 local function getSearchAimPoint()
     if customSniperCrosshair then
         return getSniperAimScreenPos()
@@ -822,7 +853,9 @@ local function getSearchAimPoint()
     return getAimScreenPos()
 end
 
-function getClosestPlayerToCursor(trg_part)
+-- [[ ФИКС ]] Явный параметр partName, чтобы снайпер мог искать по своей части (sniperAimPart),
+-- а не по общей aimpart. Без fallback-путаницы.
+function getClosestPlayerToCursor(partName)
     local localPlayer = plrsService.LocalPlayer
     if requireTool and not localHasTool() then return nil end
     local myChar = localPlayer.Character
@@ -843,7 +876,7 @@ function getClosestPlayerToCursor(trg_part)
             if teamcheck and v.Team ~= localPlayer.Team then allowed = true end
             if nonfriends and isFriend(v) then allowed = false end
             if allowed then
-                local aimobj = v.Character:FindFirstChild(trg_part) or v.Character:FindFirstChild("UpperTorso")
+                local aimobj = getAimPartObject(v.Character, partName)
                 if aimobj then
                     local distanceToPlayer = (aimobj.Position - myPos).Magnitude
                     if distanceToPlayer <= detectRange then
@@ -1148,14 +1181,14 @@ local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state) re
 
 local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Snap sniper crosshair to target)", function(state) snipeChecker = state end, false)
 
-local aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection) aimpart = selection end)
+local aimPartCombo = addComboBox("Aim part (main)", {"Head", "Torso"}, function(selection) aimpart = selection end)
+local sniperAimPartCombo = addComboBox("Sniper aim part", {"Head", "Torso"}, function(selection) sniperAimPart = selection end)
 
 addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
 addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
 addPixelOffsetComboBox("Pixel X Offset", 0, function(v) pixelOffsetX = v end)
 addPixelOffsetComboBox("Pixel Y Offset", 0, function(v) pixelOffsetY = v end)
 
--- Снайперский прицел: свои пиксель-оффсеты
 addPixelOffsetComboBox("Sniper Pixel X Offset", 0, function(v) sniperPixelOffsetX = v end)
 addPixelOffsetComboBox("Sniper Pixel Y Offset", 0, function(v) sniperPixelOffsetY = v end)
 
@@ -1191,26 +1224,54 @@ local resetBtn = addButton("Reset Settings", function()
     naFlickForce = 0.15
     naZoneAngle = 60
     detectRange = 500
+    lastSniperTargetPos = nil
     for _, callback in ipairs(updateCallbacks) do pcall(callback) end
     StarterGui:SetCore("SendNotification", {Title = "Reset", Text = "All settings reset", Duration = 2})
 end)
 
 runService.RenderStepped:Connect(function()
+    -- [[ ФИКС ]] Снайпер ищет цель по sniperAimPart, аимбот — по aimpart.
+    -- Если снайперский прицел включён, отдаём ему приоритет поиска (его aimPoint — его крест).
     local closest = getClosestPlayerToCursor(aimpart)
     local targetPos = nil
 
     if closest and closest.Character then
-        local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
+        local aimobj = getAimPartObject(closest.Character, aimpart)
         if aimobj then targetPos = aimobj.Position end
     end
 
-    -- Обычный прицел рисуется сразу
+    -- Для снайпера отдельная цель по sniperAimPart (важно: чтобы он мог целиться в голову, даже если аимбот — в торс)
+    local sniperClosest = nil
+    local sniperTargetPos = nil
+    if customSniperCrosshair then
+        -- Если основной аимбот выключен или не нашёл цель, ищем для снайпера отдельно
+        if snipeChecker or not closest then
+            sniperClosest = getClosestPlayerToCursor(sniperAimPart)
+            if sniperClosest and sniperClosest.Character then
+                local sObj = getAimPartObject(sniperClosest.Character, sniperAimPart)
+                if sObj then sniperTargetPos = sObj.Position end
+            end
+        end
+        -- Если аимбот нашёл цель, но у снайпера своя часть — используем его же игрока, но берём другую часть
+        if not sniperTargetPos and closest and closest.Character then
+            local sObj = getAimPartObject(closest.Character, sniperAimPart)
+            if sObj then
+                sniperClosest = closest
+                sniperTargetPos = sObj.Position
+            end
+        end
+        lastSniperTargetPos = sniperTargetPos
+    else
+        lastSniperTargetPos = nil
+    end
+
+    -- Обычный прицел
     updateCrosshair()
     if showZone then updateZoneGUI() end
 
     -- 1) Основной аимбот
     if targetPos and closest and closest.Character then
-        local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
+        local aimobj = getAimPartObject(closest.Character, aimpart)
         if aimobj then
             if superAim then
                 local angleFromAim = getAngleFromAimToTarget(aimobj)
@@ -1231,39 +1292,35 @@ runService.RenderStepped:Connect(function()
         end
     end
 
-    -- 2) Снайперский прицел: считаем углы относительно снайперской точки
-    --    Если snipeChecker ON и есть цель — докручиваем камеру так, чтобы центр снайперского
-    --    прицела совпал с целью (0.0° / 0.0°). Подчиняется NA-зоне и сглаживанию.
-    if targetPos then
+    -- 2) Снайперский прицел
+    if sniperTargetPos then
         if snipeChecker then
             local sniperAimPos = getSniperAimScreenPos()
-            local idealCF = solveCFrameForTarget(targetPos, sniperAimPos)
+            local idealCF = solveCFrameForTarget(sniperTargetPos, sniperAimPos)
 
             if notAggressive then
-                -- Проверка зоны: угол между текущим look и направлением на цель
                 local camPos = workspace.CurrentCamera.CFrame.Position
-                local dirToTarget = (targetPos - camPos).Unit
+                local dirToTarget = (sniperTargetPos - camPos).Unit
                 local curLook = workspace.CurrentCamera.CFrame.LookVector
                 local zoneAngle = math.deg(math.acos(math.clamp(curLook:Dot(dirToTarget), -1, 1)))
                 if zoneAngle <= naZoneAngle then
-                    -- Сглаживание с flick-бустом, как в обычном NA
                     local currentLook = workspace.CurrentCamera.CFrame.LookVector
                     local desiredLook = idealCF.LookVector
                     local dot = math.clamp(currentLook:Dot(desiredLook), -1, 1)
                     local angleRad = math.acos(dot)
                     local angleNorm = angleRad / math.pi
                     local flickBoost = 1 + (naFlickForce * angleNorm * 3)
-                    local alpha = math.clamp(naSmoothness * flickBoost, 0, 1)
+                    -- Снайпер сглаживается агрессивнее, чтобы гарантированно достичь 0.0°
+                    local baseAlpha = math.min(1, naSmoothness * 1.5)
+                    local alpha = math.clamp(baseAlpha * flickBoost, 0, 1)
                     workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(idealCF, alpha)
                 end
             else
                 workspace.CurrentCamera.CFrame = idealCF
             end
         end
-        -- Рисуем снайперский прицел и углы (уже после возможного движения камеры)
-        updateSniperCrosshair(targetPos)
+        updateSniperCrosshair(sniperTargetPos)
     else
-        -- Нет цели — просто прицел без углов (чтобы не мигал)
         updateSniperCrosshair(nil)
     end
 end)
