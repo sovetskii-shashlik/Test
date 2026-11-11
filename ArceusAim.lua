@@ -3,9 +3,7 @@
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
-    Fixed: Accurate Crosshair Aiming, Reset button, Combined offsets display
-    Added: Target Priority (Closest / Holding Tool), Hold Tool check
-    FIXED 2: Unified pixel-based targeting for all modes, Super Aim sync
+    Fixed: Accurate Crosshair Aiming, Pixel-Perfect Snipe Checker (Micro-correction), Reset button
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -542,6 +540,7 @@ local superAimAngle = 45
 local prioritizeClosest = false
 local prioritizeHoldingTool = false
 local requireTool = false
+local snipeChecker = false
 
 local aimOffsetYaw = 0
 local aimOffsetPitch = 0
@@ -578,20 +577,18 @@ local function createCrosshair()
     end
 end
 
--- ЕДИНАЯ ФУНКЦИЯ ПОЗИЦИИ ПРИЦЕЛА В ПИКСЕЛЯХ
 local function getAimScreenPos()
     local viewport = workspace.CurrentCamera.ViewportSize
-    local fov = math.rad(workspace.CurrentCamera.FieldOfView)
-
-    -- Переводим градусы в пиксели (чтобы они тоже сдвигали точку)
-    local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / math.tan(fov / 2)) * (viewport.X / 2)
-    local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / math.tan(fov / 2)) * (viewport.Y / 2)
-
-    -- Итоговая точка: центр + пиксельные оффсеты + пересчитанные градусные оффсеты
-    return Vector2.new(
-        viewport.X / 2 + pixelOffsetX + yawPixels,
-        viewport.Y / 2 + pixelOffsetY + pitchPixels
-    )
+    if customCrosshair then
+        local fov = math.rad(workspace.CurrentCamera.FieldOfView)
+        local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / math.tan(fov / 2)) * (viewport.X / 2)
+        local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / math.tan(fov / 2)) * (viewport.Y / 2)
+        return Vector2.new(
+            viewport.X / 2 + pixelOffsetX + yawPixels,
+            viewport.Y / 2 + pixelOffsetY + pitchPixels
+        )
+    end
+    return Vector2.new(viewport.X / 2, viewport.Y / 2)
 end
 
 local function updateCrosshair()
@@ -630,25 +627,20 @@ local function updateCrosshair()
     crosshairLines[4].Visible = true
 end
 
--- ЕДИНАЯ ФУНКЦИЯ ПОВОРОТА КАМЕРЫ НА ОСНОВЕ ПИКСЕЛЬНОЙ ТОЧКИ
 local function getCFrameToTarget(targetPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
     local aimPos = getAimScreenPos()
 
-    -- Базовый поворот на цель (цель будет в центре экрана)
     local baseCFrame = CFrame.new(camera.CFrame.Position, targetPos)
 
-    -- Вычисляем, насколько пикселей цель смещена от нашей прицельной точки
     local deltaX = aimPos.X - (viewport.X / 2)
     local deltaY = aimPos.Y - (viewport.Y / 2)
 
-    -- Переводим это смещение в углы
     local fov = math.rad(camera.FieldOfView)
     local yawOffset = math.atan(deltaX / (viewport.X / 2) * math.tan(fov / 2))
     local pitchOffset = math.atan(deltaY / (viewport.Y / 2) * math.tan(fov / 2))
 
-    -- Поворачиваем камеру так, чтобы цель оказалась в точке aimPos
     return baseCFrame * CFrame.Angles(pitchOffset, -yawOffset, 0)
 end
 
@@ -1193,6 +1185,10 @@ local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state)
     requireTool = state
 end, false)
 
+local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Micro-correction)", function(state)
+    snipeChecker = state
+end, false)
+
 local aimPartCombo = addComboBox("Aim part", {"Head", "Torso"}, function(selection)
     aimpart = selection
 end)
@@ -1243,26 +1239,33 @@ runService.RenderStepped:Connect(function()
 
     local closest = getClosestPlayerToCursor(aimpart)
 
-    if superAim and closest then
+    if closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
+        
         if aimobj then
-            local angleFromAim = getAngleFromAimToTarget(aimobj)
-            if angleFromAim <= superAimAngle then
-                -- Супер аим тоже использует единую точку getAimScreenPos
-                lookAtSmooth(aimobj.Position, 0.25)
-            end
-        end
-    end
-
-    if enabled and closest then
-        local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
-        if aimobj then
-            if notAggressive then
-                local angle = getAngleToTarget(aimobj)
-                if angle <= naZoneAngle then
-                    lookAtSmooth(aimobj.Position, naSmoothness)
+            -- 1. Сначала работает Super Aim
+            if superAim then
+                local angleFromAim = getAngleFromAimToTarget(aimobj)
+                if angleFromAim <= superAimAngle then
+                    lookAtSmooth(aimobj.Position, 0.25)
                 end
-            else
+            end
+
+            -- 2. Затем работает основной аимбот
+            if enabled then
+                if notAggressive then
+                    local angle = getAngleToTarget(aimobj)
+                    if angle <= naZoneAngle then
+                        lookAtSmooth(aimobj.Position, naSmoothness)
+                    end
+                else
+                    lookAt(aimobj.Position)
+                end
+            end
+            
+            -- 3. В самом конце Snipe Checker делает идеальную микро-поправку
+            -- Он не заменяет аимбот, а исправляет ошибку, оставленную сглаживанием
+            if snipeChecker then
                 lookAt(aimobj.Position)
             end
         end
