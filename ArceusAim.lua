@@ -2,14 +2,14 @@
     AIMBOT SCRIPT
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Dual-crosshair build v3:
+    Dual-crosshair build v4:
     - Normal custom crosshair: shows getAimScreenPos(), works as before.
     - Sniper crosshair: shows angles (yaw/pitch/total) to target.
-        * snipeChecker ON  -> camera solved so sniper crosshair lands EXACTLY on target (iterative convergence to <0.02°).
+        * snipeChecker ON  -> camera solved so sniper crosshair lands EXACTLY on target.
         * snipeChecker OFF -> just reads and displays angles.
     - Sniper has its own aim part (Head/Torso) independent of main aimbot.
-    - Pixel offset buttons use 2.5px step (as originally).
-    Solver: exact orthonormal-axis construction + post-verification convergence loop.
+    - All offset/NA buttons use accumulation (currentValue = currentValue + step), as in working build.
+    - Pixel offset step: 2.5px (as in first working build).
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -617,11 +617,6 @@ local function updateCrosshair()
     crosshairLines[4].Visible = true
 end
 
---[[
-    ТОЧНЫЙ АНАЛИТИЧЕСКИЙ СОЛВЕР + КОНВЕРГЕНЦИЯ.
-    После аналитического решения — до 6 итераций фактической проекции через WorldToViewportPoint.
-    Гарантирует субпиксельную точность.
-]]
 local function solveCFrameForTarget(targetPos, aimScreenPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
@@ -959,6 +954,7 @@ local function addTextBox(text, initialText, onChange)
     return newBox
 end
 
+-- [[ ФИКС ]] Накопление, как в неудачной/рабочей версии.
 local function addOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1001,6 +997,7 @@ local function addOffsetComboBox(text, initialValue, onChange)
         btn.Visible = false
         table.insert(elems, btn)
         btn.MouseButton1Click:Connect(function()
+            -- Накопление, как в рабочей версии
             currentValue = math.clamp(currentValue + btnData.value, -45, 45)
             updateText()
             onChange(currentValue)
@@ -1011,7 +1008,7 @@ local function addOffsetComboBox(text, initialValue, onChange)
     return newCombo
 end
 
--- [[ ФИКС ]] Кнопки пиксельных оффсетов: шаг 2.5px вместо 2px, как было изначально.
+-- [[ ФИКС ]] Накопление + шаг 2.5px, как в первой удачной версии.
 local function addPixelOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1052,6 +1049,7 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
         btn.Visible = false
         table.insert(elems, btn)
         btn.MouseButton1Click:Connect(function()
+            -- Накопление
             currentValue = currentValue + btnData.value
             updateText()
             onChange(currentValue)
@@ -1062,6 +1060,7 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     return newCombo
 end
 
+-- [[ ФИКС ]] NA — накопление, как в рабочей версии.
 local function addNAComboBox()
     local newCombo = ComboBox:Clone()
     local isOpen = false
