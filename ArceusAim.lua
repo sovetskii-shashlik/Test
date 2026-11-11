@@ -2,12 +2,13 @@
     AIMBOT SCRIPT
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Dual-crosshair build v2:
+    Dual-crosshair build v3:
     - Normal custom crosshair: shows getAimScreenPos(), works as before.
     - Sniper crosshair: shows angles (yaw/pitch/total) to target.
         * snipeChecker ON  -> camera solved so sniper crosshair lands EXACTLY on target (iterative convergence to <0.02°).
         * snipeChecker OFF -> just reads and displays angles.
     - Sniper has its own aim part (Head/Torso) independent of main aimbot.
+    - Pixel offset buttons use 2.5px step (as originally).
     Solver: exact orthonormal-axis construction + post-verification convergence loop.
 ]]
 
@@ -466,7 +467,7 @@ local teamcheck = false
 local wallcheck = false
 local nonfriends = false
 local aimpart = "Head"
-local sniperAimPart = "Head"   -- отдельная часть для снайперского прицела
+local sniperAimPart = "Head"
 local notAggressive = false
 local detectRange = 500
 local superAim = false
@@ -503,7 +504,6 @@ local sniperAngleTextH = nil
 local sniperAngleTextV = nil
 local sniperAngleTextTotal = nil
 
--- Для гарантии сходимости снайпера: храним последнюю цель
 local lastSniperTargetPos = nil
 
 local function getAimScreenPos()
@@ -619,11 +619,8 @@ end
 
 --[[
     ТОЧНЫЙ АНАЛИТИЧЕСКИЙ СОЛВЕР + КОНВЕРГЕНЦИЯ.
-
-    Шаг 1: строим идеальный CFrame аналитически (явные оси, без roll).
-    Шаг 2: временно применяем, проверяем через WorldToViewportPoint.
-           Если ошибка > 0.1 px — применяем угловую поправку пропорционально и повторяем.
-    Гарантированно приходит к субпикселю, включая случаи, когда аналитика чуть-чуть неточна из-за FOV/аспекта.
+    После аналитического решения — до 6 итераций фактической проекции через WorldToViewportPoint.
+    Гарантирует субпиксельную точность.
 ]]
 local function solveCFrameForTarget(targetPos, aimScreenPos)
     local camera = workspace.CurrentCamera
@@ -659,7 +656,6 @@ local function solveCFrameForTarget(targetPos, aimScreenPos)
 
     local resultCF = CFrame.fromMatrix(camPos, rightAfterYaw, upAfterPitch, -lookAfterPitch)
 
-    -- Пост-конвергенция: проверяем фактическую проекцию и дорешиваем при необходимости
     for iter = 1, 6 do
         camera.CFrame = resultCF
         local proj, onScreen = camera:WorldToViewportPoint(targetPos)
@@ -669,11 +665,9 @@ local function solveCFrameForTarget(targetPos, aimScreenPos)
         local errY = aimScreenPos.Y - proj.Y
         if math.abs(errX) < 0.05 and math.abs(errY) < 0.05 then break end
 
-        -- Угловая поправка в локальной системе resultCF
         local dYaw   = math.atan(errX * 2 * tanHalfFov * aspect / viewport.X)
         local dPitch = math.atan(errY * 2 * tanHalfFov         / viewport.Y)
 
-        -- Поворачиваем оси resultCF на эти углы (в мировых, не через CFrame.Angles)
         local lL = -resultCF.ZVector
         local lR =  resultCF.XVector
         local lU =  resultCF.YVector
@@ -831,9 +825,6 @@ local function localHasTool()
     return char:FindFirstChildWhichIsA("Tool") ~= nil
 end
 
--- [[ ФИКС ]] Возвращает именно запрошенную часть.
--- Если запрошен Head и он есть — вернёт Head. Не подменяет на UpperTorso без нужды.
--- Если запрошен Torso — сначала ищет Torso (R6), потом UpperTorso (R15), потом HumanoidRootPart.
 local function getAimPartObject(character, requestedPart)
     if not character then return nil end
     if requestedPart == "Head" then
@@ -853,8 +844,6 @@ local function getSearchAimPoint()
     return getAimScreenPos()
 end
 
--- [[ ФИКС ]] Явный параметр partName, чтобы снайпер мог искать по своей части (sniperAimPart),
--- а не по общей aimpart. Без fallback-путаницы.
 function getClosestPlayerToCursor(partName)
     local localPlayer = plrsService.LocalPlayer
     if requireTool and not localHasTool() then return nil end
@@ -1022,6 +1011,7 @@ local function addOffsetComboBox(text, initialValue, onChange)
     return newCombo
 end
 
+-- [[ ФИКС ]] Кнопки пиксельных оффсетов: шаг 2.5px вместо 2px, как было изначально.
 local function addPixelOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1049,8 +1039,8 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     elements += 1
     addSpace(Menu)
     local buttons = {
-        {label = "-10px", value = -10}, {label = "-5px", value = -5}, {label = "-2px", value = -2}, {label = "-1px", value = -1},
-        {label = "+1px", value = 1}, {label = "+2px", value = 2}, {label = "+5px", value = 5}, {label = "+10px", value = 10},
+        {label = "-10px", value = -10}, {label = "-5px", value = -5}, {label = "-2.5px", value = -2.5}, {label = "-1px", value = -1},
+        {label = "+1px", value = 1}, {label = "+2.5px", value = 2.5}, {label = "+5px", value = 5}, {label = "+10px", value = 10},
     }
     for _, btnData in ipairs(buttons) do
         local btn = ComboElem:Clone()
@@ -1230,8 +1220,6 @@ local resetBtn = addButton("Reset Settings", function()
 end)
 
 runService.RenderStepped:Connect(function()
-    -- [[ ФИКС ]] Снайпер ищет цель по sniperAimPart, аимбот — по aimpart.
-    -- Если снайперский прицел включён, отдаём ему приоритет поиска (его aimPoint — его крест).
     local closest = getClosestPlayerToCursor(aimpart)
     local targetPos = nil
 
@@ -1240,11 +1228,9 @@ runService.RenderStepped:Connect(function()
         if aimobj then targetPos = aimobj.Position end
     end
 
-    -- Для снайпера отдельная цель по sniperAimPart (важно: чтобы он мог целиться в голову, даже если аимбот — в торс)
     local sniperClosest = nil
     local sniperTargetPos = nil
     if customSniperCrosshair then
-        -- Если основной аимбот выключен или не нашёл цель, ищем для снайпера отдельно
         if snipeChecker or not closest then
             sniperClosest = getClosestPlayerToCursor(sniperAimPart)
             if sniperClosest and sniperClosest.Character then
@@ -1252,7 +1238,6 @@ runService.RenderStepped:Connect(function()
                 if sObj then sniperTargetPos = sObj.Position end
             end
         end
-        -- Если аимбот нашёл цель, но у снайпера своя часть — используем его же игрока, но берём другую часть
         if not sniperTargetPos and closest and closest.Character then
             local sObj = getAimPartObject(closest.Character, sniperAimPart)
             if sObj then
@@ -1265,11 +1250,9 @@ runService.RenderStepped:Connect(function()
         lastSniperTargetPos = nil
     end
 
-    -- Обычный прицел
     updateCrosshair()
     if showZone then updateZoneGUI() end
 
-    -- 1) Основной аимбот
     if targetPos and closest and closest.Character then
         local aimobj = getAimPartObject(closest.Character, aimpart)
         if aimobj then
@@ -1292,7 +1275,6 @@ runService.RenderStepped:Connect(function()
         end
     end
 
-    -- 2) Снайперский прицел
     if sniperTargetPos then
         if snipeChecker then
             local sniperAimPos = getSniperAimScreenPos()
@@ -1310,7 +1292,6 @@ runService.RenderStepped:Connect(function()
                     local angleRad = math.acos(dot)
                     local angleNorm = angleRad / math.pi
                     local flickBoost = 1 + (naFlickForce * angleNorm * 3)
-                    -- Снайпер сглаживается агрессивнее, чтобы гарантированно достичь 0.0°
                     local baseAlpha = math.min(1, naSmoothness * 1.5)
                     local alpha = math.clamp(baseAlpha * flickBoost, 0, 1)
                     workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(idealCF, alpha)
