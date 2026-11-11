@@ -3,7 +3,7 @@
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
-    Fixed: Accurate Crosshair Aiming, Pixel-Perfect Snipe Checker, Reset button
+    Fixed: Snipe Checker now directly aims CFrame at the 3D center of the target hitbox, compensating for offsets.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -1185,7 +1185,7 @@ local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state)
     requireTool = state
 end, false)
 
-local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Pixel Perfect)", function(state)
+local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Direct Aim)", function(state)
     snipeChecker = state
 end, false)
 
@@ -1246,7 +1246,7 @@ runService.RenderStepped:Connect(function()
             local camera = workspace.CurrentCamera
             local viewport = camera.ViewportSize
 
-            -- 1. Сначала срабатывает базовый аимбот и Super Aim. Они делают плавные довороты.
+            -- 1. Базовый аимбот и Super Aim
             if superAim then
                 local angleFromAim = getAngleFromAimToTarget(aimobj)
                 if angleFromAim <= superAimAngle then
@@ -1265,28 +1265,22 @@ runService.RenderStepped:Connect(function()
                 end
             end
 
-            -- 2. А теперь Snipe Checker. Он смотрит на экран.
-            -- Он вычисляет, где цель проецируется, и где находится крестик.
-            -- И затем двигает камеру ровно на разницу между этими пикселями.
-            -- Это заставляет точку крестика идеально совпасть с центром хитбокса.
+            -- 2. SNIPE CHECKER (Direct Aim)
+            -- Он не вычисляет смещение, он просто направляет камеру прямо в точку хитбокса.
+            -- Но чтобы крестик смотрел в центр хитбокса, мы должны применить смещение к CFrame.
             if snipeChecker then
-                local aimPos = getAimScreenPos()
+                -- Берем позицию хитбокса
+                local targetPos = aimobj.Position
                 
-                -- Проецируем цель на экран. Используем текущую камеру.
-                local screenPos = camera:WorldToViewportPoint(aimobj.Position)
-                local targetScreenPos = Vector2.new(screenPos.X, screenPos.Y)
-                
-                -- Вычисляем, на сколько пикселей цель смещена от нашего крестика
-                local dx = aimPos.X - targetScreenPos.X
-                local dy = aimPos.Y - targetScreenPos.Y
-                
-                -- Переводим эти пиксели в углы (используя FOV камеры и разрешение экрана)
-                local fovRad = math.rad(camera.FieldOfView)
-                local yawDelta = math.atan( (dx / (viewport.X / 2)) * math.tan(fovRad / 2) )
-                local pitchDelta = math.atan( (dy / (viewport.Y / 2)) * math.tan(fovRad / 2) )
-                
-                -- Применяем поворот поверх текущего положения камеры
-                camera.CFrame = camera.CFrame * CFrame.Angles(pitchDelta, -yawDelta, 0)
+                -- Базовый CFrame, который смотрит ровно на хитбокс (в 3D)
+                local baseCFrame = CFrame.new(camera.CFrame.Position, targetPos)
+
+                -- Применяем наши смещения (Yaw и Pitch), чтобы крестик оказался в точке цели
+                local yawOffset = math.rad(aimOffsetYaw)
+                local pitchOffset = math.rad(aimOffsetPitch)
+
+                -- Итоговый CFrame
+                camera.CFrame = baseCFrame * CFrame.Angles(pitchOffset, -yawOffset, 0)
             end
         end
     end
