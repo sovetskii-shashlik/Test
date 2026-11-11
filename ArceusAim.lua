@@ -3,7 +3,7 @@
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
     Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
-    Fixed: Accurate Crosshair Aiming, Pixel-Perfect Snipe Checker (Micro-correction), Reset button
+    Fixed: Accurate Crosshair Aiming, Pixel-Perfect Snipe Checker, Reset button
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -1185,7 +1185,7 @@ local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state)
     requireTool = state
 end, false)
 
-local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Micro-correction)", function(state)
+local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Pixel Perfect)", function(state)
     snipeChecker = state
 end, false)
 
@@ -1241,9 +1241,12 @@ runService.RenderStepped:Connect(function()
 
     if closest then
         local aimobj = closest.Character:FindFirstChild(aimpart) or closest.Character:FindFirstChild("UpperTorso")
-        
+
         if aimobj then
-            -- 1. Сначала работает Super Aim
+            local camera = workspace.CurrentCamera
+            local viewport = camera.ViewportSize
+
+            -- 1. Сначала срабатывает базовый аимбот и Super Aim. Они делают плавные довороты.
             if superAim then
                 local angleFromAim = getAngleFromAimToTarget(aimobj)
                 if angleFromAim <= superAimAngle then
@@ -1251,7 +1254,6 @@ runService.RenderStepped:Connect(function()
                 end
             end
 
-            -- 2. Затем работает основной аимбот
             if enabled then
                 if notAggressive then
                     local angle = getAngleToTarget(aimobj)
@@ -1262,11 +1264,29 @@ runService.RenderStepped:Connect(function()
                     lookAt(aimobj.Position)
                 end
             end
-            
-            -- 3. В самом конце Snipe Checker делает идеальную микро-поправку
-            -- Он не заменяет аимбот, а исправляет ошибку, оставленную сглаживанием
+
+            -- 2. А теперь Snipe Checker. Он смотрит на экран.
+            -- Он вычисляет, где цель проецируется, и где находится крестик.
+            -- И затем двигает камеру ровно на разницу между этими пикселями.
+            -- Это заставляет точку крестика идеально совпасть с центром хитбокса.
             if snipeChecker then
-                lookAt(aimobj.Position)
+                local aimPos = getAimScreenPos()
+                
+                -- Проецируем цель на экран. Используем текущую камеру.
+                local screenPos = camera:WorldToViewportPoint(aimobj.Position)
+                local targetScreenPos = Vector2.new(screenPos.X, screenPos.Y)
+                
+                -- Вычисляем, на сколько пикселей цель смещена от нашего крестика
+                local dx = aimPos.X - targetScreenPos.X
+                local dy = aimPos.Y - targetScreenPos.Y
+                
+                -- Переводим эти пиксели в углы (используя FOV камеры и разрешение экрана)
+                local fovRad = math.rad(camera.FieldOfView)
+                local yawDelta = math.atan( (dx / (viewport.X / 2)) * math.tan(fovRad / 2) )
+                local pitchDelta = math.atan( (dy / (viewport.Y / 2)) * math.tan(fovRad / 2) )
+                
+                -- Применяем поворот поверх текущего положения камеры
+                camera.CFrame = camera.CFrame * CFrame.Angles(pitchDelta, -yawDelta, 0)
             end
         end
     end
