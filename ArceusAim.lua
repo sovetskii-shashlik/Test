@@ -2,14 +2,11 @@
     AIMBOT SCRIPT
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Dual-crosshair build v4:
-    - Normal custom crosshair: shows getAimScreenPos(), works as before.
-    - Sniper crosshair: shows angles (yaw/pitch/total) to target.
-        * snipeChecker ON  -> camera solved so sniper crosshair lands EXACTLY on target.
-        * snipeChecker OFF -> just reads and displays angles.
-    - Sniper has its own aim part (Head/Torso) independent of main aimbot.
-    - All offset/NA buttons use accumulation (currentValue = currentValue + step), as in working build.
-    - Pixel offset step: 2.5px (as in first working build).
+    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
+    Fixed: Analytical aim CFrame built from explicit orthonormal world-space axes.
+           No Euler-order error, no roll, pixel-perfect at ANY distance.
+    Added: Custom Sniper Crosshair with live yaw/pitch angles, own pixel offsets, own aim part,
+           and optional snap-to-target (Snipe Checker). Uses same accumulation logic and 2.5px step as original.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -55,6 +52,7 @@ local Img_2 = Instance.new("TextLabel")
 local UIAspectRatioConstraint_5 = Instance.new("UIAspectRatioConstraint")
 
 --Properties:
+
 Arceus.Name = "Arceus"
 Arceus.Enabled = true
 Arceus.ResetOnSpawn = true
@@ -325,20 +323,36 @@ Img_2.TextWrapped = true
 UIAspectRatioConstraint_5.Parent = Img_2
 
 -- SCRIPT
-local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
 
+local TweenService = game:GetService("TweenService")
 Close.MouseButton1Click:Connect(function()
     Logo.Active = true
     TweenService:Create(Intro, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 0}):Play()
+
     task.wait(0.3)
-    Logo:TweenSizeAndPosition(UDim2.fromScale(0.75, 0.75), UDim2.fromScale(0.5, 0.5), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true, nil)
+    Logo:TweenSizeAndPosition(
+        UDim2.fromScale(0.75, 0.75),
+        UDim2.fromScale(0.5, 0.5),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.25, true, nil
+    )
+
     task.wait(0.3)
-    Main:TweenSize(UDim2.fromScale(0.1, 0.175), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true, nil)
+    Main:TweenSize(
+        UDim2.fromScale(0.1, 0.175),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.25, true, nil
+    )
+
     task.wait(0.3)
     for _, obj in pairs(Main:GetChildren()) do
-        if obj:IsA("GuiObject") and obj ~= Intro then obj.Visible = false end
+        if obj:IsA("GuiObject") and obj ~= Intro then
+            obj.Visible = false
+        end
     end
+
     TweenService:Create(Logo, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {ImageTransparency = 0.8}):Play()
     TweenService:Create(Intro, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
     TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 0.8}):Play()
@@ -349,25 +363,53 @@ Logo.MouseButton1Click:Connect(function()
     TweenService:Create(Logo, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {ImageTransparency = 0}):Play()
     TweenService:Create(Intro, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 0}):Play()
     TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 0}):Play()
+
     task.wait(0.3)
-    Main:TweenSize(UDim2.fromScale(0.3, 0.3), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true, nil)
+    Main:TweenSize(
+        UDim2.fromScale(0.3, 0.3),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.25, true, nil
+    )
+
     task.wait(0.3)
-    Logo:TweenSizeAndPosition(UDim2.fromScale(0.175, 0.175), UDim2.fromScale(0.075, 0.15), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true, nil)
+    Logo:TweenSizeAndPosition(
+        UDim2.fromScale(0.175, 0.175),
+        UDim2.fromScale(0.075, 0.15),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.25, true, nil
+    )
+
     for _, obj in pairs(Main:GetChildren()) do
-        if obj:IsA("GuiObject") and obj ~= Intro then obj.Visible = true end
+        if obj:IsA("GuiObject") and obj ~= Intro then
+            obj.Visible = true
+        end
     end
+
     task.wait(0.3)
     TweenService:Create(Intro, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
 end)
 
 local function uiparent()
-    local success, parent = pcall(function() return gethui() end)
-    if not success then return game:GetService("CoreGui") end
+    local success, parent = pcall(function()
+        return gethui()
+    end)
+
+    if not success then
+        return game:GetService("CoreGui")
+    end
+
     return parent
 end
 
-local success, err = pcall(function() Arceus.Parent = uiparent() end)
-if not success then Arceus.Parent = game:GetService("Players").LocalPlayer.PlayerGui end
+local success, err = pcall(function()
+    Arceus.Parent = uiparent()
+end)
+
+if not success then
+    Arceus.Parent = game:GetService("Players").LocalPlayer.PlayerGui
+end
 
 local element_height = 50*Menu.AbsoluteSize.Y/210
 local elements = 0
@@ -378,41 +420,53 @@ local function addSpace(parent)
     space.Parent = parent
     space.LayoutOrder = elements
     space.Visible = true
+
     elements += 1
 end
 
 local function addToggle(name, funct, enabled, ...)
     local newTog = Toggle:Clone()
     local args = {...}
+
     newTog.MouseButton1Click:Connect(function()
         enabled = not enabled
         newTog:WaitForChild("Enabled"):WaitForChild("Check").Visible = enabled
         funct(enabled, unpack(args))
     end)
+
     newTog:WaitForChild("Enabled"):WaitForChild("Check").Visible = enabled
     newTog:WaitForChild("Name").Text = name
+
     newTog.Size = UDim2.new(0.95, 0, 0, element_height)
     newTog.Name = name
     newTog.Parent = Menu
     newTog.LayoutOrder = elements
     newTog.Visible = true
+
     elements += 1
     addSpace(Menu)
+
     return newTog
 end
 
 local function addButton(name, funct, ...)
     local newBut = Button:Clone()
     local args = {...}
-    newBut.MouseButton1Click:Connect(function() funct(unpack(args)) end)
+
+    newBut.MouseButton1Click:Connect(function()
+        funct(unpack(args))
+    end)
+
     newBut:WaitForChild("Name").Text = name
     newBut.Size = UDim2.new(0.95, 0, 0, element_height)
     newBut.Name = name
     newBut.Parent = Menu
     newBut.LayoutOrder = elements
     newBut.Visible = true
+
     elements += 1
     addSpace(Menu)
+
     return newBut
 end
 
@@ -421,47 +475,62 @@ local function addComboBox(text, options, funct, ...)
     local enabled = false
     local elems = {}
     local args = {...}
+
     local function setBoxState()
         newCombo:WaitForChild("Img").Rotation = enabled and 0 or 180
-        for _, elem in ipairs(elems) do elem.Visible = enabled end
+        for _, elem in ipairs(elems) do
+            elem.Visible = enabled
+        end
     end
+
     newCombo.MouseButton1Click:Connect(function()
         enabled = not enabled
         setBoxState()
     end)
+
     newCombo:WaitForChild("Name").Text = text .. ": " .. (#options > 0 and options[1] or "")
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = #options > 0 and options[1] or ""
     newCombo.Parent = Menu
     newCombo.LayoutOrder = elements
+    newCombo.Parent = Menu
     newCombo.Visible = true
+
     elements += 1
     addSpace(Menu)
+
     for _, name in ipairs(options) do
         local newElem = ComboElem:Clone()
         table.insert(elems, newElem)
+
         newElem.MouseButton1Click:Connect(function()
             newCombo:WaitForChild("Name").Text = text .. ": " .. name
             enabled = false
             setBoxState()
+
             funct(name, unpack(args))
         end)
+
         newElem:WaitForChild("Name").Text = name
         newElem.Size = UDim2.new(0.95, 0, 0, element_height)
         newElem.Name = name
         newElem.Parent = Menu
         newElem.LayoutOrder = elements
         newElem.Visible = false
+
         elements += 1
         addSpace(Menu)
     end
+
     return newCombo
 end
 
 -- Actual Script
+
 local runService = game:GetService("RunService")
 local plrsService = game:GetService("Players")
 local workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
 local enabled = false
 local teamcheck = false
 local wallcheck = false
@@ -504,31 +573,6 @@ local sniperAngleTextH = nil
 local sniperAngleTextV = nil
 local sniperAngleTextTotal = nil
 
-local lastSniperTargetPos = nil
-
-local function getAimScreenPos()
-    local camera = workspace.CurrentCamera
-    local viewport = camera.ViewportSize
-    local fovRad = math.rad(camera.FieldOfView)
-    local tanHalfFov = math.tan(fovRad / 2)
-    local aspect = viewport.X / viewport.Y
-    local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / (tanHalfFov * aspect)) * (viewport.X / 2)
-    local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / tanHalfFov) * (viewport.Y / 2)
-    return Vector2.new(
-        viewport.X / 2 + pixelOffsetX + yawPixels,
-        viewport.Y / 2 + pixelOffsetY + pitchPixels
-    )
-end
-
-local function getSniperAimScreenPos()
-    local camera = workspace.CurrentCamera
-    local viewport = camera.ViewportSize
-    return Vector2.new(
-        viewport.X / 2 + sniperPixelOffsetX,
-        viewport.Y / 2 + sniperPixelOffsetY
-    )
-end
-
 local function createCrosshair()
     if not crosshairCenter then
         crosshairCenter = Drawing.new("Circle")
@@ -537,6 +581,7 @@ local function createCrosshair()
         crosshairCenter.Color = Color3.fromRGB(255, 80, 80)
         crosshairCenter.Transparency = 1
         crosshairCenter.Visible = true
+
         for i = 1, 4 do
             local line = Drawing.new("Line")
             line.Color = Color3.fromRGB(255, 80, 80)
@@ -555,6 +600,7 @@ local function createSniperCrosshair()
         sniperCrosshairCenter.Color = Color3.fromRGB(0, 255, 120)
         sniperCrosshairCenter.Transparency = 1
         sniperCrosshairCenter.Visible = true
+
         for i = 1, 4 do
             local line = Drawing.new("Line")
             line.Color = Color3.fromRGB(0, 255, 120)
@@ -562,6 +608,7 @@ local function createSniperCrosshair()
             line.Visible = true
             table.insert(sniperCrosshairLines, line)
         end
+
         sniperAngleTextH = Drawing.new("Text")
         sniperAngleTextH.Size = 12
         sniperAngleTextH.Center = false
@@ -591,37 +638,70 @@ local function createSniperCrosshair()
     end
 end
 
+local function getAimScreenPos()
+    local camera = workspace.CurrentCamera
+    local viewport = camera.ViewportSize
+    local center = Vector2.new(viewport.X / 2, viewport.Y / 2)
+
+    local fovRad = math.rad(camera.FieldOfView)
+    local tanHalfFov = math.tan(fovRad / 2)
+
+    local yawPixels = (math.tan(math.rad(aimOffsetYaw)) / tanHalfFov) * (viewport.X / 2)
+    local pitchPixels = (math.tan(math.rad(aimOffsetPitch)) / tanHalfFov) * (viewport.Y / 2)
+
+    return center + Vector2.new(pixelOffsetX + yawPixels, pixelOffsetY + pitchPixels)
+end
+
+local function getSniperAimScreenPos()
+    local camera = workspace.CurrentCamera
+    local viewport = camera.ViewportSize
+    return Vector2.new(viewport.X / 2 + sniperPixelOffsetX, viewport.Y / 2 + sniperPixelOffsetY)
+end
+
 local function updateCrosshair()
     if not customCrosshair then
         if crosshairCenter then crosshairCenter.Visible = false end
         for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end
         return
     end
-    if not crosshairCenter then createCrosshair() end
+
+    if not crosshairCenter then
+        createCrosshair()
+    end
+
     local pos = getAimScreenPos()
+
     crosshairCenter.Position = pos
     crosshairCenter.Visible = true
+
     local gap = 5
     local len = 10
+
     crosshairLines[1].From = Vector2.new(pos.X - gap, pos.Y)
     crosshairLines[1].To = Vector2.new(pos.X - gap - len, pos.Y)
     crosshairLines[1].Visible = true
+
     crosshairLines[2].From = Vector2.new(pos.X + gap, pos.Y)
     crosshairLines[2].To = Vector2.new(pos.X + gap + len, pos.Y)
     crosshairLines[2].Visible = true
+
     crosshairLines[3].From = Vector2.new(pos.X, pos.Y - gap)
     crosshairLines[3].To = Vector2.new(pos.X, pos.Y - gap - len)
     crosshairLines[3].Visible = true
+
     crosshairLines[4].From = Vector2.new(pos.X, pos.Y + gap)
     crosshairLines[4].To = Vector2.new(pos.X, pos.Y + gap + len)
     crosshairLines[4].Visible = true
 end
 
-local function solveCFrameForTarget(targetPos, aimScreenPos)
+--[[
+    АНАЛИТИЧЕСКОЕ РЕШЕНИЕ через явные ортонормальные оси в мировых координатах.
+    Та же формула, что дала стабильную точность на любой дистанции.
+]]
+local function computeAimCFrame(targetPos, aimScreenPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
     local camPos = camera.CFrame.Position
-    local oldCFrame = camera.CFrame
 
     local fovRad = math.rad(camera.FieldOfView)
     local tanHalfFov = math.tan(fovRad / 2)
@@ -641,48 +721,16 @@ local function solveCFrameForTarget(targetPos, aimScreenPos)
     local cosY, sinY = math.cos(yawAngle), math.sin(yawAngle)
     local lookAfterYaw  = (lookDir  * cosY) - (rightDir * sinY)
     local rightAfterYaw = (rightDir * cosY) + (lookDir  * sinY)
+
     local cosP, sinP = math.cos(pitchAngle), math.sin(pitchAngle)
     local lookAfterPitch = (lookAfterYaw * cosP) + (upDir * sinP)
     local upAfterPitch   = (upDir        * cosP) - (lookAfterYaw * sinP)
 
-    lookAfterPitch = lookAfterPitch.Unit
-    upAfterPitch   = upAfterPitch.Unit
-    rightAfterYaw  = rightAfterYaw.Unit
+    lookAfterPitch  = lookAfterPitch.Unit
+    upAfterPitch    = upAfterPitch.Unit
+    rightAfterYaw   = rightAfterYaw.Unit
 
-    local resultCF = CFrame.fromMatrix(camPos, rightAfterYaw, upAfterPitch, -lookAfterPitch)
-
-    for iter = 1, 6 do
-        camera.CFrame = resultCF
-        local proj, onScreen = camera:WorldToViewportPoint(targetPos)
-        camera.CFrame = oldCFrame
-        if not onScreen then break end
-        local errX = aimScreenPos.X - proj.X
-        local errY = aimScreenPos.Y - proj.Y
-        if math.abs(errX) < 0.05 and math.abs(errY) < 0.05 then break end
-
-        local dYaw   = math.atan(errX * 2 * tanHalfFov * aspect / viewport.X)
-        local dPitch = math.atan(errY * 2 * tanHalfFov         / viewport.Y)
-
-        local lL = -resultCF.ZVector
-        local lR =  resultCF.XVector
-        local lU =  resultCF.YVector
-
-        local cY, sY = math.cos(dYaw), math.sin(dYaw)
-        local l2 = (lL * cY) - (lR * sY)
-        local r2 = (lR * cY) + (lL * sY)
-
-        local cP, sP = math.cos(dPitch), math.sin(dPitch)
-        local l3 = (l2 * cP) + (lU * sP)
-        local u3 = (lU * cP) - (l2 * sP)
-
-        l3 = l3.Unit
-        u3 = u3.Unit
-        r2 = r2.Unit
-
-        resultCF = CFrame.fromMatrix(camPos, r2, u3, -l3)
-    end
-
-    return resultCF
+    return CFrame.fromMatrix(camPos, rightAfterYaw, upAfterPitch, -lookAfterPitch)
 end
 
 local function angleBetweenCFrames(cfA, cfB)
@@ -697,12 +745,12 @@ local function angleBetweenCFrames(cfA, cfB)
 end
 
 local function lookAt(targetPos)
-    workspace.CurrentCamera.CFrame = solveCFrameForTarget(targetPos, getAimScreenPos())
+    workspace.CurrentCamera.CFrame = computeAimCFrame(targetPos, getAimScreenPos())
 end
 
 local function lookAtSmooth(targetPos, alpha)
     local currentCFrame = workspace.CurrentCamera.CFrame
-    local targetCFrame = solveCFrameForTarget(targetPos, getAimScreenPos())
+    local targetCFrame = computeAimCFrame(targetPos, getAimScreenPos())
     workspace.CurrentCamera.CFrame = currentCFrame:Lerp(targetCFrame, alpha)
 end
 
@@ -743,7 +791,7 @@ local function updateSniperCrosshair(targetPos)
         return
     end
 
-    local idealCF = solveCFrameForTarget(targetPos, aimPos)
+    local idealCF = computeAimCFrame(targetPos, aimPos)
     local currentCF = workspace.CurrentCamera.CFrame
     local yawDeg, pitchDeg, totalDeg = angleBetweenCFrames(currentCF, idealCF)
 
@@ -779,7 +827,8 @@ function getAngleToTarget(aimobj)
     local cameraLook = camera.CFrame.LookVector
     local directionToTarget = (aimobj.Position - cameraPos).Unit
     local dot = cameraLook:Dot(directionToTarget)
-    return math.deg(math.acos(math.clamp(dot, -1, 1)))
+    local angle = math.deg(math.acos(math.clamp(dot, -1, 1)))
+    return angle
 end
 
 local function getAngleFromAimToTarget(aimobj)
@@ -789,23 +838,33 @@ local function getAngleFromAimToTarget(aimobj)
     local targetScreen = Vector2.new(screenPos.X, screenPos.Y)
     local aimPos = getAimScreenPos()
     local diff = (targetScreen - aimPos).Magnitude
-    return (diff / viewport.Y) * 70
+    local fov = 70
+    local angle = (diff / math.max(viewport.X, viewport.Y)) * fov
+    return angle
 end
 
 function isVisible(part)
     if not wallcheck then return true end
+
     local camera = workspace.CurrentCamera
     local origin = camera.CFrame.Position
     local direction = (part.Position - origin).Unit * (origin - part.Position).Magnitude
     local ray = Ray.new(origin, direction)
+
     local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {camera, plrsService.LocalPlayer.Character})
-    if hit and hit:IsDescendantOf(part.Parent) then return true end
+
+    if hit and hit:IsDescendantOf(part.Parent) then
+        return true
+    end
+
     return false
 end
 
 function isFriend(player)
     local localPlayer = plrsService.LocalPlayer
-    local success, isFriend = pcall(function() return player:IsFriendsWith(localPlayer.UserId) end)
+    local success, isFriend = pcall(function()
+        return player:IsFriendsWith(localPlayer.UserId)
+    end)
     return success and isFriend
 end
 
@@ -839,41 +898,62 @@ local function getSearchAimPoint()
     return getAimScreenPos()
 end
 
-function getClosestPlayerToCursor(partName)
+function getClosestPlayerToCursor(trg_part)
     local localPlayer = plrsService.LocalPlayer
-    if requireTool and not localHasTool() then return nil end
+
+    if requireTool and not localHasTool() then
+        return nil
+    end
+
     local myChar = localPlayer.Character
     if not myChar then return nil end
     local myHead = myChar:FindFirstChild("Head")
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     if not myHead or not myRoot then return nil end
+
     local aimPoint = getSearchAimPoint()
     local myPos = myRoot.Position
+
     local bestClosest = nil
     local bestClosestDist = math.huge
+
     local bestTool = nil
     local bestToolDist = math.huge
+
     for _, v in ipairs(plrsService:GetPlayers()) do
         if v ~= localPlayer and myChar:FindFirstChildWhichIsA("Humanoid") and myChar.Humanoid.Health > 0
-            and v.Character and v.Character:FindFirstChildWhichIsA("Humanoid") and v.Character.Humanoid.Health > 0 then
+            and v.Character and v.Character:FindFirstChildWhichIsA("Humanoid") and v.Character.Humanoid.Health > 0
+        then
             local allowed = not teamcheck
-            if teamcheck and v.Team ~= localPlayer.Team then allowed = true end
-            if nonfriends and isFriend(v) then allowed = false end
+            if teamcheck and v.Team ~= localPlayer.Team then
+                allowed = true
+            end
+
+            if nonfriends and isFriend(v) then
+                allowed = false
+            end
+
             if allowed then
-                local aimobj = getAimPartObject(v.Character, partName)
+                local aimobj = getAimPartObject(v.Character, trg_part)
                 if aimobj then
                     local distanceToPlayer = (aimobj.Position - myPos).Magnitude
+
                     if distanceToPlayer <= detectRange then
                         local ePos, vissss = workspace.CurrentCamera:WorldToViewportPoint(aimobj.Position)
                         local AccPos = Vector2.new(ePos.x, ePos.y)
                         local screenDist = (AccPos - aimPoint).magnitude
+
                         local visibleThroughWalls = true
-                        if wallcheck then visibleThroughWalls = isVisible(aimobj) end
+                        if wallcheck then
+                            visibleThroughWalls = isVisible(aimobj)
+                        end
+
                         if vissss and screenDist < 400 and visibleThroughWalls then
                             if distanceToPlayer < bestClosestDist then
                                 bestClosestDist = distanceToPlayer
                                 bestClosest = v
                             end
+
                             if isHoldingTool(v) and distanceToPlayer < bestToolDist then
                                 bestToolDist = distanceToPlayer
                                 bestTool = v
@@ -884,15 +964,27 @@ function getClosestPlayerToCursor(partName)
             end
         end
     end
+
     if prioritizeClosest and prioritizeHoldingTool then
         if bestClosest and bestTool then
             if bestClosest == bestTool then return bestClosest end
-            if bestClosestDist < bestToolDist then return bestClosest else return bestTool end
-        elseif bestClosest then return bestClosest
-        elseif bestTool then return bestTool end
-    elseif prioritizeClosest then return bestClosest
-    elseif prioritizeHoldingTool then return bestTool
-    else return bestClosest end
+            if bestClosestDist < bestToolDist then
+                return bestClosest
+            else
+                return bestTool
+            end
+        elseif bestClosest then
+            return bestClosest
+        elseif bestTool then
+            return bestTool
+        end
+    elseif prioritizeClosest then
+        return bestClosest
+    elseif prioritizeHoldingTool then
+        return bestTool
+    else
+        return bestClosest
+    end
 end
 
 local function createZoneGUI()
@@ -902,19 +994,23 @@ local function createZoneGUI()
     zoneGui.ResetOnSpawn = false
     zoneGui.IgnoreGuiInset = true
     zoneGui.Parent = uiparent()
+
     local circle = Instance.new("Frame")
     circle.Name = "ZoneCircle"
     circle.AnchorPoint = Vector2.new(0.5, 0.5)
     circle.Position = UDim2.new(0.5, 0, 0.5, 0)
     circle.BackgroundTransparency = 1
     circle.Parent = zoneGui
+
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
     stroke.Color = Color3.fromRGB(255, 80, 80)
     stroke.Parent = circle
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(1, 0)
     corner.Parent = circle
+
     return circle
 end
 
@@ -922,6 +1018,7 @@ local function updateZoneGUI()
     if not showZone or not zoneGui then return end
     local circle = zoneGui:FindFirstChild("ZoneCircle")
     if not circle then return end
+
     local viewport = workspace.CurrentCamera.ViewportSize
     local radiusPixels = (naZoneAngle / 60) * (viewport.Y * 0.5)
     circle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
@@ -942,51 +1039,73 @@ local function addTextBox(text, initialText, onChange)
     newBox.Parent = Menu
     newBox.LayoutOrder = elements
     newBox.Visible = true
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0.25, 0)
     corner.Parent = newBox
+
     newBox.FocusLost:Connect(function()
         local num = tonumber(newBox.Text)
-        if num and num > 0 then onChange(num) else newBox.Text = tostring(initialText) end
+        if num and num > 0 then
+            onChange(num)
+        else
+            newBox.Text = tostring(initialText)
+        end
     end)
+
     elements += 1
     addSpace(Menu)
+
     return newBox
 end
 
--- [[ ФИКС ]] Накопление, как в неудачной/рабочей версии.
 local function addOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
     local currentValue = initialValue or 0
     local elems = {}
+
     local function updateText()
         local viewport = workspace.CurrentCamera.ViewportSize
         local fov = math.rad(workspace.CurrentCamera.FieldOfView)
-        local tanHalfV = math.tan(fov / 2)
-        local aspect = viewport.X / viewport.Y
-        local pixelValue = (math.tan(math.rad(currentValue)) / (tanHalfV * aspect)) * (viewport.X / 2)
+        local pixelValue = (math.tan(math.rad(currentValue)) / math.tan(fov / 2)) * (viewport.X / 2)
         local percent = math.floor((currentValue / 45) * 100)
         newCombo:WaitForChild("Name").Text = string.format("%s: %.1f° (%d%%) [~%d px]", text, currentValue, percent, math.floor(pixelValue))
     end
+
     local function setBoxState()
         newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
-        for _, elem in ipairs(elems) do elem.Visible = isOpen end
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
     end
-    newCombo.MouseButton1Click:Connect(function() isOpen = not isOpen; setBoxState() end)
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
     updateText()
     table.insert(updateCallbacks, updateText)
+
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = text
     newCombo.Parent = Menu
     newCombo.LayoutOrder = elements
     newCombo.Visible = true
+
     elements += 1
     addSpace(Menu)
+
     local buttons = {
-        {label = "-5°", value = -5}, {label = "-2.5°", value = -2.5}, {label = "-1°", value = -1},
-        {label = "+1°", value = 1}, {label = "+2.5°", value = 2.5}, {label = "+5°", value = 5},
+        {label = "-5°",   value = -5},
+        {label = "-2.5°", value = -2.5},
+        {label = "-1°",   value = -1},
+        {label = "+1°",   value = 1},
+        {label = "+2.5°", value = 2.5},
+        {label = "+5°",   value = 5},
     }
+
     for _, btnData in ipairs(buttons) do
         local btn = ComboElem:Clone()
         btn:WaitForChild("Name").Text = btnData.label
@@ -996,49 +1115,68 @@ local function addOffsetComboBox(text, initialValue, onChange)
         btn.LayoutOrder = elements
         btn.Visible = false
         table.insert(elems, btn)
+
         btn.MouseButton1Click:Connect(function()
-            -- Накопление, как в рабочей версии
             currentValue = math.clamp(currentValue + btnData.value, -45, 45)
             updateText()
             onChange(currentValue)
         end)
+
         elements += 1
         addSpace(Menu)
     end
+
     return newCombo
 end
 
--- [[ ФИКС ]] Накопление + шаг 2.5px, как в первой удачной версии.
 local function addPixelOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
     local currentValue = initialValue or 0
     local elems = {}
+
     local function updateText()
         local viewport = workspace.CurrentCamera.ViewportSize
         local fov = math.rad(workspace.CurrentCamera.FieldOfView)
-        local tanHalfV = math.tan(fov / 2)
-        local degreesValue = math.deg(math.atan((currentValue / (viewport.Y / 2)) * tanHalfV))
-        newCombo:WaitForChild("Name").Text = string.format("%s: %d px [~%.2f°]", text, currentValue, degreesValue)
+        local degreesValue = math.deg(math.atan((currentValue / (viewport.X / 2)) * math.tan(fov / 2)))
+        newCombo:WaitForChild("Name").Text = string.format("%s: %d px [~%.1f°]", text, currentValue, degreesValue)
     end
+
     local function setBoxState()
         newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
-        for _, elem in ipairs(elems) do elem.Visible = isOpen end
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
     end
-    newCombo.MouseButton1Click:Connect(function() isOpen = not isOpen; setBoxState() end)
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
     updateText()
     table.insert(updateCallbacks, updateText)
+
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = text
     newCombo.Parent = Menu
     newCombo.LayoutOrder = elements
     newCombo.Visible = true
+
     elements += 1
     addSpace(Menu)
+
     local buttons = {
-        {label = "-10px", value = -10}, {label = "-5px", value = -5}, {label = "-2.5px", value = -2.5}, {label = "-1px", value = -1},
-        {label = "+1px", value = 1}, {label = "+2.5px", value = 2.5}, {label = "+5px", value = 5}, {label = "+10px", value = 10},
+        {label = "-10px", value = -10},
+        {label = "-5px",  value = -5},
+        {label = "-2.5px",value = -2.5},
+        {label = "-1px",  value = -1},
+        {label = "+1px",  value = 1},
+        {label = "+2.5px",value = 2.5},
+        {label = "+5px",  value = 5},
+        {label = "+10px", value = 10},
     }
+
     for _, btnData in ipairs(buttons) do
         local btn = ComboElem:Clone()
         btn:WaitForChild("Name").Text = btnData.label
@@ -1048,44 +1186,60 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
         btn.LayoutOrder = elements
         btn.Visible = false
         table.insert(elems, btn)
+
         btn.MouseButton1Click:Connect(function()
-            -- Накопление
             currentValue = currentValue + btnData.value
             updateText()
             onChange(currentValue)
         end)
+
         elements += 1
         addSpace(Menu)
     end
+
     return newCombo
 end
 
--- [[ ФИКС ]] NA — накопление, как в рабочей версии.
 local function addNAComboBox()
     local newCombo = ComboBox:Clone()
     local isOpen = false
     local elems = {}
+
     local function setBoxState()
         newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
-        for _, elem in ipairs(elems) do elem.Visible = isOpen end
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
     end
+
     local function updateText()
         newCombo:WaitForChild("Name").Text = string.format("NA: Speed %d%% | Force %d%% | Zone %d°", math.floor(naSmoothness * 100), math.floor((1 - naFlickForce) * 100), naZoneAngle)
     end
-    newCombo.MouseButton1Click:Connect(function() isOpen = not isOpen; setBoxState() end)
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
     updateText()
     table.insert(updateCallbacks, updateText)
+
     newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
     newCombo.Name = "NotAggressiveSettings"
     newCombo.Parent = Menu
     newCombo.LayoutOrder = elements
     newCombo.Visible = true
+
     elements += 1
     addSpace(Menu)
+
     local speedButtons = {
-        {label = "Speed -10%", value = -0.1}, {label = "Speed -5%", value = -0.05},
-        {label = "Speed +5%", value = 0.05}, {label = "Speed +10%", value = 0.1},
+        {label = "Speed -10%", value = -0.1},
+        {label = "Speed -5%",  value = -0.05},
+        {label = "Speed +5%",  value = 0.05},
+        {label = "Speed +10%", value = 0.1},
     }
+
     for _, btnData in ipairs(speedButtons) do
         local btn = ComboElem:Clone()
         btn:WaitForChild("Name").Text = btnData.label
@@ -1095,17 +1249,23 @@ local function addNAComboBox()
         btn.LayoutOrder = elements
         btn.Visible = false
         table.insert(elems, btn)
+
         btn.MouseButton1Click:Connect(function()
             naSmoothness = math.clamp(naSmoothness + btnData.value, 0.1, 1)
             updateText()
         end)
+
         elements += 1
         addSpace(Menu)
     end
+
     local forceButtons = {
-        {label = "Tactility -10%", value = 0.1}, {label = "Tactility -5%", value = 0.05},
-        {label = "Tactility +5%", value = -0.05}, {label = "Tactility +10%", value = -0.1},
+        {label = "Tactility -10%", value = 0.1},
+        {label = "Tactility -5%",  value = 0.05},
+        {label = "Tactility +5%",  value = -0.05},
+        {label = "Tactility +10%", value = -0.1},
     }
+
     for _, btnData in ipairs(forceButtons) do
         local btn = ComboElem:Clone()
         btn:WaitForChild("Name").Text = btnData.label
@@ -1115,17 +1275,25 @@ local function addNAComboBox()
         btn.LayoutOrder = elements
         btn.Visible = false
         table.insert(elems, btn)
+
         btn.MouseButton1Click:Connect(function()
             naFlickForce = math.clamp(naFlickForce + btnData.value, 0, 1)
             updateText()
         end)
+
         elements += 1
         addSpace(Menu)
     end
+
     local zoneButtons = {
-        {label = "Zone -5°", value = -5}, {label = "Zone -2.5°", value = -2.5}, {label = "Zone -1°", value = -1},
-        {label = "Zone +1°", value = 1}, {label = "Zone +2.5°", value = 2.5}, {label = "Zone +5°", value = 5},
+        {label = "Zone -5°",   value = -5},
+        {label = "Zone -2.5°", value = -2.5},
+        {label = "Zone -1°",   value = -1},
+        {label = "Zone +1°",   value = 1},
+        {label = "Zone +2.5°", value = 2.5},
+        {label = "Zone +5°",   value = 5},
     }
+
     for _, btnData in ipairs(zoneButtons) do
         local btn = ComboElem:Clone()
         btn:WaitForChild("Name").Text = btnData.label
@@ -1135,11 +1303,13 @@ local function addNAComboBox()
         btn.LayoutOrder = elements
         btn.Visible = false
         table.insert(elems, btn)
+
         btn.MouseButton1Click:Connect(function()
             naZoneAngle = math.clamp(naZoneAngle + btnData.value, 5, 180)
             updateText()
             updateZoneGUI()
         end)
+
         elements += 1
         addSpace(Menu)
     end
@@ -1147,10 +1317,21 @@ end
 
 -- ORDER OF UI ELEMENTS
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
-local toggleBtn = addToggle("Toggle aimbot", function(state) enabled = state end, false)
-local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state) notAggressive = state end, false)
+
+local toggleBtn = addToggle("Toggle aimbot", function(state)
+    enabled = state
+end, false)
+
+local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state)
+    notAggressive = state
+end, false)
+
 addNAComboBox()
-local toggleSuperAimBtn = addToggle("Super Aim (Snap to target)", function(state) superAim = state end, false)
+
+local toggleSuperAimBtn = addToggle("Super Aim (Snap to target)", function(state)
+    superAim = state
+end, false)
+
 local toggleZoneBtn = addToggle("Show Zone", function(state)
     showZone = state
     if showZone then
@@ -1161,20 +1342,46 @@ local toggleZoneBtn = addToggle("Show Zone", function(state)
         if zoneGui then zoneGui.Enabled = false end
     end
 end, false)
-local toggleTeamCheckBtn = addToggle("Team check", function(state) teamcheck = state end, false)
-local toggleNonFriendsBtn = addToggle("Non Friends", function(state) nonfriends = state end, false)
-local toggleWallCheckBtn = addToggle("Wall check", function(state) wallcheck = state end, false)
-local togglePrioritizeClosestBtn = addToggle("Prioritize Closest", function(state) prioritizeClosest = state end, false)
-local togglePrioritizeToolBtn = addToggle("Prioritize Holding Tool", function(state) prioritizeHoldingTool = state end, false)
-local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state) requireTool = state end, false)
 
-local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Snap sniper crosshair to target)", function(state) snipeChecker = state end, false)
+local toggleTeamCheckBtn = addToggle("Team check", function(state)
+    teamcheck = state
+end, false)
 
-local aimPartCombo = addComboBox("Aim part (main)", {"Head", "Torso"}, function(selection) aimpart = selection end)
-local sniperAimPartCombo = addComboBox("Sniper aim part", {"Head", "Torso"}, function(selection) sniperAimPart = selection end)
+local toggleNonFriendsBtn = addToggle("Non Friends", function(state)
+    nonfriends = state
+end, false)
+
+local toggleWallCheckBtn = addToggle("Wall check", function(state)
+    wallcheck = state
+end, false)
+
+local togglePrioritizeClosestBtn = addToggle("Prioritize Closest", function(state)
+    prioritizeClosest = state
+end, false)
+
+local togglePrioritizeToolBtn = addToggle("Prioritize Holding Tool", function(state)
+    prioritizeHoldingTool = state
+end, false)
+
+local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state)
+    requireTool = state
+end, false)
+
+local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Smooth Direct Aim)", function(state)
+    snipeChecker = state
+end, false)
+
+local aimPartCombo = addComboBox("Aim part (main)", {"Head", "Torso"}, function(selection)
+    aimpart = selection
+end)
+
+local sniperAimPartCombo = addComboBox("Sniper aim part", {"Head", "Torso"}, function(selection)
+    sniperAimPart = selection
+end)
 
 addOffsetComboBox("Yaw Offset", 0, function(v) aimOffsetYaw = v end)
 addOffsetComboBox("Pitch Offset", 0, function(v) aimOffsetPitch = v end)
+
 addPixelOffsetComboBox("Pixel X Offset", 0, function(v) pixelOffsetX = v end)
 addPixelOffsetComboBox("Pixel Y Offset", 0, function(v) pixelOffsetY = v end)
 
@@ -1183,7 +1390,8 @@ addPixelOffsetComboBox("Sniper Pixel Y Offset", 0, function(v) sniperPixelOffset
 
 local toggleCrosshairBtn = addToggle("Custom Crosshair", function(state)
     customCrosshair = state
-    if customCrosshair then createCrosshair()
+    if customCrosshair then
+        createCrosshair()
     else
         if crosshairCenter then crosshairCenter.Visible = false end
         for _, line in ipairs(crosshairLines) do pcall(function() line.Visible = false end) end
@@ -1192,7 +1400,8 @@ end, false)
 
 local toggleSniperCrosshairBtn = addToggle("Custom Sniper Crosshair (with angles)", function(state)
     customSniperCrosshair = state
-    if customSniperCrosshair then createSniperCrosshair()
+    if customSniperCrosshair then
+        createSniperCrosshair()
     else
         if sniperCrosshairCenter then sniperCrosshairCenter.Visible = false end
         for _, line in ipairs(sniperCrosshairLines) do pcall(function() line.Visible = false end) end
@@ -1213,12 +1422,25 @@ local resetBtn = addButton("Reset Settings", function()
     naFlickForce = 0.15
     naZoneAngle = 60
     detectRange = 500
-    lastSniperTargetPos = nil
-    for _, callback in ipairs(updateCallbacks) do pcall(callback) end
-    StarterGui:SetCore("SendNotification", {Title = "Reset", Text = "All settings reset", Duration = 2})
+
+    for _, callback in ipairs(updateCallbacks) do
+        pcall(callback)
+    end
+
+    StarterGui:SetCore("SendNotification", {
+        Title = "Reset",
+        Text = "All settings reset to default",
+        Duration = 2
+    })
 end)
 
 runService.RenderStepped:Connect(function()
+    updateCrosshair()
+
+    if showZone then
+        updateZoneGUI()
+    end
+
     local closest = getClosestPlayerToCursor(aimpart)
     local targetPos = nil
 
@@ -1244,23 +1466,11 @@ runService.RenderStepped:Connect(function()
                 sniperTargetPos = sObj.Position
             end
         end
-        lastSniperTargetPos = sniperTargetPos
-    else
-        lastSniperTargetPos = nil
     end
 
-    updateCrosshair()
-    if showZone then updateZoneGUI() end
-
-    if targetPos and closest and closest.Character then
+    if closest and closest.Character then
         local aimobj = getAimPartObject(closest.Character, aimpart)
         if aimobj then
-            if superAim then
-                local angleFromAim = getAngleFromAimToTarget(aimobj)
-                if angleFromAim <= superAimAngle then
-                    lookAtSmooth(aimobj.Position, 0.25)
-                end
-            end
             if enabled then
                 if notAggressive then
                     local angle = getAngleToTarget(aimobj)
@@ -1271,14 +1481,34 @@ runService.RenderStepped:Connect(function()
                     lookAt(aimobj.Position)
                 end
             end
+
+            if superAim then
+                local angleFromAim = getAngleFromAimToTarget(aimobj)
+                if angleFromAim <= superAimAngle then
+                    lookAtSmooth(aimobj.Position, 0.25)
+                end
+            end
+
+            if snipeChecker and not customSniperCrosshair then
+                local shouldAim = true
+                local smoothness = naSmoothness
+                if notAggressive then
+                    local angle = getAngleToTarget(aimobj)
+                    if angle > naZoneAngle then shouldAim = false end
+                else
+                    smoothness = 0.35
+                end
+                if shouldAim then
+                    lookAtSmooth(aimobj.Position, smoothness)
+                end
+            end
         end
     end
 
-    if sniperTargetPos then
+    if customSniperCrosshair and sniperTargetPos then
         if snipeChecker then
             local sniperAimPos = getSniperAimScreenPos()
-            local idealCF = solveCFrameForTarget(sniperTargetPos, sniperAimPos)
-
+            local idealCF = computeAimCFrame(sniperTargetPos, sniperAimPos)
             if notAggressive then
                 local camPos = workspace.CurrentCamera.CFrame.Position
                 local dirToTarget = (sniperTargetPos - camPos).Unit
@@ -1306,8 +1536,22 @@ runService.RenderStepped:Connect(function()
 end)
 
 -- INIT
-Main:TweenPosition(UDim2.fromScale(0.5, 0.5), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 1, true, nil)
+
+Main:TweenPosition(
+    UDim2.fromScale(0.5, 0.5),
+    Enum.EasingDirection.In,
+    Enum.EasingStyle.Quad,
+    1, true, nil
+)
+
 task.wait(1.5)
-Logo:TweenSizeAndPosition(UDim2.fromScale(0.175, 0.175), UDim2.fromScale(0.075, 0.15), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 1, true, nil)
+Logo:TweenSizeAndPosition(
+    UDim2.fromScale(0.175, 0.175),
+    UDim2.fromScale(0.075, 0.15),
+    Enum.EasingDirection.In,
+    Enum.EasingStyle.Quad,
+    1, true, nil
+)
+
 task.wait(1.5)
 TweenService:Create(Intro, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
