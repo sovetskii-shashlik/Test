@@ -11,7 +11,6 @@
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
 
--- Instances:
 local Arceus = Instance.new("ScreenGui")
 local Main = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -50,8 +49,6 @@ local Name_4 = Instance.new("TextLabel")
 local UIGradient_4 = Instance.new("UIGradient")
 local Img_2 = Instance.new("TextLabel")
 local UIAspectRatioConstraint_5 = Instance.new("UIAspectRatioConstraint")
-
---Properties:
 
 Arceus.Name = "Arceus"
 Arceus.Enabled = true
@@ -322,8 +319,6 @@ Img_2.TextWrapped = true
 
 UIAspectRatioConstraint_5.Parent = Img_2
 
--- SCRIPT
-
 local TweenService = game:GetService("TweenService")
 Close.MouseButton1Click:Connect(function()
     Logo.Active = true
@@ -524,8 +519,6 @@ local function addComboBox(text, options, funct, ...)
 
     return newCombo
 end
-
--- Actual Script
 
 local runService = game:GetService("RunService")
 local plrsService = game:GetService("Players")
@@ -1315,7 +1308,6 @@ local function addNAComboBox()
     end
 end
 
--- ORDER OF UI ELEMENTS
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
 local toggleBtn = addToggle("Toggle aimbot", function(state)
@@ -1534,8 +1526,6 @@ runService.RenderStepped:Connect(function()
         updateSniperCrosshair(nil)
     end
 end)
-
--- INIT
 
 Main:TweenPosition(
     UDim2.fromScale(0.5, 0.5),
