@@ -6,7 +6,10 @@
     Fixed: Analytical aim CFrame built from explicit orthonormal world-space axes.
            No Euler-order error, no roll, pixel-perfect at ANY distance.
     Added: Custom Sniper Crosshair with live yaw/pitch angles, own pixel offsets, own aim part,
-           and optional snap-to-target (Snipe Checker). Uses same accumulation logic and 2.5px step as original.
+           and optional snap-to-target (Snipe Checker).
+    Added: Sniper "Snap when close" toggle + configurable snap threshold (in degrees).
+           When remaining angle to ideal sniper CFrame is below threshold, snap exactly to ideal,
+           eliminating NA-smoothing equilibrium residue (0.04° / 0.25° / 0.25°).
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -540,6 +543,10 @@ local prioritizeHoldingTool = false
 local requireTool = false
 local snipeChecker = false
 
+-- Snap settings
+local sniperSnapWhenClose = true
+local sniperSnapThreshold = 0.5  -- градусы
+
 local aimOffsetYaw = 0
 local aimOffsetPitch = 0
 local pixelOffsetX = 0
@@ -687,10 +694,6 @@ local function updateCrosshair()
     crosshairLines[4].Visible = true
 end
 
---[[
-    АНАЛИТИЧЕСКОЕ РЕШЕНИЕ через явные ортонормальные оси в мировых координатах.
-    Та же формула, что дала стабильную точность на любой дистанции.
-]]
 local function computeAimCFrame(targetPos, aimScreenPos)
     local camera = workspace.CurrentCamera
     local viewport = camera.ViewportSize
@@ -1308,6 +1311,90 @@ local function addNAComboBox()
     end
 end
 
+-- [[ NEW ]] Комбобокс для настроек снап-порога снайпера
+local function addSnapComboBox()
+    local newCombo = ComboBox:Clone()
+    local isOpen = false
+    local elems = {}
+
+    local function setBoxState()
+        newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
+    end
+
+    local function updateText()
+        newCombo:WaitForChild("Name").Text = string.format("Sniper Snap Threshold: %.2f°", sniperSnapThreshold)
+    end
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
+    updateText()
+    table.insert(updateCallbacks, updateText)
+
+    newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+    newCombo.Name = "SniperSnapSettings"
+    newCombo.Parent = Menu
+    newCombo.LayoutOrder = elements
+    newCombo.Visible = true
+
+    elements += 1
+    addSpace(Menu)
+
+    -- Кнопки: ±0.05, ±0.1, ±0.25, ±0.5
+    local stepButtons = {
+        {label = "-0.5°",  value = -0.5},
+        {label = "-0.25°", value = -0.25},
+        {label = "-0.1°",  value = -0.1},
+        {label = "-0.05°", value = -0.05},
+        {label = "+0.05°", value = 0.05},
+        {label = "+0.1°",  value = 0.1},
+        {label = "+0.25°", value = 0.25},
+        {label = "+0.5°",  value = 0.5},
+    }
+
+    for _, btnData in ipairs(stepButtons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            sniperSnapThreshold = math.clamp(sniperSnapThreshold + btnData.value, 0, 5)
+            updateText()
+        end)
+
+        elements += 1
+        addSpace(Menu)
+    end
+
+    -- Отдельная кнопка "сброс к 0.5°"
+    local resetBtn = ComboElem:Clone()
+    resetBtn:WaitForChild("Name").Text = "Reset to 0.5°"
+    resetBtn.Size = UDim2.new(0.95, 0, 0, element_height)
+    resetBtn.Name = "ResetSnapThreshold"
+    resetBtn.Parent = Menu
+    resetBtn.LayoutOrder = elements
+    resetBtn.Visible = false
+    table.insert(elems, resetBtn)
+
+    resetBtn.MouseButton1Click:Connect(function()
+        sniperSnapThreshold = 0.5
+        updateText()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+end
+
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
 local toggleBtn = addToggle("Toggle aimbot", function(state)
@@ -1363,6 +1450,14 @@ local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Smooth Direct Aim)", fun
     snipeChecker = state
 end, false)
 
+-- [[ NEW ]] Тумблер финального снапа
+local toggleSniperSnapBtn = addToggle("Sniper: Snap when close", function(state)
+    sniperSnapWhenClose = state
+end, true)
+
+-- [[ NEW ]] Порог снапа
+addSnapComboBox()
+
 local aimPartCombo = addComboBox("Aim part (main)", {"Head", "Torso"}, function(selection)
     aimpart = selection
 end)
@@ -1414,6 +1509,7 @@ local resetBtn = addButton("Reset Settings", function()
     naFlickForce = 0.15
     naZoneAngle = 60
     detectRange = 500
+    sniperSnapThreshold = 0.5
 
     for _, callback in ipairs(updateCallbacks) do
         pcall(callback)
@@ -1516,6 +1612,11 @@ runService.RenderStepped:Connect(function()
                     local baseAlpha = math.min(1, naSmoothness * 1.5)
                     local alpha = math.clamp(baseAlpha * flickBoost, 0, 1)
                     workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(idealCF, alpha)
+
+                    -- [[ NEW ]] Финальный снап: если остаток < порога — доснапливаем до idealCF
+                    if sniperSnapWhenClose and math.deg(angleRad) < sniperSnapThreshold then
+                        workspace.CurrentCamera.CFrame = idealCF
+                    end
                 end
             else
                 workspace.CurrentCamera.CFrame = idealCF
