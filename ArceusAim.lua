@@ -8,8 +8,8 @@
     Added: Custom Sniper Crosshair with live yaw/pitch angles, own pixel offsets, own aim part,
            and optional snap-to-target (Snipe Checker).
     Added: Sniper "Snap when close" toggle + configurable snap threshold (in degrees).
-           When remaining angle to ideal sniper CFrame is below threshold, snap exactly to ideal,
-           eliminating NA-smoothing equilibrium residue (0.04° / 0.25° / 0.25°).
+    Added: Sub-pixel offset buttons (±0.05, ±0.1, ±0.25) for both normal and sniper pixel offsets.
+           Pixel offset text now shows 2 decimal places for precision.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -543,9 +543,8 @@ local prioritizeHoldingTool = false
 local requireTool = false
 local snipeChecker = false
 
--- Snap settings
 local sniperSnapWhenClose = true
-local sniperSnapThreshold = 0.5  -- градусы
+local sniperSnapThreshold = 0.5
 
 local aimOffsetYaw = 0
 local aimOffsetPitch = 0
@@ -1125,6 +1124,8 @@ local function addOffsetComboBox(text, initialValue, onChange)
     return newCombo
 end
 
+-- [[ FIX ]] Пиксельные оффсеты: добавлены sub-pixel шаги ±0.05, ±0.1, ±0.25.
+-- Формат отображения: 2 знака после запятой.
 local function addPixelOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1135,7 +1136,7 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
         local viewport = workspace.CurrentCamera.ViewportSize
         local fov = math.rad(workspace.CurrentCamera.FieldOfView)
         local degreesValue = math.deg(math.atan((currentValue / (viewport.X / 2)) * math.tan(fov / 2)))
-        newCombo:WaitForChild("Name").Text = string.format("%s: %d px [~%.1f°]", text, currentValue, degreesValue)
+        newCombo:WaitForChild("Name").Text = string.format("%s: %.2f px [~%.2f°]", text, currentValue, degreesValue)
     end
 
     local function setBoxState()
@@ -1163,14 +1164,20 @@ local function addPixelOffsetComboBox(text, initialValue, onChange)
     addSpace(Menu)
 
     local buttons = {
-        {label = "-10px", value = -10},
-        {label = "-5px",  value = -5},
-        {label = "-2.5px",value = -2.5},
-        {label = "-1px",  value = -1},
-        {label = "+1px",  value = 1},
-        {label = "+2.5px",value = 2.5},
-        {label = "+5px",  value = 5},
-        {label = "+10px", value = 10},
+        {label = "-10px",   value = -10},
+        {label = "-5px",    value = -5},
+        {label = "-2.5px",  value = -2.5},
+        {label = "-1px",    value = -1},
+        {label = "-0.25px", value = -0.25},
+        {label = "-0.1px",  value = -0.1},
+        {label = "-0.05px", value = -0.05},
+        {label = "+0.05px", value = 0.05},
+        {label = "+0.1px",  value = 0.1},
+        {label = "+0.25px", value = 0.25},
+        {label = "+1px",    value = 1},
+        {label = "+2.5px",  value = 2.5},
+        {label = "+5px",    value = 5},
+        {label = "+10px",   value = 10},
     }
 
     for _, btnData in ipairs(buttons) do
@@ -1311,7 +1318,6 @@ local function addNAComboBox()
     end
 end
 
--- [[ NEW ]] Комбобокс для настроек снап-порога снайпера
 local function addSnapComboBox()
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1345,7 +1351,6 @@ local function addSnapComboBox()
     elements += 1
     addSpace(Menu)
 
-    -- Кнопки: ±0.05, ±0.1, ±0.25, ±0.5
     local stepButtons = {
         {label = "-0.5°",  value = -0.5},
         {label = "-0.25°", value = -0.25},
@@ -1376,7 +1381,6 @@ local function addSnapComboBox()
         addSpace(Menu)
     end
 
-    -- Отдельная кнопка "сброс к 0.5°"
     local resetBtn = ComboElem:Clone()
     resetBtn:WaitForChild("Name").Text = "Reset to 0.5°"
     resetBtn.Size = UDim2.new(0.95, 0, 0, element_height)
@@ -1450,12 +1454,10 @@ local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Smooth Direct Aim)", fun
     snipeChecker = state
 end, false)
 
--- [[ NEW ]] Тумблер финального снапа
 local toggleSniperSnapBtn = addToggle("Sniper: Snap when close", function(state)
     sniperSnapWhenClose = state
 end, true)
 
--- [[ NEW ]] Порог снапа
 addSnapComboBox()
 
 local aimPartCombo = addComboBox("Aim part (main)", {"Head", "Torso"}, function(selection)
@@ -1613,7 +1615,6 @@ runService.RenderStepped:Connect(function()
                     local alpha = math.clamp(baseAlpha * flickBoost, 0, 1)
                     workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(idealCF, alpha)
 
-                    -- [[ NEW ]] Финальный снап: если остаток < порога — доснапливаем до idealCF
                     if sniperSnapWhenClose and math.deg(angleRad) < sniperSnapThreshold then
                         workspace.CurrentCamera.CFrame = idealCF
                     end
