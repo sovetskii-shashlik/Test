@@ -1,11 +1,29 @@
---// Player Crasher v3.1 — Universal Weapon Abuse
+--// Player Crasher v5.0 — Universal Global Weapon Abuse
 
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 local RunService       = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer      = Players.LocalPlayer
 
---// ====== СПИСКИ ======
+--// ====== НАСТРОЙКИ РЕМОУТА ======
+-- Убедись, что путь верный. Если он в другом месте, поменяй.
+local REMOTE = ReplicatedStorage:WaitForChild("RE"):WaitForChild("Receiver")
+
+--// ====== ПОЛНЫЙ СПИСОК ОРУЖИЙ (31 шт.) ======
+local WEAPON_LIST = {
+    "AK", "AUG", "AssaultRifle", "Bizon", "Canon",
+    "Crystal Micro Uzi", "Crystal P90", "Cupcake Gun", 
+    "Diamond Micro Uzi", "Diamond P90", "Glock", 
+    "Golden AssaultRifle", "Laser Gun", "Laser Minigun", 
+    "Light Machine Gun", "M60", "MP5", "Machine Gun", 
+    "Machine Gun2", "Micro Uzi", "Minigun", "P90", 
+    "Red Gun", "Scar", "Shotgun", "Sniper", 
+    "Steampunk Rifle", "TMP", "Weapon2", "Weapon5", 
+    "Weapon9", "Weird Gun", "Weird Gun 2", "Winter Minigun"
+}
+
+--// ====== СПИСКИ ЗАЩИТЫ ======
 local PROTECTED_PLAYERS = {
     "prespeshnikShashlika","nicto3789","nicto3787","BNKA09024",
     "Kittyqueen300914","xixoww_04","gorenionia_nomer2","New_Buildersman",
@@ -32,107 +50,56 @@ local function canCrash(targetName)
     return not isPlayerProtected(targetName)
 end
 
---// ====== ПОИСК ОРУЖИЯ И РЕМОУТОВ ======
-local WEAPON_NAMES = {"Shotgun", "AssaultRifle", "Glock", "Sniper", "TMP"}
-local REMOTE_NAMES = {"Receiver", "Remote", "Fire", "Shoot"}
-
-local function getWeaponFromPlayer(weaponName)
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    local char     = LocalPlayer.Character
-    if backpack and backpack:FindFirstChild(weaponName) then
-        return backpack:FindFirstChild(weaponName)
-    end
-    if char and char:FindFirstChild(weaponName) then
-        return char:FindFirstChild(weaponName)
-    end
-    return nil
-end
-
-local function getReceiver(weaponName)
-    local weapon = getWeaponFromPlayer(weaponName)
-    if not weapon then return nil end
+--// ====== ЯДРО АТАКИ ======
+local function applyDamageToAllWeapons(humanoid, dmg)
+    if not REMOTE or not humanoid then return false end
     
-    -- Ищем ремоут по возможным именам
-    for _, rName in ipairs(REMOTE_NAMES) do
-        local remote = weapon:FindFirstChild(rName)
-        if remote and (remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction")) then
-            return remote
-        end
+    for _, weaponName in ipairs(WEAPON_LIST) do
+        pcall(function()
+            -- Формат вызова: "Damage", [Имя оружия], [Humanoid], [Урон]
+            REMOTE:FireServer("Damage", weaponName, humanoid, dmg)
+        end)
     end
-    return nil
+    return true
 end
 
-local function hasAnyWeapon()
-    for _, wName in ipairs(WEAPON_NAMES) do
-        if getReceiver(wName) then return true end
-    end
-    return false
-end
-
---// ====== ФУНКЦИИ АТАКИ ======
 local function Kill(victimName, dmg)
     if not victimName then return false end
     local target = Players:FindFirstChild(victimName)
     if not target or not target.Character then return false end
-    
     local humanoid = target.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid or humanoid.Health <= 0 then return false end
     if not canCrash(target.Name) then return false end
 
-    local success = false
-    for _, wName in ipairs(WEAPON_NAMES) do
-        local receiver = getReceiver(wName)
-        if receiver then
-            pcall(function()
-                receiver:FireServer("Damage", humanoid, dmg or math.huge)
-            end)
-            success = true
-            break -- Используем первое найденное оружие
-        end
-    end
-    return success
+    return applyDamageToAllWeapons(humanoid, dmg or math.huge)
 end
 
 local function Crash(victimName, intensity)
     if not victimName then return false end
     local target = Players:FindFirstChild(victimName)
     if not target or not target.Character then return false end
-    
     local humanoid = target.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
     if not canCrash(target.Name) then return false end
 
-    intensity = intensity or 50
-    local success = false
-    
-    for _, wName in ipairs(WEAPON_NAMES) do
-        local receiver = getReceiver(wName)
-        if receiver then
-            for i = 1, intensity do
-                pcall(function()
-                    receiver:FireServer("Damage", humanoid, math.huge)
-                end)
-            end
-            success = true
-            break
-        end
+    intensity = intensity or 5
+    for i = 1, intensity do
+        applyDamageToAllWeapons(humanoid, math.huge)
     end
-    return success
+    return true
 end
 
---// God Mode для всех оружий (0/0 = NaN)
+--// ====== БЕССМЕРТИЕ (0/0) ======
 local function GodMode()
     local char = LocalPlayer.Character
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
     
-    for _, wName in ipairs(WEAPON_NAMES) do
-        local receiver = getReceiver(wName)
-        if receiver then
-            pcall(function()
-                receiver:FireServer("Damage", humanoid, 0/0)
-            end)
-        end
+    -- Шлем 0/0 на себя для ВСЕХ 31 оружия
+    for _, weaponName in ipairs(WEAPON_LIST) do
+        pcall(function()
+            REMOTE:FireServer("Damage", weaponName, humanoid, 0/0)
+        end)
     end
 end
 
@@ -162,7 +129,7 @@ local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(0.9, 0, 0.15, 0)
 title.Position = UDim2.new(0.05, 0, 0.03, 0)
 title.BackgroundTransparency = 1
-title.Text = "Player Crasher v3.1"
+title.Text = "Player Crasher v5.0"
 title.TextColor3 = Color3.new(1,1,1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
@@ -214,7 +181,7 @@ godBtn.Size = UDim2.new(0.9, 0, 0.15, 0)
 godBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
 godBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
 godBtn.BackgroundTransparency = 0.35
-godBtn.Text = "God Mode (All Weapons)"
+godBtn.Text = "God Mode (All 31 Guns)"
 godBtn.TextColor3 = Color3.new(1,1,1)
 godBtn.TextScaled = true
 godBtn.BorderSizePixel = 0
@@ -230,7 +197,7 @@ status.TextColor3 = Color3.new(1,1,1)
 status.TextScaled = true
 status.Font = Enum.Font.Gotham
 
---// ====== ПОИСК ЦЕЛЕЙ ======
+--// ====== ФУНКЦИИ ИНТЕРФЕЙСА ======
 local function sortAlpha(list)
     table.sort(list, function(a, b) return lower(a.Name) < lower(b.Name) end)
     return list
@@ -271,7 +238,6 @@ local function getPlayers(input)
     return sortAlpha(out)
 end
 
---// ====== ЛОГИКА КРАША ======
 local isCrashing      = false
 local crashConn       = nil
 local targets         = {}
@@ -291,7 +257,8 @@ local function crashTick()
 
     local p = targets[currentIndex]
     if p and p.Parent and p.Character then
-        local ok = Crash(p.Name, 30)
+        -- За тик шлем 3 прохода по всему списку (31*3 = 93 вызова) для гарантированного краша
+        local ok = Crash(p.Name, 3) 
         status.Text = (ok and "Status: Crashing " or "Status: Fail ")
             .. p.Name .. " (" .. currentIndex .. "/" .. #targets .. ")"
     else
@@ -303,7 +270,6 @@ end
 local function startCrash()
     local input = textBox.Text
     if input == "" then status.Text = "Status: Enter nicknames"; return end
-
     targets = getPlayers(input)
     if #targets == 0 then status.Text = "Status: No players found"; return end
 
@@ -316,21 +282,14 @@ local function startCrash()
         end
     end
 
-    if not hasAnyWeapon() then
-        status.Text = "Status: No weapons with Receiver found!"
-        return
-    end
-
     currentIndex = 1
     isCrashing = true
     crashBtn.Text = "Start Crash | ON"
     crashBtn.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
     status.Text = "Status: Crashing " .. #targets .. " player(s)"
-
     crashConn = RunService.Heartbeat:Connect(crashTick)
 end
 
---// ====== ОБРАБОТЧИКИ ======
 crashBtn.MouseButton1Click:Connect(function()
     if isCrashing then stopCrash() else startCrash() end
 end)
@@ -344,7 +303,7 @@ end)
 
 godBtn.MouseButton1Click:Connect(function()
     GodMode()
-    status.Text = "Status: God mode applied to all guns"
+    status.Text = "Status: God mode applied (31 guns)"
 end)
 
 textBox.FocusLost:Connect(function(enter)
@@ -368,17 +327,8 @@ LocalPlayer.CharacterRemoving:Connect(function()
     status.Text = "Status: Character removed"
 end)
 
---// ====== УВЕДОМЛЕНИЕ ======
-local ok, thumb = pcall(function()
-    return Players:GetUserThumbnailAsync(
-        Players:GetUserIdFromNameAsync("prespeshnikShashlika"),
-        Enum.ThumbnailType.HeadShot,
-        Enum.ThumbnailSize.Size420x420
-    )
-end)
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Player Crasher",
-    Text  = "v3.1 — Universal Weapon Abuse",
-    Icon  = ok and thumb or "",
+    Text  = "v5.0 — Загружено 31 оружие",
     Duration = 7
 })
