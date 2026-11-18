@@ -1,16 +1,11 @@
---// Player Crasher v5.0 — Universal Global Weapon Abuse
+--// Player Crasher v8.0 — All Inventory Weapons Abuse
 
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 local RunService       = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer      = Players.LocalPlayer
 
---// ====== НАСТРОЙКИ РЕМОУТА ======
--- Убедись, что путь верный. Если он в другом месте, поменяй.
-local REMOTE = ReplicatedStorage:WaitForChild("RE"):WaitForChild("Receiver")
-
---// ====== ПОЛНЫЙ СПИСОК ОРУЖИЙ (31 шт.) ======
+--// ====== ПОЛНЫЙ СПИСОК ОРУЖИЙ ======
 local WEAPON_LIST = {
     "AK", "AUG", "AssaultRifle", "Bizon", "Canon",
     "Crystal Micro Uzi", "Crystal P90", "Cupcake Gun", 
@@ -50,17 +45,59 @@ local function canCrash(targetName)
     return not isPlayerProtected(targetName)
 end
 
+--// ====== ПОИСК ВСЕХ РАБОЧИХ РЕМОУТОВ В ИНВЕНТАРЕ ======
+local function getAllAvailableReceivers()
+    local receivers = {}
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local char = LocalPlayer.Character
+    
+    -- Сканируем бэкпак
+    if backpack then
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") then
+                -- Проверяем, есть ли эта пушка в нашем списке
+                if table.find(WEAPON_LIST, item.Name) then
+                    local r = item:FindFirstChild("Receiver")
+                    if r then table.insert(receivers, r) end
+                end
+            end
+        end
+    end
+    
+    -- Сканируем персонажа (если пушка в руках, она может быть не в бэкпаке)
+    if char then
+        for _, item in ipairs(char:GetChildren()) do
+            if item:IsA("Tool") then
+                if table.find(WEAPON_LIST, item.Name) then
+                    local r = item:FindFirstChild("Receiver")
+                    if r then table.insert(receivers, r) end
+                end
+            end
+        end
+    end
+    
+    return receivers
+end
+
 --// ====== ЯДРО АТАКИ ======
 local function applyDamageToAllWeapons(humanoid, dmg)
-    if not REMOTE or not humanoid then return false end
+    if not humanoid then return false end
     
-    for _, weaponName in ipairs(WEAPON_LIST) do
+    local receivers = getAllAvailableReceivers()
+    if #receivers == 0 then return false end
+    
+    local successCount = 0
+    
+    -- Бьем через КАЖДЫЙ найденный ремоут
+    for _, receiver in ipairs(receivers) do
         pcall(function()
-            -- Формат вызова: "Damage", [Имя оружия], [Humanoid], [Урон]
-            REMOTE:FireServer("Damage", weaponName, humanoid, dmg)
+            -- Формат 1-й версии: ("Damage", humanoid, dmg)
+            receiver:FireServer("Damage", humanoid, dmg)
         end)
+        successCount = successCount + 1
     end
-    return true
+    
+    return successCount > 0
 end
 
 local function Kill(victimName, dmg)
@@ -82,6 +119,7 @@ local function Crash(victimName, intensity)
     if not humanoid then return false end
     if not canCrash(target.Name) then return false end
 
+    -- Intensity = сколько раз мы выстрелим из ВСЕХ пушек за 1 тик
     intensity = intensity or 5
     for i = 1, intensity do
         applyDamageToAllWeapons(humanoid, math.huge)
@@ -95,10 +133,16 @@ local function GodMode()
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
     
-    -- Шлем 0/0 на себя для ВСЕХ 31 оружия
-    for _, weaponName in ipairs(WEAPON_LIST) do
+    local receivers = getAllAvailableReceivers()
+    if #receivers == 0 then
+        status.Text = "Status: No weapons found for GodMode!"
+        return
+    end
+    
+    -- Шлем 0/0 через КАЖДЫЙ найденный ремоут
+    for _, receiver in ipairs(receivers) do
         pcall(function()
-            REMOTE:FireServer("Damage", weaponName, humanoid, 0/0)
+            receiver:FireServer("Damage", humanoid, 0/0)
         end)
     end
 end
@@ -129,7 +173,7 @@ local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(0.9, 0, 0.15, 0)
 title.Position = UDim2.new(0.05, 0, 0.03, 0)
 title.BackgroundTransparency = 1
-title.Text = "Player Crasher v5.0"
+title.Text = "Player Crasher v8.0"
 title.TextColor3 = Color3.new(1,1,1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
@@ -181,7 +225,7 @@ godBtn.Size = UDim2.new(0.9, 0, 0.15, 0)
 godBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
 godBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
 godBtn.BackgroundTransparency = 0.35
-godBtn.Text = "God Mode (All 31 Guns)"
+godBtn.Text = "God Mode (All Guns)"
 godBtn.TextColor3 = Color3.new(1,1,1)
 godBtn.TextScaled = true
 godBtn.BorderSizePixel = 0
@@ -197,7 +241,7 @@ status.TextColor3 = Color3.new(1,1,1)
 status.TextScaled = true
 status.Font = Enum.Font.Gotham
 
---// ====== ФУНКЦИИ ИНТЕРФЕЙСА ======
+--// ====== ЛОГИКА UI ======
 local function sortAlpha(list)
     table.sort(list, function(a, b) return lower(a.Name) < lower(b.Name) end)
     return list
@@ -257,8 +301,7 @@ local function crashTick()
 
     local p = targets[currentIndex]
     if p and p.Parent and p.Character then
-        -- За тик шлем 3 прохода по всему списку (31*3 = 93 вызова) для гарантированного краша
-        local ok = Crash(p.Name, 3) 
+        local ok = Crash(p.Name, 5) 
         status.Text = (ok and "Status: Crashing " or "Status: Fail ")
             .. p.Name .. " (" .. currentIndex .. "/" .. #targets .. ")"
     else
@@ -280,6 +323,11 @@ local function startCrash()
                 return
             end
         end
+    end
+    
+    if #getAllAvailableReceivers() == 0 then
+        status.Text = "Status: No weapons in inventory!"
+        return
     end
 
     currentIndex = 1
@@ -303,7 +351,7 @@ end)
 
 godBtn.MouseButton1Click:Connect(function()
     GodMode()
-    status.Text = "Status: God mode applied (31 guns)"
+    status.Text = "Status: God mode applied"
 end)
 
 textBox.FocusLost:Connect(function(enter)
@@ -329,6 +377,6 @@ end)
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Player Crasher",
-    Text  = "v5.0 — Загружено 31 оружие",
+    Text  = "v8.0 — All Inventory Guns",
     Duration = 7
 })
