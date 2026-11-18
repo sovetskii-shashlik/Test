@@ -14,7 +14,7 @@ local WEAPON_LIST = {
     "Light Machine Gun", "M60", "MP5", "Machine Gun", 
     "Machine Gun2", "Micro Uzi", "Minigun", "P90", 
     "Red Gun", "Scar", "Shotgun", "Sniper", 
-    "Steampunk Rifle", "TMP", "Weapon2", "Weapon5", 
+    "Steampunk Rifle", "TMP", "Weapon2", "Weapon3", "Weapon4", "Weapon5", "Weapon6", "Weapon7", "Weapon8", 
     "Weapon9", "Weird Gun", "Weird Gun 2", "Winter Minigun"
 }
 
