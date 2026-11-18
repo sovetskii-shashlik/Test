@@ -5,7 +5,6 @@ local CoreGui          = game:GetService("CoreGui")
 local RunService       = game:GetService("RunService")
 local LocalPlayer      = Players.LocalPlayer
 
---// ====== ПОЛНЫЙ СПИСОК ОРУЖИЙ ======
 local WEAPON_LIST = {
     "AK", "AUG", "AssaultRifle", "Bizon", "Canon",
     "Crystal Micro Uzi", "Crystal P90", "Cupcake Gun", 
@@ -18,7 +17,6 @@ local WEAPON_LIST = {
     "Weapon9", "Weird Gun", "Weird Gun 2", "Winter Minigun"
 }
 
---// ====== СПИСКИ ЗАЩИТЫ ======
 local PROTECTED_PLAYERS = {
     "prespeshnikShashlika","nicto3789","nicto3787","BNKA09024",
     "Kittyqueen300914","xixoww_04","gorenionia_nomer2","New_Buildersman",
@@ -45,17 +43,14 @@ local function canCrash(targetName)
     return not isPlayerProtected(targetName)
 end
 
---// ====== ПОИСК ВСЕХ РАБОЧИХ РЕМОУТОВ В ИНВЕНТАРЕ ======
 local function getAllAvailableReceivers()
     local receivers = {}
     local backpack = LocalPlayer:FindFirstChild("Backpack")
     local char = LocalPlayer.Character
-    
-    -- Сканируем бэкпак
+
     if backpack then
         for _, item in ipairs(backpack:GetChildren()) do
             if item:IsA("Tool") then
-                -- Проверяем, есть ли эта пушка в нашем списке
                 if table.find(WEAPON_LIST, item.Name) then
                     local r = item:FindFirstChild("Receiver")
                     if r then table.insert(receivers, r) end
@@ -63,8 +58,7 @@ local function getAllAvailableReceivers()
             end
         end
     end
-    
-    -- Сканируем персонажа (если пушка в руках, она может быть не в бэкпаке)
+
     if char then
         for _, item in ipairs(char:GetChildren()) do
             if item:IsA("Tool") then
@@ -75,28 +69,25 @@ local function getAllAvailableReceivers()
             end
         end
     end
-    
+
     return receivers
 end
 
---// ====== ЯДРО АТАКИ ======
 local function applyDamageToAllWeapons(humanoid, dmg)
     if not humanoid then return false end
-    
+
     local receivers = getAllAvailableReceivers()
     if #receivers == 0 then return false end
-    
+
     local successCount = 0
-    
-    -- Бьем через КАЖДЫЙ найденный ремоут
+
     for _, receiver in ipairs(receivers) do
         pcall(function()
-            -- Формат 1-й версии: ("Damage", humanoid, dmg)
             receiver:FireServer("Damage", humanoid, dmg)
         end)
         successCount = successCount + 1
     end
-    
+
     return successCount > 0
 end
 
@@ -119,7 +110,6 @@ local function Crash(victimName, intensity)
     if not humanoid then return false end
     if not canCrash(target.Name) then return false end
 
-    -- Intensity = сколько раз мы выстрелим из ВСЕХ пушек за 1 тик
     intensity = intensity or 5
     for i = 1, intensity do
         applyDamageToAllWeapons(humanoid, math.huge)
@@ -127,19 +117,17 @@ local function Crash(victimName, intensity)
     return true
 end
 
---// ====== БЕССМЕРТИЕ (0/0) ======
 local function GodMode()
     local char = LocalPlayer.Character
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
-    
+
     local receivers = getAllAvailableReceivers()
     if #receivers == 0 then
         status.Text = "Status: No weapons found for GodMode!"
         return
     end
-    
-    -- Шлем 0/0 через КАЖДЫЙ найденный ремоут
+
     for _, receiver in ipairs(receivers) do
         pcall(function()
             receiver:FireServer("Damage", humanoid, 0/0)
@@ -147,7 +135,6 @@ local function GodMode()
     end
 end
 
---// ====== UI ======
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PlayerCrasherGUI"
 screenGui.ResetOnSpawn = false
@@ -241,7 +228,6 @@ status.TextColor3 = Color3.new(1,1,1)
 status.TextScaled = true
 status.Font = Enum.Font.Gotham
 
---// ====== ЛОГИКА UI ======
 local function sortAlpha(list)
     table.sort(list, function(a, b) return lower(a.Name) < lower(b.Name) end)
     return list
@@ -324,7 +310,7 @@ local function startCrash()
             end
         end
     end
-    
+
     if #getAllAvailableReceivers() == 0 then
         status.Text = "Status: No weapons in inventory!"
         return
@@ -376,7 +362,7 @@ LocalPlayer.CharacterRemoving:Connect(function()
 end)
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Player Crasher",
-    Text  = "v8.0 — All Inventory Guns",
+    Title = "By prespeshnikShashlika",
+    Text  = "kill players gui v8.0",
     Duration = 7
 })
