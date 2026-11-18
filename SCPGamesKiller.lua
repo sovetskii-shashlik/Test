@@ -1,4 +1,4 @@
---// SCP Games Kill GUI
+--// SCP Games Kill GUI v8.0
 
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
