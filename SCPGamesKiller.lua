@@ -1,4 +1,4 @@
---// Player Crasher v8.0 — All Inventory Weapons Abuse
+--// SCP Games Kill GUI
 
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
@@ -361,8 +361,14 @@ LocalPlayer.CharacterRemoving:Connect(function()
     status.Text = "Status: Character removed"
 end)
 
+local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "By prespeshnikShashlika",
-    Text  = "kill players gui v8.0",
+    Title = "SCP Games Kill GUI",
+    Text = "version V8.0",
+    Icon = content,
     Duration = 7
 })
