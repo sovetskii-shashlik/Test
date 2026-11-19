@@ -211,7 +211,7 @@ local GUI_W, GUI_H = 240, 205
 local HEADER_H = 22
 local BTN_SIZE = 20
 local BTN_RIGHT = 6
-local TITLE_RIGHT_PAD = BTN_SIZE + BTN_RIGHT
+local TITLE_RIGHT_PAD = BTN_SIZE + BTN_RIGHT + 4
 
 local frame = Instance.new("Frame")
 frame.Parent = screenGui
@@ -233,7 +233,7 @@ local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(0, GUI_W - 10 - TITLE_RIGHT_PAD, 0, HEADER_H)
 title.Position = UDim2.new(0, 10, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "SCP Games Kill GUI v8.0"
+title.Text = "SCP Games Kill GUI v10.0"
 title.TextColor3 = Color3.new(1,1,1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
@@ -810,7 +810,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "SCP Games Kill GUI",
-    Text = "version V10.0",
+    Text = "version V8э10.0",
     Icon = content,
     Duration = 7
 })
