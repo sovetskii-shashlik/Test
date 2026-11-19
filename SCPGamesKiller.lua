@@ -1,8 +1,9 @@
---// SCP Games Kill GUI v8.0
+--// SCP Games Kill GUI v10.0
 
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 local RunService       = game:GetService("RunService")
+local TweenService     = game:GetService("TweenService")
 local LocalPlayer      = Players.LocalPlayer
 
 local WEAPON_LIST = {
@@ -135,12 +136,83 @@ local function GodMode()
     end
 end
 
+local function teleportToPrompt(promptParent, weaponName, promptName)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    local prompt = promptParent and promptParent:FindFirstChild(promptName or "ProximityPrompt")
+    if not prompt then return false end
+
+    local originalCFrame = hrp.CFrame
+    local targetPart = prompt.Parent
+    local targetCFrame = targetPart:IsA("BasePart") and targetPart.CFrame or (targetPart:FindFirstChildWhichIsA("BasePart") and targetPart:FindFirstChildWhichIsA("BasePart").CFrame)
+
+    if not targetCFrame then return false end
+
+    hrp.CFrame = targetCFrame + Vector3.new(0, 3, 0)
+    task.wait(0.3)
+
+    pcall(function()
+        prompt:InputHoldBegin()
+        task.wait(prompt.HoldDuration + 0.1)
+        prompt:InputHoldEnd()
+    end)
+
+    task.wait(0.5)
+    hrp.CFrame = originalCFrame
+    return true
+end
+
+local function getShotgun()
+    local room = workspace:FindFirstChild("Room")
+    if not room then
+        status.Text = "Status: Room not found"
+        return
+    end
+    local children = room:GetChildren()
+    local part = children[67]
+    if not part then
+        status.Text = "Status: Shotgun part not found"
+        return
+    end
+    if teleportToPrompt(part, "Shotgun") then
+        status.Text = "Status: Shotgun acquired"
+    else
+        status.Text = "Status: Shotgun teleport failed"
+    end
+end
+
+local function getGoldShotgun()
+    local decoration = workspace:FindFirstChild("Decoration")
+    if not decoration then
+        status.Text = "Status: Decoration not found"
+        return
+    end
+    local children = decoration:GetChildren()
+    local part = children[161]
+    if not part then
+        status.Text = "Status: Gold shotgun part not found"
+        return
+    end
+    if teleportToPrompt(part, "Weapon9") then
+        status.Text = "Status: Gold Shotgun acquired"
+    else
+        status.Text = "Status: Gold Shotgun teleport failed"
+    end
+end
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PlayerCrasherGUI"
+screenGui.Name = "SCPGamesKillGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = CoreGui
 
-local GUI_W, GUI_H = 220, 140
+local GUI_W, GUI_H = 240, 205
+local HEADER_H = 22
+local BTN_SIZE = 20
+local BTN_RIGHT = 6
+local TITLE_RIGHT_PAD = BTN_SIZE + BTN_RIGHT
+
 local frame = Instance.new("Frame")
 frame.Parent = screenGui
 frame.Size = UDim2.new(0, GUI_W, 0, GUI_H)
@@ -150,6 +222,7 @@ frame.BackgroundTransparency = 0.35
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+frame.ClipsDescendants = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0.1, 0)
 
 local stroke = Instance.new("UIStroke", frame)
@@ -157,17 +230,39 @@ stroke.Thickness = 2
 stroke.Color = Color3.fromRGB(75, 75, 255)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(0.9, 0, 0.15, 0)
-title.Position = UDim2.new(0.05, 0, 0.03, 0)
+title.Size = UDim2.new(0, GUI_W - 10 - TITLE_RIGHT_PAD, 0, HEADER_H)
+title.Position = UDim2.new(0, 10, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "Player Crasher v8.0"
+title.Text = "SCP Games Kill GUI v8.0"
 title.TextColor3 = Color3.new(1,1,1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
 
-local textBox = Instance.new("TextBox", frame)
-textBox.Size = UDim2.new(0.9, 0, 0.2, 0)
-textBox.Position = UDim2.new(0.05, 0, 0.2, 0)
+local collapseBtn = Instance.new("TextButton", frame)
+collapseBtn.Size = UDim2.new(0, BTN_SIZE, 0, BTN_SIZE)
+collapseBtn.Position = UDim2.new(1, -(BTN_SIZE + BTN_RIGHT), 0, 2)
+collapseBtn.BackgroundTransparency = 1
+collapseBtn.Text = "–"
+collapseBtn.TextColor3 = Color3.new(1,1,1)
+collapseBtn.TextScaled = true
+collapseBtn.BorderSizePixel = 0
+collapseBtn.Font = Enum.Font.GothamBold
+collapseBtn.AutoButtonColor = false
+Instance.new("UICorner", collapseBtn).CornerRadius = UDim.new(0.2, 0)
+
+local collapseStroke = Instance.new("UIStroke", collapseBtn)
+collapseStroke.Thickness = 2
+collapseStroke.Color = Color3.fromRGB(75, 75, 255)
+
+local textBoxRow = Instance.new("Frame", frame)
+textBoxRow.Size = UDim2.new(0.9, 0, 0, 26)
+textBoxRow.Position = UDim2.new(0.05, 0, 0, 30)
+textBoxRow.BackgroundTransparency = 1
+
+local textBox = Instance.new("TextBox", textBoxRow)
+textBox.Size = UDim2.new(0.85, 0, 1, 0)
+textBox.Position = UDim2.new(0, 0, 0, 0)
 textBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
 textBox.BackgroundTransparency = 0.35
 textBox.PlaceholderText = "nick, nick, или all / nonfriends"
@@ -179,9 +274,21 @@ textBox.Font = Enum.Font.Gotham
 textBox.ClearTextOnFocus = false
 Instance.new("UICorner", textBox).CornerRadius = UDim.new(0.2, 0)
 
+local dropdownArrow = Instance.new("TextButton", textBoxRow)
+dropdownArrow.Size = UDim2.new(0.13, 0, 1, 0)
+dropdownArrow.Position = UDim2.new(0.87, 0, 0, 0)
+dropdownArrow.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+dropdownArrow.BackgroundTransparency = 0.35
+dropdownArrow.Text = "▼"
+dropdownArrow.TextColor3 = Color3.new(1,1,1)
+dropdownArrow.TextScaled = true
+dropdownArrow.BorderSizePixel = 0
+dropdownArrow.Font = Enum.Font.GothamBold
+Instance.new("UICorner", dropdownArrow).CornerRadius = UDim.new(0.2, 0)
+
 local btnRow = Instance.new("Frame", frame)
-btnRow.Size = UDim2.new(0.9, 0, 0.22, 0)
-btnRow.Position = UDim2.new(0.05, 0, 0.45, 0)
+btnRow.Size = UDim2.new(0.9, 0, 0, 30)
+btnRow.Position = UDim2.new(0.05, 0, 0, 60)
 btnRow.BackgroundTransparency = 1
 
 local crashBtn = Instance.new("TextButton", btnRow)
@@ -208,8 +315,8 @@ killBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", killBtn).CornerRadius = UDim.new(0.2, 0)
 
 local godBtn = Instance.new("TextButton", frame)
-godBtn.Size = UDim2.new(0.9, 0, 0.15, 0)
-godBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
+godBtn.Size = UDim2.new(0.9, 0, 0, 22)
+godBtn.Position = UDim2.new(0.05, 0, 0, 96)
 godBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
 godBtn.BackgroundTransparency = 0.35
 godBtn.Text = "God Mode (All Guns)"
@@ -219,14 +326,255 @@ godBtn.BorderSizePixel = 0
 godBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", godBtn).CornerRadius = UDim.new(0.2, 0)
 
+local gunRow = Instance.new("Frame", frame)
+gunRow.Size = UDim2.new(0.9, 0, 0, 22)
+gunRow.Position = UDim2.new(0.05, 0, 0, 122)
+gunRow.BackgroundTransparency = 1
+
+local shotgunBtn = Instance.new("TextButton", gunRow)
+shotgunBtn.Size = UDim2.new(0.48, 0, 1, 0)
+shotgunBtn.Position = UDim2.new(0, 0, 0, 0)
+shotgunBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+shotgunBtn.BackgroundTransparency = 0.35
+shotgunBtn.Text = "Shotgun"
+shotgunBtn.TextColor3 = Color3.new(1,1,1)
+shotgunBtn.TextScaled = true
+shotgunBtn.BorderSizePixel = 0
+shotgunBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", shotgunBtn).CornerRadius = UDim.new(0.2, 0)
+
+local goldShotgunBtn = Instance.new("TextButton", gunRow)
+goldShotgunBtn.Size = UDim2.new(0.48, 0, 1, 0)
+goldShotgunBtn.Position = UDim2.new(0.52, 0, 0, 0)
+goldShotgunBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+goldShotgunBtn.BackgroundTransparency = 0.35
+goldShotgunBtn.Text = "Gold Shotgun"
+goldShotgunBtn.TextColor3 = Color3.new(1,1,1)
+goldShotgunBtn.TextScaled = true
+goldShotgunBtn.BorderSizePixel = 0
+goldShotgunBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", goldShotgunBtn).CornerRadius = UDim.new(0.2, 0)
+
+local clickKillBtn = Instance.new("TextButton", frame)
+clickKillBtn.Size = UDim2.new(0.9, 0, 0, 22)
+clickKillBtn.Position = UDim2.new(0.05, 0, 0, 150)
+clickKillBtn.BackgroundColor3 = Color3.fromRGB(90, 40, 140)
+clickKillBtn.BackgroundTransparency = 0.35
+clickKillBtn.Text = "Give Click-Kill Tool"
+clickKillBtn.TextColor3 = Color3.new(1,1,1)
+clickKillBtn.TextScaled = true
+clickKillBtn.BorderSizePixel = 0
+clickKillBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", clickKillBtn).CornerRadius = UDim.new(0.2, 0)
+
 local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(0.9, 0, 0.12, 0)
-status.Position = UDim2.new(0.05, 0, 0.87, 0)
+status.Size = UDim2.new(0.9, 0, 0, 20)
+status.Position = UDim2.new(0.05, 0, 0, 178)
 status.BackgroundTransparency = 1
 status.Text = "Status: Ready"
 status.TextColor3 = Color3.new(1,1,1)
 status.TextScaled = true
 status.Font = Enum.Font.Gotham
+
+local LIST_W = 180
+local LIST_H = 250
+local listFrame = Instance.new("Frame")
+listFrame.Parent = screenGui
+listFrame.Size = UDim2.new(0, LIST_W, 0, LIST_H)
+listFrame.Position = UDim2.new(0.5, GUI_W/2 + 8, 0.5, -GUI_H/2)
+listFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+listFrame.BackgroundTransparency = 0.35
+listFrame.BorderSizePixel = 0
+listFrame.Active = true
+listFrame.Draggable = true
+listFrame.Visible = false
+Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0.1, 0)
+
+local listStroke = Instance.new("UIStroke", listFrame)
+listStroke.Thickness = 2
+listStroke.Color = Color3.fromRGB(75, 75, 255)
+
+local listTitle = Instance.new("TextLabel", listFrame)
+listTitle.Size = UDim2.new(0.9, 0, 0.1, 0)
+listTitle.Position = UDim2.new(0.05, 0, 0.02, 0)
+listTitle.BackgroundTransparency = 1
+listTitle.Text = "Select Players"
+listTitle.TextColor3 = Color3.new(1,1,1)
+listTitle.TextScaled = true
+listTitle.Font = Enum.Font.GothamBold
+
+local scrollFrame = Instance.new("ScrollingFrame", listFrame)
+scrollFrame.Size = UDim2.new(0.9, 0, 0.85, 0)
+scrollFrame.Position = UDim2.new(0.05, 0, 0.13, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+
+local selectedPlayers = {}
+
+local function saveSelected()
+    local data = {}
+    for name, val in pairs(selectedPlayers) do
+        if val then table.insert(data, name) end
+    end
+    pcall(function()
+        if writefile and isfolder and makefolder then
+            if not isfolder("SCPGamesKillGUI") then makefolder("SCPGamesKillGUI") end
+            writefile("SCPGamesKillGUI/selected.json", game:GetService("HttpService"):JSONEncode(data))
+        end
+    end)
+end
+
+local function loadSelected()
+    pcall(function()
+        if isfile and readfile then
+            if isfile("SCPGamesKillGUI/selected.json") then
+                local content = readfile("SCPGamesKillGUI/selected.json")
+                local data = game:GetService("HttpService"):JSONDecode(content)
+                for _, name in ipairs(data) do
+                    selectedPlayers[lower(name)] = true
+                end
+            end
+        end
+    end)
+end
+
+loadSelected()
+
+local playerButtons = {}
+
+local function refreshPlayerList()
+    for _, btn in pairs(playerButtons) do
+        btn:Destroy()
+    end
+    playerButtons = {}
+
+    local players = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(players, p)
+        end
+    end
+    table.sort(players, function(a, b) return lower(a.Name) < lower(b.Name) end)
+
+    local y = 0
+    for _, p in ipairs(players) do
+        local key = lower(p.Name)
+        local btn = Instance.new("TextButton", scrollFrame)
+        btn.Size = UDim2.new(1, 0, 0, 30)
+        btn.Position = UDim2.new(0, 0, 0, y)
+        btn.BackgroundColor3 = selectedPlayers[key] and Color3.fromRGB(40, 140, 40) or Color3.new(0.3, 0.3, 0.3)
+        btn.BackgroundTransparency = 0.35
+        btn.Text = p.Name
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.TextScaled = true
+        btn.BorderSizePixel = 0
+        btn.Font = Enum.Font.Gotham
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0.2, 0)
+
+        btn.MouseButton1Click:Connect(function()
+            local k = lower(p.Name)
+            if selectedPlayers[k] then
+                selectedPlayers[k] = nil
+                btn.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+            else
+                selectedPlayers[k] = true
+                btn.BackgroundColor3 = Color3.fromRGB(40, 140, 40)
+            end
+            saveSelected()
+        end)
+
+        playerButtons[key] = btn
+        y = y + 35
+    end
+
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+local function getSelectedPlayerNames()
+    local names = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and selectedPlayers[lower(p.Name)] then
+            table.insert(names, p.Name)
+        end
+    end
+    return names
+end
+
+Players.PlayerAdded:Connect(function(p)
+    task.wait(0.5)
+    if selectedPlayers[lower(p.Name)] then
+        status.Text = "Status: Auto-selected " .. p.Name
+    end
+    refreshPlayerList()
+end)
+
+Players.PlayerRemoving:Connect(function()
+    task.wait(0.2)
+    refreshPlayerList()
+end)
+
+local function toggleList()
+    listFrame.Visible = not listFrame.Visible
+    if listFrame.Visible then
+        refreshPlayerList()
+        dropdownArrow.Text = "▲"
+    else
+        dropdownArrow.Text = "▼"
+    end
+end
+
+dropdownArrow.MouseButton1Click:Connect(toggleList)
+
+local isCollapsed = false
+local collapseTween = nil
+
+local contentElements = {
+    textBoxRow, btnRow, godBtn, gunRow, clickKillBtn, status
+}
+
+local function setContentVisible(visible)
+    for _, el in ipairs(contentElements) do
+        el.Visible = visible
+    end
+end
+
+local function toggleCollapse()
+    isCollapsed = not isCollapsed
+
+    if collapseTween then collapseTween:Cancel() end
+
+    if isCollapsed then
+        collapseBtn.Text = "+"
+        setContentVisible(false)
+        local targetSize = UDim2.new(0, GUI_W, 0, HEADER_H + 4)
+        collapseTween = TweenService:Create(
+            frame,
+            TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            { Size = targetSize }
+        )
+        collapseTween:Play()
+    else
+        collapseBtn.Text = "–"
+        local targetSize = UDim2.new(0, GUI_W, 0, GUI_H)
+        collapseTween = TweenService:Create(
+            frame,
+            TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            { Size = targetSize }
+        )
+        collapseTween:Play()
+        task.delay(0.35, function()
+            if not isCollapsed then
+                setContentVisible(true)
+            end
+        end)
+    end
+end
+
+collapseBtn.MouseButton1Click:Connect(toggleCollapse)
 
 local function sortAlpha(list)
     table.sort(list, function(a, b) return lower(a.Name) < lower(b.Name) end)
@@ -268,6 +616,33 @@ local function getPlayers(input)
     return sortAlpha(out)
 end
 
+local function collectTargets()
+    local input = textBox.Text
+    local result = {}
+    local seen = {}
+
+    if input ~= "" then
+        local found = getPlayers(input)
+        for _, p in ipairs(found) do
+            if not seen[p] then
+                seen[p] = true
+                table.insert(result, p)
+            end
+        end
+    end
+
+    local selNames = getSelectedPlayerNames()
+    for _, name in ipairs(selNames) do
+        local p = Players:FindFirstChild(name)
+        if p and not seen[p] then
+            seen[p] = true
+            table.insert(result, p)
+        end
+    end
+
+    return result
+end
+
 local isCrashing      = false
 local crashConn       = nil
 local targets         = {}
@@ -298,8 +673,12 @@ end
 
 local function startCrash()
     local input = textBox.Text
-    if input == "" then status.Text = "Status: Enter nicknames"; return end
-    targets = getPlayers(input)
+    local selNames = getSelectedPlayerNames()
+    if input == "" and #selNames == 0 then
+        status.Text = "Status: Enter nicknames or select players"
+        return
+    end
+    targets = collectTargets()
     if #targets == 0 then status.Text = "Status: No players found"; return end
 
     if not isPlayerAdmin(LocalPlayer.Name) then
@@ -329,7 +708,7 @@ crashBtn.MouseButton1Click:Connect(function()
 end)
 
 killBtn.MouseButton1Click:Connect(function()
-    local found = getPlayers(textBox.Text)
+    local found = collectTargets()
     if #found == 0 then status.Text = "Status: No players found"; return end
     for _, p in ipairs(found) do Kill(p.Name, math.huge) end
     status.Text = "Status: Killed " .. #found .. " player(s)"
@@ -340,6 +719,74 @@ godBtn.MouseButton1Click:Connect(function()
     status.Text = "Status: God mode applied"
 end)
 
+shotgunBtn.MouseButton1Click:Connect(function()
+    getShotgun()
+end)
+
+goldShotgunBtn.MouseButton1Click:Connect(function()
+    getGoldShotgun()
+end)
+
+local function onKillToolActivated()
+    local mouse = LocalPlayer:GetMouse()
+    local target = mouse.Target
+    if not target then return end
+
+    local model = target:FindFirstAncestorOfClass("Model")
+    if not model then return end
+
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    local targetPlayer
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character == model then
+            targetPlayer = p
+            break
+        end
+    end
+
+    if targetPlayer then
+        if not canCrash(targetPlayer.Name) then
+            status.Text = "Status: DENIED — " .. targetPlayer.Name .. " is protected"
+            return
+        end
+        Kill(targetPlayer.Name, math.huge)
+        status.Text = "Status: Click-killed " .. targetPlayer.Name
+    else
+        if humanoid.Health > 0 then
+            applyDamageToAllWeapons(humanoid, math.huge)
+            status.Text = "Status: Click-killed NPC"
+        end
+    end
+end
+
+local function giveKillTool()
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then
+        status.Text = "Status: No backpack!"
+        return
+    end
+
+    local existing = backpack:FindFirstChild("ClickKill") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("ClickKill"))
+    if existing then
+        existing:Destroy()
+    end
+
+    local tool = Instance.new("Tool")
+    tool.Name = "ClickKill"
+    tool.RequiresHandle = false
+    tool.CanBeDropped = false
+    tool.ToolTip = "Click a player to kill them"
+
+    tool.Activated:Connect(onKillToolActivated)
+
+    tool.Parent = backpack
+    status.Text = "Status: Click-Kill tool given"
+end
+
+clickKillBtn.MouseButton1Click:Connect(giveKillTool)
+
 textBox.FocusLost:Connect(function(enter)
     if enter then
         local found = getPlayers(textBox.Text)
@@ -349,17 +796,12 @@ textBox.FocusLost:Connect(function(enter)
     end
 end)
 
-Players.PlayerRemoving:Connect(function()
-    if isCrashing then
-        targets = getPlayers(textBox.Text)
-        if #targets == 0 then stopCrash() end
-    end
-end)
-
 LocalPlayer.CharacterRemoving:Connect(function()
     stopCrash()
     status.Text = "Status: Character removed"
 end)
+
+refreshPlayerList()
 
 local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
 local thumbType = Enum.ThumbnailType.HeadShot
@@ -368,7 +810,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "SCP Games Kill GUI",
-    Text = "version V8.0",
+    Text = "version V10.0",
     Icon = content,
     Duration = 7
 })
