@@ -658,9 +658,13 @@ end
 
 local function crashTick()
     if #targets == 0 then status.Text = "Status: No players"; return end
-    if currentIndex > #targets then currentIndex = 1 end
+    
+    if currentIndex > #targets then 
+        currentIndex = 1 
+    end
 
     local p = targets[currentIndex]
+    
     if p and p.Parent and p.Character then
         local ok = Crash(p.Name, 5) 
         status.Text = (ok and "Status: Crashing " or "Status: Fail ")
@@ -678,6 +682,7 @@ local function startCrash()
         status.Text = "Status: Enter nicknames or select players"
         return
     end
+    
     targets = collectTargets()
     if #targets == 0 then status.Text = "Status: No players found"; return end
 
@@ -700,6 +705,8 @@ local function startCrash()
     crashBtn.Text = "Start Crash | ON"
     crashBtn.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
     status.Text = "Status: Crashing " .. #targets .. " player(s)"
+    
+    if crashConn then crashConn:Disconnect() end
     crashConn = RunService.Heartbeat:Connect(crashTick)
 end
 
