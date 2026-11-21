@@ -2,20 +2,6 @@
     AIMBOT SCRIPT
     Remade and optimized by Riky47#3355 for Arceus X
     # spdmteam.com
-    Modified: Aim offset, Not Aggressive tweaks, Zone visualizer, Detection Range, Custom Crosshair, Super Aim
-    Fixed: Analytical aim CFrame built from explicit orthonormal world-space axes.
-           No Euler-order error, no roll, pixel-perfect at ANY distance.
-    Added: Custom Sniper Crosshair with live yaw/pitch angles, own pixel offsets, own aim part,
-           and optional snap-to-target (Snipe Checker).
-    Added: Sniper "Snap when close" toggle + configurable snap threshold (in degrees).
-    Added: Sub-pixel offset buttons (±0.05, ±0.1, ±0.25) for both normal and sniper pixel offsets.
-           Pixel offset text now shows 2 decimal places for precision.
-    Added: Target Lock system (Sticky Target) - holds a target instead of switching every frame.
-    Added: Better Check - smart switching between closest/holding-tool targets based on severity.
-    Added: Lock Zone - manual target reset by moving cursor outside a circle. Circle turns green when target locked.
-    Fixed: Detection radius now derives from naZoneAngle so the visual circle matches the real search zone.
-           betterCheck no longer suggests targets outside the circle.
-           superAim angle is now the true angle between camera look and target direction.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -601,6 +587,10 @@ local lockZoneGui = nil
 local lockZoneCooldown = 0
 local LOCK_ZONE_COOLDOWN = 0.35
 
+local canSeeNoCollide = false
+local canSeeTransparent = false
+local TRANSPARENT_THRESHOLD = 0.35
+
 local function createCrosshair()
     if not crosshairCenter then
         crosshairCenter = Drawing.new("Circle")
@@ -873,8 +863,16 @@ function isVisible(part)
 
     local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {camera, plrsService.LocalPlayer.Character})
 
-    if hit and hit:IsDescendantOf(part.Parent) then
-        return true
+    if hit then
+        if hit:IsDescendantOf(part.Parent) then
+            return true
+        end
+        if canSeeNoCollide and not hit.CanCollide then
+            return true
+        end
+        if canSeeTransparent and hit.Transparency > 0 and hit.Transparency <= TRANSPARENT_THRESHOLD then
+            return true
+        end
     end
 
     return false
@@ -1825,6 +1823,14 @@ local toggleWallCheckBtn = addToggle("Wall check", function(state)
     wallcheck = state
 end, false)
 
+local toggleNoCollideBtn = addToggle("Check through no-collide objects", function(state)
+    canSeeNoCollide = state
+end, false)
+
+local toggleTransparentBtn = addToggle("Check through transparent objects", function(state)
+    canSeeTransparent = state
+end, false)
+
 local togglePrioritizeClosestBtn = addToggle("Prioritize Closest", function(state)
     prioritizeClosest = state
 end, false)
@@ -1930,6 +1936,8 @@ local resetBtn = addButton("Reset Settings", function()
     bcDistUrgent = 0
     lockZoneAngle = 25
     lockZoneEnabled = false
+    canSeeNoCollide = false
+    canSeeTransparent = false
     if lockZoneGui then lockZoneGui.Enabled = false end
 
     for _, callback in ipairs(updateCallbacks) do
