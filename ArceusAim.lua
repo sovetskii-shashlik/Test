@@ -12,6 +12,7 @@
            Pixel offset text now shows 2 decimal places for precision.
     Added: Target Lock system (Sticky Target) - holds a target instead of switching every frame.
     Added: Better Check - smart switching between closest/holding-tool targets based on severity.
+    Added: Lock Zone - manual target reset by moving cursor outside a circle. Circle turns green when target locked.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -591,6 +592,12 @@ local lastHealth = nil
 local lastDamageTime = 0
 local DAMAGE_WINDOW = 1.0
 
+local lockZoneEnabled = false
+local lockZoneAngle = 25
+local lockZoneGui = nil
+local lockZoneCooldown = 0
+local LOCK_ZONE_COOLDOWN = 0.35
+
 local function createCrosshair()
     if not crosshairCenter then
         crosshairCenter = Drawing.new("Circle")
@@ -977,6 +984,28 @@ local function betterCheckSeverity(player, part, myPos)
     return 0
 end
 
+local function isCursorOutsideLockZone()
+    if not lockZoneEnabled then return false end
+    local camera = workspace.CurrentCamera
+    local viewport = camera.ViewportSize
+    local center = Vector2.new(viewport.X / 2, viewport.Y / 2)
+
+    local mp = plrsService.LocalPlayer:GetMouse()
+    local target = mp.Hit
+    local pos
+    if target and target.Position then
+        local s, on = camera:WorldToViewportPoint(target.Position)
+        if on then pos = Vector2.new(s.X, s.Y) end
+    end
+    if not pos then return false end
+
+    local fovRad = math.rad(camera.FieldOfView)
+    local tanHalfFov = math.tan(fovRad / 2)
+    local radiusPixels = (math.tan(math.rad(lockZoneAngle)) / tanHalfFov) * (viewport.Y / 2)
+
+    return (pos - center).Magnitude > radiusPixels
+end
+
 function getClosestPlayerToCursor(trg_part)
     if not stickyEnabled then
         lockedTarget = nil
@@ -1195,6 +1224,55 @@ local function updateZoneGUI()
     local viewport = workspace.CurrentCamera.ViewportSize
     local radiusPixels = (naZoneAngle / 60) * (viewport.Y * 0.5)
     circle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
+end
+
+local function createLockZoneGUI()
+    if lockZoneGui then lockZoneGui:Destroy() end
+    lockZoneGui = Instance.new("ScreenGui")
+    lockZoneGui.Name = "AimbotLockZone"
+    lockZoneGui.ResetOnSpawn = false
+    lockZoneGui.IgnoreGuiInset = true
+    lockZoneGui.Parent = uiparent()
+
+    local circle = Instance.new("Frame")
+    circle.Name = "LockZoneCircle"
+    circle.AnchorPoint = Vector2.new(0.5, 0.5)
+    circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    circle.BackgroundTransparency = 1
+    circle.Parent = lockZoneGui
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Name = "LockZoneStroke"
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(140, 140, 140)
+    stroke.Parent = circle
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = circle
+
+    return circle
+end
+
+local function updateLockZoneGUI()
+    if not lockZoneEnabled or not lockZoneGui then return end
+    local circle = lockZoneGui:FindFirstChild("LockZoneCircle")
+    if not circle then return end
+
+    local viewport = workspace.CurrentCamera.ViewportSize
+    local fovRad = math.rad(workspace.CurrentCamera.FieldOfView)
+    local tanHalfFov = math.tan(fovRad / 2)
+    local radiusPixels = (math.tan(math.rad(lockZoneAngle)) / tanHalfFov) * (viewport.Y / 2)
+    circle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
+
+    local stroke = circle:FindFirstChild("LockZoneStroke")
+    if stroke then
+        if lockedTarget and lockedTarget.Parent and lockedTarget.Character then
+            stroke.Color = Color3.fromRGB(80, 255, 120)
+        else
+            stroke.Color = Color3.fromRGB(140, 140, 140)
+        end
+    end
 end
 
 local function addTextBox(text, initialText, onChange)
@@ -1609,6 +1687,87 @@ local function addBCTextBox(label, initial, onChange)
     return box
 end
 
+local function addLockZoneComboBox()
+    local newCombo = ComboBox:Clone()
+    local isOpen = false
+    local elems = {}
+
+    local function setBoxState()
+        newCombo:WaitForChild("Img").Rotation = isOpen and 0 or 180
+        for _, elem in ipairs(elems) do
+            elem.Visible = isOpen
+        end
+    end
+
+    local function updateText()
+        newCombo:WaitForChild("Name").Text = string.format("Lock Zone: %d°", lockZoneAngle)
+    end
+
+    newCombo.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        setBoxState()
+    end)
+
+    updateText()
+    table.insert(updateCallbacks, updateText)
+
+    newCombo.Size = UDim2.new(0.95, 0, 0, element_height)
+    newCombo.Name = "LockZoneSettings"
+    newCombo.Parent = Menu
+    newCombo.LayoutOrder = elements
+    newCombo.Visible = true
+
+    elements += 1
+    addSpace(Menu)
+
+    local stepButtons = {
+        {label = "-5°",   value = -5},
+        {label = "-2.5°", value = -2.5},
+        {label = "-1°",   value = -1},
+        {label = "+1°",   value = 1},
+        {label = "+2.5°", value = 2.5},
+        {label = "+5°",   value = 5},
+    }
+
+    for _, btnData in ipairs(stepButtons) do
+        local btn = ComboElem:Clone()
+        btn:WaitForChild("Name").Text = btnData.label
+        btn.Size = UDim2.new(0.95, 0, 0, element_height)
+        btn.Name = btnData.label
+        btn.Parent = Menu
+        btn.LayoutOrder = elements
+        btn.Visible = false
+        table.insert(elems, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            lockZoneAngle = math.clamp(lockZoneAngle + btnData.value, 5, 80)
+            updateText()
+            updateLockZoneGUI()
+        end)
+
+        elements += 1
+        addSpace(Menu)
+    end
+
+    local resetBtn = ComboElem:Clone()
+    resetBtn:WaitForChild("Name").Text = "Reset to 25°"
+    resetBtn.Size = UDim2.new(0.95, 0, 0, element_height)
+    resetBtn.Name = "ResetLockZone"
+    resetBtn.Parent = Menu
+    resetBtn.LayoutOrder = elements
+    resetBtn.Visible = false
+    table.insert(elems, resetBtn)
+
+    resetBtn.MouseButton1Click:Connect(function()
+        lockZoneAngle = 25
+        updateText()
+        updateLockZoneGUI()
+    end)
+
+    elements += 1
+    addSpace(Menu)
+end
+
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
 local toggleBtn = addToggle("Toggle aimbot", function(state)
@@ -1737,6 +1896,19 @@ local toggleSniperCrosshairBtn = addToggle("Custom Sniper Crosshair (with angles
     end
 end, false)
 
+local toggleLockZoneBtn = addToggle("Lock Zone (manual reset)", function(state)
+    lockZoneEnabled = state
+    if lockZoneEnabled then
+        if not lockZoneGui then createLockZoneGUI() end
+        if lockZoneGui then lockZoneGui.Enabled = true end
+        updateLockZoneGUI()
+    else
+        if lockZoneGui then lockZoneGui.Enabled = false end
+    end
+end, false)
+
+addLockZoneComboBox()
+
 local resetBtn = addButton("Reset Settings", function()
     aimOffsetYaw = 0
     aimOffsetPitch = 0
@@ -1752,6 +1924,9 @@ local resetBtn = addButton("Reset Settings", function()
     bcDistWarn = 0
     bcDistMedium = 0
     bcDistUrgent = 0
+    lockZoneAngle = 25
+    lockZoneEnabled = false
+    if lockZoneGui then lockZoneGui.Enabled = false end
 
     for _, callback in ipairs(updateCallbacks) do
         pcall(callback)
@@ -1791,10 +1966,23 @@ runService.RenderStepped:Connect(function(dt)
         end
     end
 
+    if lockZoneEnabled and lockZoneCooldown <= 0 and isCursorOutsideLockZone() then
+        lockedTarget = nil
+        lockedPart = nil
+        lockLostTimer = 0
+        lockZoneCooldown = LOCK_ZONE_COOLDOWN
+    end
+    if lockZoneCooldown > 0 then
+        lockZoneCooldown = math.max(0, lockZoneCooldown - dt)
+    end
+
     updateCrosshair()
 
     if showZone then
         updateZoneGUI()
+    end
+    if lockZoneEnabled then
+        updateLockZoneGUI()
     end
 
     local closest = getClosestPlayerToCursor(aimpart)
