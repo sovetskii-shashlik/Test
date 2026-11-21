@@ -858,21 +858,32 @@ function isVisible(part)
 
     local camera = workspace.CurrentCamera
     local origin = camera.CFrame.Position
-    local direction = (part.Position - origin).Unit * (origin - part.Position).Magnitude
-    local ray = Ray.new(origin, direction)
+    local ignoreList = {camera, plrsService.LocalPlayer.Character}
 
-    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {camera, plrsService.LocalPlayer.Character})
+    for _ = 1, 30 do
+        local ray = Ray.new(origin, part.Position - origin)
+        local hit = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
 
-    if hit then
+        if not hit then
+            return false
+        end
+
         if hit:IsDescendantOf(part.Parent) then
             return true
         end
+
+        local passable = false
         if canSeeNoCollide and not hit.CanCollide then
-            return true
+            passable = true
+        elseif canSeeTransparent and hit.Transparency > 0 and hit.Transparency <= TRANSPARENT_THRESHOLD then
+            passable = true
         end
-        if canSeeTransparent and hit.Transparency > 0 and hit.Transparency <= TRANSPARENT_THRESHOLD then
-            return true
+
+        if not passable then
+            return false
         end
+
+        table.insert(ignoreList, hit)
     end
 
     return false
