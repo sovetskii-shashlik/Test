@@ -10,6 +10,8 @@
     Added: Sniper "Snap when close" toggle + configurable snap threshold (in degrees).
     Added: Sub-pixel offset buttons (±0.05, ±0.1, ±0.25) for both normal and sniper pixel offsets.
            Pixel offset text now shows 2 decimal places for precision.
+    Added: Target Lock system (Sticky Target) - holds a target instead of switching every frame.
+    Added: Better Check - smart switching between closest/holding-tool targets based on severity.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -572,6 +574,23 @@ local sniperAngleTextH = nil
 local sniperAngleTextV = nil
 local sniperAngleTextTotal = nil
 
+local stickyEnabled = true
+local lockedTarget = nil
+local lockedPart = nil
+local lockLostTimer = 0
+local lockGraceTime = 0.6
+local lockLeashRange = 1.25
+local switchPenalty = 0.35
+
+local betterCheck = false
+local bcDistWarn = 0
+local bcDistMedium = 0
+local bcDistUrgent = 0
+
+local lastHealth = nil
+local lastDamageTime = 0
+local DAMAGE_WINDOW = 1.0
+
 local function createCrosshair()
     if not crosshairCenter then
         crosshairCenter = Drawing.new("Circle")
@@ -893,15 +912,91 @@ local function getSearchAimPoint()
     return getAimScreenPos()
 end
 
+local function isTakingDamage()
+    local char = plrsService.LocalPlayer.Character
+    if not char then return false end
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+    if not hum then return false end
+    if lastHealth == nil then lastHealth = hum.Health end
+    if hum.Health < lastHealth - 0.01 then
+        lastDamageTime = os.clock()
+    end
+    lastHealth = hum.Health
+    return (os.clock() - lastDamageTime) <= DAMAGE_WINDOW
+end
+
+local function isTargetValid(player, trg_part)
+    if not player or not player.Parent then return false end
+    local char = player.Character
+    if not char then return false end
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+    if not hum or hum.Health <= 0 then return false end
+
+    local part = getAimPartObject(char, trg_part)
+    if not part then return false end
+
+    if teamcheck and player.Team == plrsService.LocalPlayer.Team then return false end
+    if nonfriends and isFriend(player) then return false end
+    if requireTool and not localHasTool() then return false end
+
+    local myChar = plrsService.LocalPlayer.Character
+    if not myChar then return false end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return false end
+    if (part.Position - myRoot.Position).Magnitude > detectRange * lockLeashRange then
+        return false
+    end
+
+    if wallcheck and not isVisible(part) then return false end
+
+    local _, onScreen = workspace.CurrentCamera:WorldToViewportPoint(part.Position)
+    if not onScreen then return false end
+
+    return true, part
+end
+
+local function betterCheckSeverity(player, part, myPos)
+    if not player or not part then return 0 end
+    local dist = (part.Position - myPos).Magnitude
+    local hasTool = isHoldingTool(player)
+
+    if bcDistUrgent > 0 and dist <= bcDistUrgent then
+        return 3
+    end
+    if bcDistMedium > 0 and hasTool and dist <= bcDistMedium then
+        return 2
+    end
+    local takingDmg = isTakingDamage()
+    if takingDmg then
+        if bcDistWarn > 0 and dist <= bcDistWarn then return 1 end
+        if bcDistWarn == 0 then return 1 end
+    end
+    if bcDistMedium == 0 and hasTool then
+        return 2
+    end
+    return 0
+end
+
 function getClosestPlayerToCursor(trg_part)
+    if not stickyEnabled then
+        lockedTarget = nil
+        lockedPart = nil
+        lockLostTimer = 0
+    end
+
     local localPlayer = plrsService.LocalPlayer
 
-    if requireTool and not localHasTool() then
-        return nil
+    if lockedTarget then
+        local ok = isTargetValid(lockedTarget, trg_part)
+        if ok then
+            lockedPart = getAimPartObject(lockedTarget.Character, trg_part)
+            lockLostTimer = 0
+            return lockedTarget
+        end
     end
 
     local myChar = localPlayer.Character
-    if not myChar then return nil end
+    if not myChar then return lockedTarget end
     local myHead = myChar:FindFirstChild("Head")
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     if not myHead or not myRoot then return nil end
@@ -911,44 +1006,34 @@ function getClosestPlayerToCursor(trg_part)
 
     local bestClosest = nil
     local bestClosestDist = math.huge
-
     local bestTool = nil
     local bestToolDist = math.huge
 
     for _, v in ipairs(plrsService:GetPlayers()) do
-        if v ~= localPlayer and myChar:FindFirstChildWhichIsA("Humanoid") and myChar.Humanoid.Health > 0
+        if v ~= localPlayer
+            and myChar:FindFirstChildWhichIsA("Humanoid") and myChar.Humanoid.Health > 0
             and v.Character and v.Character:FindFirstChildWhichIsA("Humanoid") and v.Character.Humanoid.Health > 0
         then
             local allowed = not teamcheck
-            if teamcheck and v.Team ~= localPlayer.Team then
-                allowed = true
-            end
-
-            if nonfriends and isFriend(v) then
-                allowed = false
-            end
+            if teamcheck and v.Team ~= localPlayer.Team then allowed = true end
+            if nonfriends and isFriend(v) then allowed = false end
 
             if allowed then
                 local aimobj = getAimPartObject(v.Character, trg_part)
                 if aimobj then
                     local distanceToPlayer = (aimobj.Position - myPos).Magnitude
-
                     if distanceToPlayer <= detectRange then
                         local ePos, vissss = workspace.CurrentCamera:WorldToViewportPoint(aimobj.Position)
-                        local AccPos = Vector2.new(ePos.x, ePos.y)
-                        local screenDist = (AccPos - aimPoint).magnitude
+                        local screenDist = (Vector2.new(ePos.x, ePos.y) - aimPoint).magnitude
 
                         local visibleThroughWalls = true
-                        if wallcheck then
-                            visibleThroughWalls = isVisible(aimobj)
-                        end
+                        if wallcheck then visibleThroughWalls = isVisible(aimobj) end
 
                         if vissss and screenDist < 400 and visibleThroughWalls then
                             if distanceToPlayer < bestClosestDist then
                                 bestClosestDist = distanceToPlayer
                                 bestClosest = v
                             end
-
                             if isHoldingTool(v) and distanceToPlayer < bestToolDist then
                                 bestToolDist = distanceToPlayer
                                 bestTool = v
@@ -960,26 +1045,119 @@ function getClosestPlayerToCursor(trg_part)
         end
     end
 
+    local rawBest = nil
+    local rawBestDist = math.huge
+
     if prioritizeClosest and prioritizeHoldingTool then
         if bestClosest and bestTool then
-            if bestClosest == bestTool then return bestClosest end
-            if bestClosestDist < bestToolDist then
-                return bestClosest
-            else
-                return bestTool
-            end
-        elseif bestClosest then
-            return bestClosest
-        elseif bestTool then
-            return bestTool
-        end
+            if bestClosest == bestTool then rawBest = bestClosest; rawBestDist = math.min(bestClosestDist, bestToolDist)
+            elseif bestClosestDist < bestToolDist then rawBest = bestClosest; rawBestDist = bestClosestDist
+            else rawBest = bestTool; rawBestDist = bestToolDist end
+        elseif bestClosest then rawBest = bestClosest; rawBestDist = bestClosestDist
+        elseif bestTool then rawBest = bestTool; rawBestDist = bestToolDist end
     elseif prioritizeClosest then
-        return bestClosest
+        rawBest = bestClosest; rawBestDist = bestClosestDist
     elseif prioritizeHoldingTool then
-        return bestTool
+        rawBest = bestTool; rawBestDist = bestToolDist
     else
-        return bestClosest
+        rawBest = bestClosest; rawBestDist = bestClosestDist
     end
+
+    if betterCheck and prioritizeClosest and prioritizeHoldingTool and lockedTarget then
+        local bestSeverity = 0
+        local bestSeverityPlayer = nil
+        local bestSeverityPart = nil
+
+        for _, v in ipairs(plrsService:GetPlayers()) do
+            if v ~= localPlayer and v ~= lockedTarget
+                and v.Character and v.Character:FindFirstChildWhichIsA("Humanoid")
+                and v.Character.Humanoid.Health > 0
+            then
+                local allowed = not teamcheck
+                if teamcheck and v.Team ~= localPlayer.Team then allowed = true end
+                if nonfriends and isFriend(v) then allowed = false end
+
+                if allowed then
+                    local p = getAimPartObject(v.Character, trg_part)
+                    if p then
+                        local d = (p.Position - myPos).Magnitude
+                        if d <= detectRange then
+                            local _, vis = workspace.CurrentCamera:WorldToViewportPoint(p.Position)
+                            local okWall = (not wallcheck) or isVisible(p)
+                            if vis and okWall then
+                                local sev = betterCheckSeverity(v, p, myPos)
+                                local sp = workspace.CurrentCamera:WorldToViewportPoint(p.Position)
+                                local lockSp = lockedPart and workspace.CurrentCamera:WorldToViewportPoint(lockedPart.Position)
+                                local newScreenDist = (Vector2.new(sp.X, sp.Y) - aimPoint).Magnitude
+                                local lockScreenDist = lockSp and (Vector2.new(lockSp.X, lockSp.Y) - aimPoint).Magnitude or math.huge
+                                if newScreenDist < lockScreenDist - 5 then
+                                    sev = math.max(sev, 1)
+                                end
+
+                                if sev > bestSeverity then
+                                    bestSeverity = sev
+                                    bestSeverityPlayer = v
+                                    bestSeverityPart = p
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        if bestSeverityPlayer and bestSeverity >= 1 then
+            local lockValid = isTargetValid(lockedTarget, trg_part)
+            if not lockValid then
+                lockedTarget = bestSeverityPlayer
+                lockedPart = bestSeverityPart
+                lockLostTimer = 0
+                return lockedTarget
+            end
+            if bestSeverity >= 2 then
+                lockedTarget = bestSeverityPlayer
+                lockedPart = bestSeverityPart
+                lockLostTimer = 0
+                return lockedTarget
+            end
+        end
+    end
+
+    if lockedTarget then
+        if lockLostTimer < lockGraceTime then
+            return lockedTarget
+        end
+        if rawBest and rawBest ~= lockedTarget then
+            local lockedDist = math.huge
+            local okLock, lockPart = isTargetValid(lockedTarget, trg_part)
+            if okLock then
+                lockedDist = (lockPart.Position - myPos).Magnitude
+            end
+            if rawBestDist < lockedDist * (1 - switchPenalty) then
+                lockedTarget = rawBest
+                lockedPart = getAimPartObject(rawBest.Character, trg_part)
+                lockLostTimer = 0
+            else
+                if not okLock and lockLostTimer >= lockGraceTime then
+                    lockedTarget = rawBest
+                    lockedPart = rawBest and getAimPartObject(rawBest.Character, trg_part)
+                    lockLostTimer = 0
+                end
+            end
+        elseif not rawBest then
+            lockedTarget = nil
+            lockedPart = nil
+            lockLostTimer = 0
+        end
+    else
+        if rawBest then
+            lockedTarget = rawBest
+            lockedPart = getAimPartObject(rawBest.Character, trg_part)
+            lockLostTimer = 0
+        end
+    end
+
+    return lockedTarget
 end
 
 local function createZoneGUI()
@@ -1124,8 +1302,6 @@ local function addOffsetComboBox(text, initialValue, onChange)
     return newCombo
 end
 
--- [[ FIX ]] Пиксельные оффсеты: добавлены sub-pixel шаги ±0.05, ±0.1, ±0.25.
--- Формат отображения: 2 знака после запятой.
 local function addPixelOffsetComboBox(text, initialValue, onChange)
     local newCombo = ComboBox:Clone()
     local isOpen = false
@@ -1399,11 +1575,59 @@ local function addSnapComboBox()
     addSpace(Menu)
 end
 
+local function addBCTextBox(label, initial, onChange)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0.95, 0, 0, element_height)
+    box.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    box.BorderSizePixel = 0
+    box.Text = initial
+    box.PlaceholderText = label
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Font = Enum.Font.TitilliumWeb
+    box.TextSize = 14
+    box.TextScaled = true
+    box.ClearTextOnFocus = false
+    box.Parent = Menu
+    box.LayoutOrder = elements
+    box.Visible = true
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.25, 0)
+    corner.Parent = box
+
+    box.FocusLost:Connect(function()
+        local num = tonumber(box.Text)
+        if num and num >= 0 then
+            onChange(num)
+        else
+            box.Text = initial
+        end
+    end)
+
+    elements += 1
+    addSpace(Menu)
+    return box
+end
+
 addTextBox("Detection Range (studs)", "500", function(v) detectRange = v end)
 
 local toggleBtn = addToggle("Toggle aimbot", function(state)
     enabled = state
+    if not state then
+        lockedTarget = nil
+        lockedPart = nil
+        lockLostTimer = 0
+    end
 end, false)
+
+local toggleStickyBtn = addToggle("Sticky Target (hold lock)", function(state)
+    stickyEnabled = state
+    if not state then
+        lockedTarget = nil
+        lockedPart = nil
+        lockLostTimer = 0
+    end
+end, true)
 
 local toggleNotAggressiveBtn = addToggle("Not Aggressive Mode", function(state)
     notAggressive = state
@@ -1449,6 +1673,19 @@ end, false)
 local toggleRequireToolBtn = addToggle("Require Tool to Aim", function(state)
     requireTool = state
 end, false)
+
+local toggleBetterCheckBtn = addToggle("Better Check (smart lock)", function(state)
+    betterCheck = state
+    if not state then
+        lockedTarget = nil
+        lockedPart = nil
+        lockLostTimer = 0
+    end
+end, false)
+
+addBCTextBox("BC: Warn dist (0 = max)",   "0", function(v) bcDistWarn   = v end)
+addBCTextBox("BC: Medium dist (0 = max)", "0", function(v) bcDistMedium = v end)
+addBCTextBox("BC: Urgent dist (0 = max)", "0", function(v) bcDistUrgent = v end)
 
 local toggleSnipeCheckerBtn = addToggle("Snipe Checker (Smooth Direct Aim)", function(state)
     snipeChecker = state
@@ -1512,6 +1749,9 @@ local resetBtn = addButton("Reset Settings", function()
     naZoneAngle = 60
     detectRange = 500
     sniperSnapThreshold = 0.5
+    bcDistWarn = 0
+    bcDistMedium = 0
+    bcDistUrgent = 0
 
     for _, callback in ipairs(updateCallbacks) do
         pcall(callback)
@@ -1524,7 +1764,33 @@ local resetBtn = addButton("Reset Settings", function()
     })
 end)
 
-runService.RenderStepped:Connect(function()
+runService.RenderStepped:Connect(function(dt)
+    local char = plrsService.LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if hum then
+            if lastHealth == nil then lastHealth = hum.Health end
+            if hum.Health < lastHealth - 0.01 then
+                lastDamageTime = os.clock()
+            end
+            lastHealth = hum.Health
+        end
+    end
+
+    if lockedTarget then
+        local ok = isTargetValid(lockedTarget, aimpart)
+        if not ok then
+            lockLostTimer = lockLostTimer + dt
+            if lockLostTimer > lockGraceTime then
+                lockedTarget = nil
+                lockedPart = nil
+                lockLostTimer = 0
+            end
+        else
+            lockLostTimer = 0
+        end
+    end
+
     updateCrosshair()
 
     if showZone then
