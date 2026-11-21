@@ -13,6 +13,9 @@
     Added: Target Lock system (Sticky Target) - holds a target instead of switching every frame.
     Added: Better Check - smart switching between closest/holding-tool targets based on severity.
     Added: Lock Zone - manual target reset by moving cursor outside a circle. Circle turns green when target locked.
+    Fixed: Detection radius now derives from naZoneAngle so the visual circle matches the real search zone.
+           betterCheck no longer suggests targets outside the circle.
+           superAim angle is now the true angle between camera look and target direction.
 ]]
 
 local Script_Title = `Arceus X <font color="rgb(255, 0, 0)">|</font> Aimbot`
@@ -854,14 +857,10 @@ end
 
 local function getAngleFromAimToTarget(aimobj)
     local camera = workspace.CurrentCamera
-    local viewport = camera.ViewportSize
-    local screenPos = camera:WorldToViewportPoint(aimobj.Position)
-    local targetScreen = Vector2.new(screenPos.X, screenPos.Y)
-    local aimPos = getAimScreenPos()
-    local diff = (targetScreen - aimPos).Magnitude
-    local fov = 70
-    local angle = (diff / math.max(viewport.X, viewport.Y)) * fov
-    return angle
+    local camPos = camera.CFrame.Position
+    local dirToTarget = (aimobj.Position - camPos).Unit
+    local aimLook = camera.CFrame.LookVector
+    return math.deg(math.acos(math.clamp(aimLook:Dot(dirToTarget), -1, 1)))
 end
 
 function isVisible(part)
@@ -1033,6 +1032,11 @@ function getClosestPlayerToCursor(trg_part)
     local aimPoint = getSearchAimPoint()
     local myPos = myRoot.Position
 
+    local viewport = workspace.CurrentCamera.ViewportSize
+    local fovRad = math.rad(workspace.CurrentCamera.FieldOfView)
+    local tanHalfFov = math.tan(fovRad / 2)
+    local searchRadiusPixels = (math.tan(math.rad(naZoneAngle)) / tanHalfFov) * (viewport.Y / 2)
+
     local bestClosest = nil
     local bestClosestDist = math.huge
     local bestTool = nil
@@ -1058,7 +1062,7 @@ function getClosestPlayerToCursor(trg_part)
                         local visibleThroughWalls = true
                         if wallcheck then visibleThroughWalls = isVisible(aimobj) end
 
-                        if vissss and screenDist < 400 and visibleThroughWalls then
+                        if vissss and screenDist < searchRadiusPixels and visibleThroughWalls then
                             if distanceToPlayer < bestClosestDist then
                                 bestClosestDist = distanceToPlayer
                                 bestClosest = v
@@ -1119,7 +1123,7 @@ function getClosestPlayerToCursor(trg_part)
                                 local lockSp = lockedPart and workspace.CurrentCamera:WorldToViewportPoint(lockedPart.Position)
                                 local newScreenDist = (Vector2.new(sp.X, sp.Y) - aimPoint).Magnitude
                                 local lockScreenDist = lockSp and (Vector2.new(lockSp.X, lockSp.Y) - aimPoint).Magnitude or math.huge
-                                if newScreenDist < lockScreenDist - 5 then
+                                if newScreenDist < searchRadiusPixels and newScreenDist < lockScreenDist - 5 then
                                     sev = math.max(sev, 1)
                                 end
 
