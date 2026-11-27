@@ -415,7 +415,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 StarterGui:SetCore("SendNotification", {
     Title = "Echo Locator",
-    Text = "Version V1.0"
+    Text = "Version V1.0",
     Icon = content,
     Duration = 7
 })
