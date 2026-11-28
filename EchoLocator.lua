@@ -1,4 +1,4 @@
---// Echo Locator V1.5
+--// Echo Locator V2.0
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -358,22 +358,27 @@ end
 
 local function applyStyle(circle, info)
     if teamCheck then
-        circle.Filled = false
-        circle.Thickness = 2
-        circle.Transparency = 0.2
         if info.kind == "player" then
+            circle.Filled = true
+            circle.Thickness = 1
+            circle.Transparency = POINT_TRANSPARENCY
             local plr = info.player
             if plr and plr.Team and plr.TeamColor then
                 circle.Color = plr.TeamColor.Color
             else
                 circle.Color = Color3.fromRGB(255, 50, 50)
             end
-        elseif info.kind == "npc" then
-            circle.Color = Color3.fromRGB(0, 0, 0)
-        elseif info.kind == "self" then
-            circle.Color = Color3.fromRGB(0, 0, 0)
         else
-            circle.Color = Color3.fromRGB(150, 150, 150)
+            circle.Filled = false
+            circle.Thickness = 2
+            circle.Transparency = 0.2
+            if info.kind == "npc" then
+                circle.Color = Color3.fromRGB(0, 0, 0)
+            elseif info.kind == "self" then
+                circle.Color = Color3.fromRGB(0, 0, 0)
+            else
+                circle.Color = Color3.fromRGB(150, 150, 150)
+            end
         end
     else
         circle.Filled = true
@@ -470,7 +475,7 @@ local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbS
 
 StarterGui:SetCore("SendNotification", {
     Title = "Echo Locator",
-    Text = "version V1.5",
+    Text = "version V2.0",
     Icon = content,
     Duration = 7
 })
