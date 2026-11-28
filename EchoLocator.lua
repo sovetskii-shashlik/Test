@@ -1,4 +1,4 @@
---// Echo Locator V2.0
+--// Sound ESP V2.0
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -7,7 +7,7 @@ local StarterGui = game:GetService("StarterGui")
 local localPlayer = Players.LocalPlayer
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "EchoLocatorGUI"
+screenGui.Name = "SoundESPGUI"
 screenGui.Parent = game:GetService("CoreGui")
 
 local frame = Instance.new("Frame")
@@ -51,7 +51,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 25)
 title.Position = UDim2.new(0, 0, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "Echo Locator"
+title.Text = "Sound ESP"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
@@ -127,7 +127,7 @@ local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0.9, 0, 0, 30)
 toggleBtn.Position = UDim2.new(0.05, 0, 0, 70)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleBtn.Text = "Echo: OFF"
+toggleBtn.Text = "ESP: OFF"
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 toggleBtn.Parent = frame
 
@@ -177,7 +177,7 @@ local function toggleMinimize()
     isMinimized = not isMinimized
     if isMinimized then
         originalSize = frame.Size
-        title.Text = "EL"
+        title.Text = "SE"
         title.Size = UDim2.new(1, 0, 1, 0)
         title.Position = UDim2.new(0, 0, 0, 0)
         for _, el in ipairs(elementsToHide) do
@@ -187,7 +187,7 @@ local function toggleMinimize()
         invisibleExpandBtn.Visible = true
         invisibleExpandBtn.Active = true
     else
-        title.Text = "Echo Locator"
+        title.Text = "Sound ESP"
         title.Size = UDim2.new(1, 0, 0, 25)
         title.Position = UDim2.new(0, 0, 0, 5)
         for _, el in ipairs(elementsToHide) do
@@ -203,7 +203,7 @@ invisibleExpandBtn.MouseButton1Click:Connect(function()
     if isMinimized then toggleMinimize() end
 end)
 
-local echoActive = false
+local espActive = false
 local teamCheck = false
 local renderConnection = nil
 local circlePool = {}
@@ -427,12 +427,12 @@ local function onRender()
     statusLabel.Text = "Status: Tracking (" .. used .. ")"
 end
 
-local function startEcho()
+local function startESP()
     if renderConnection then return end
     renderConnection = RunService.RenderStepped:Connect(onRender)
 end
 
-local function stopEcho()
+local function stopESP()
     if renderConnection then
         renderConnection:Disconnect()
         renderConnection = nil
@@ -441,21 +441,21 @@ local function stopEcho()
     statusLabel.Text = "Status: Stopped"
 end
 
-local function toggleEcho()
-    echoActive = not echoActive
-    if echoActive then
-        startEcho()
-        toggleBtn.Text = "Echo: ON"
+local function toggleESP()
+    espActive = not espActive
+    if espActive then
+        startESP()
+        toggleBtn.Text = "ESP: ON"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
         statusLabel.Text = "Status: Tracking..."
     else
-        stopEcho()
-        toggleBtn.Text = "Echo: OFF"
+        stopESP()
+        toggleBtn.Text = "ESP: OFF"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     end
 end
 
-toggleBtn.MouseButton1Click:Connect(toggleEcho)
+toggleBtn.MouseButton1Click:Connect(toggleESP)
 
 teamCheckBtn.MouseButton1Click:Connect(function()
     teamCheck = not teamCheck
@@ -474,7 +474,7 @@ local thumbSize = Enum.ThumbnailSize.Size420x420
 local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
 
 StarterGui:SetCore("SendNotification", {
-    Title = "Echo Locator",
+    Title = "Sound ESP",
     Text = "version V2.0",
     Icon = content,
     Duration = 7
